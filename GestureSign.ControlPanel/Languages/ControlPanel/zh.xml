@@ -234,9 +234,11 @@ QQ交流群：576981420
     <Enabled>边缘触控</Enabled>
     <WindowDrag>窗口拖动</WindowDrag>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
-    <WindowDragImplementation>窗口移动方式</WindowDragImplementation>
+    <WindowDragEnabled>启用拖移</WindowDragEnabled>
+    <WindowDragImplementation>拖移方式</WindowDragImplementation>
     <DirectSetWindowPos>底部锚点：直接移动窗口 (SetWindowPos)</DirectSetWindowPos>
     <SimulatedMouseDrag>底部锚点：模拟鼠标按住</SimulatedMouseDrag>
+    <ThreeFingerDrag>三指拖移（停用已录入三指手势）</ThreeFingerDrag>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
     <FixedGestures>固定边缘手势</FixedGestures>
     <OneFinger>一根手指</OneFinger>

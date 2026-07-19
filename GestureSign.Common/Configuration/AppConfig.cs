@@ -311,13 +311,18 @@ namespace GestureSign.Common.Configuration
             {
                 int storedMode = GetValue(nameof(TouchpadWindowDragMode), 0);
                 // Value 2 was the removed free-anchor mode; keep existing users enabled on the supported mode.
+                if (storedMode == (int)TouchpadWindowDragMode.ThreeFingerDrag)
+                    return TouchpadWindowDragMode.ThreeFingerDrag;
                 return storedMode == (int)TouchpadWindowDragMode.BottomEdgeAnchor || storedMode == 2
                     ? TouchpadWindowDragMode.BottomEdgeAnchor
                     : TouchpadWindowDragMode.Disabled;
             }
             set
             {
-                SetValue(nameof(TouchpadWindowDragMode), value == TouchpadWindowDragMode.BottomEdgeAnchor ? 1 : 0);
+                int storedMode = value == TouchpadWindowDragMode.ThreeFingerDrag
+                    ? (int)TouchpadWindowDragMode.ThreeFingerDrag
+                    : value == TouchpadWindowDragMode.BottomEdgeAnchor ? 1 : 0;
+                SetValue(nameof(TouchpadWindowDragMode), storedMode);
             }
         }
 
@@ -325,15 +330,19 @@ namespace GestureSign.Common.Configuration
         {
             get
             {
-                return GetValue(nameof(TouchpadWindowDragImplementation), 0) ==
-                       (int)TouchpadWindowDragImplementation.SimulatedMouseDrag
+                int storedImplementation = GetValue(nameof(TouchpadWindowDragImplementation), 0);
+                if (storedImplementation == (int)TouchpadWindowDragImplementation.ThreeFingerDrag)
+                    return TouchpadWindowDragImplementation.ThreeFingerDrag;
+                return storedImplementation == (int)TouchpadWindowDragImplementation.SimulatedMouseDrag
                     ? TouchpadWindowDragImplementation.SimulatedMouseDrag
                     : TouchpadWindowDragImplementation.DirectSetWindowPos;
             }
             set
             {
-                SetValue(nameof(TouchpadWindowDragImplementation),
-                    value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0);
+                int storedImplementation = value == TouchpadWindowDragImplementation.ThreeFingerDrag
+                    ? (int)TouchpadWindowDragImplementation.ThreeFingerDrag
+                    : value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0;
+                SetValue(nameof(TouchpadWindowDragImplementation), storedImplementation);
             }
         }
 

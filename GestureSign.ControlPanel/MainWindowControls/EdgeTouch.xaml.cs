@@ -101,7 +101,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
             try
             {
                 EdgeTouchSwitch.IsChecked = AppConfig.TouchpadEdgeGesturesEnabled;
-                WindowDragSwitch.IsChecked = AppConfig.TouchpadWindowDragMode == TouchpadWindowDragMode.BottomEdgeAnchor;
+                WindowDragSwitch.IsChecked = AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled;
                 WindowDragImplementationComboBox.ItemsSource = new[]
                 {
                     new WindowDragImplementationChoice
@@ -113,6 +113,11 @@ namespace GestureSign.ControlPanel.MainWindowControls
                     {
                         Value = TouchpadWindowDragImplementation.SimulatedMouseDrag,
                         DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.SimulatedMouseDrag")
+                    },
+                    new WindowDragImplementationChoice
+                    {
+                        Value = TouchpadWindowDragImplementation.ThreeFingerDrag,
+                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.ThreeFingerDrag")
                     }
                 };
                 WindowDragImplementationComboBox.SelectedValue = AppConfig.TouchpadWindowDragImplementation;
@@ -183,7 +188,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
         {
             if (!_loading)
                 AppConfig.TouchpadWindowDragMode = WindowDragSwitch.IsChecked.GetValueOrDefault()
-                    ? TouchpadWindowDragMode.BottomEdgeAnchor
+                    ? GetSelectedWindowDragMode()
                     : TouchpadWindowDragMode.Disabled;
         }
 
@@ -192,8 +197,27 @@ namespace GestureSign.ControlPanel.MainWindowControls
             if (_loading || WindowDragImplementationComboBox.SelectedValue == null)
                 return;
 
-            AppConfig.TouchpadWindowDragImplementation =
-                (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue;
+            var implementation = (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue;
+            AppConfig.TouchpadWindowDragImplementation = implementation;
+            if (WindowDragSwitch.IsChecked.GetValueOrDefault())
+                AppConfig.TouchpadWindowDragMode = GetWindowDragMode(implementation);
+        }
+
+        private TouchpadWindowDragMode GetSelectedWindowDragMode()
+        {
+            if (WindowDragImplementationComboBox.SelectedValue == null)
+                return TouchpadWindowDragMode.BottomEdgeAnchor;
+
+            return GetWindowDragMode(
+                (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue);
+        }
+
+        private static TouchpadWindowDragMode GetWindowDragMode(
+            TouchpadWindowDragImplementation implementation)
+        {
+            return implementation == TouchpadWindowDragImplementation.ThreeFingerDrag
+                ? TouchpadWindowDragMode.ThreeFingerDrag
+                : TouchpadWindowDragMode.BottomEdgeAnchor;
         }
 
         private void FixedGestureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

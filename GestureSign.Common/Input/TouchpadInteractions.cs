@@ -36,13 +36,15 @@ namespace GestureSign.Common.Input
     public enum TouchpadWindowDragMode
     {
         Disabled = 0,
-        BottomEdgeAnchor
+        BottomEdgeAnchor = 1,
+        ThreeFingerDrag = 3
     }
 
     public enum TouchpadWindowDragImplementation
     {
         DirectSetWindowPos = 0,
         SimulatedMouseDrag = 1,
+        ThreeFingerDrag = 2,
         [Obsolete("Use SimulatedMouseDrag.")]
         SimulatedCaptionDrag = SimulatedMouseDrag
     }
@@ -156,6 +158,12 @@ namespace GestureSign.Common.Input
         private long? _anchorMissingSinceTimestamp;
         private int? _movingContactIdentifier;
 
+        private readonly List<int> _threeFingerContactIdentifiers = new List<int>(3);
+        private bool _threeFingerTracking;
+        private bool _threeFingerBaselineValid;
+        private TouchpadContact _threeFingerBaseline;
+        private TouchpadContact _lastThreeFingerCentroid;
+
         private TouchpadEdge _edge;
         private EdgeTrackingMode _edgeTrackingMode;
         private double _edgeLastAlongDisplacement;
@@ -206,7 +214,15 @@ namespace GestureSign.Common.Input
             var output = new List<TouchpadInteractionEvent>();
             if (_windowDragActive)
             {
-                ProcessActiveWindowDrag(timestampMilliseconds, output);
+                if (_options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag)
+                    ProcessThreeFingerWindowDrag(output);
+                else
+                    ProcessActiveWindowDrag(timestampMilliseconds, output);
+            }
+            else if (_options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag &&
+                     (_threeFingerTracking || (!_claimed && _activeContacts.Count >= 3)))
+            {
+                ProcessThreeFingerWindowDrag(output);
             }
             else if (!_claimed)
             {
@@ -238,6 +254,11 @@ namespace GestureSign.Common.Input
             _anchorContactIdentifier = null;
             _anchorMissingSinceTimestamp = null;
             _movingContactIdentifier = null;
+            _threeFingerContactIdentifiers.Clear();
+            _threeFingerTracking = false;
+            _threeFingerBaselineValid = false;
+            _threeFingerBaseline = default(TouchpadContact);
+            _lastThreeFingerCentroid = default(TouchpadContact);
             _edgeContactIdentifiers.Clear();
             _edgeContactStarts.Clear();
             _edgeTrackingMode = EdgeTrackingMode.Candidate;
@@ -298,6 +319,94 @@ namespace GestureSign.Common.Input
             _lastAnchorContact = anchor.Value;
             _anchorStartTimestamp = timestampMilliseconds;
             _anchorMissingSinceTimestamp = null;
+        }
+
+        private void ProcessThreeFingerWindowDrag(List<TouchpadInteractionEvent> output)
+        {
+            if (!_threeFingerTracking)
+            {
+                _threeFingerTracking = true;
+                _claimed = true;
+                CloseEdgeCandidate();
+            }
+
+            if (_activeContacts.Count != 3)
+            {
+                _threeFingerContactIdentifiers.Clear();
+                _threeFingerBaselineValid = false;
+                if (_windowDragActive && !_windowDragMotionPaused)
+                {
+                    _windowDragMotionPaused = true;
+                    output.Add(TouchpadInteractionEvent.Window(
+                        TouchpadInteractionEventType.WindowDragPaused,
+                        _lastThreeFingerCentroid));
+                }
+                return;
+            }
+
+            List<TouchpadContact> contacts = _activeContacts.Values
+                .OrderBy(contact => contact.ContactIdentifier)
+                .ToList();
+            TouchpadContact centroid = GetCentroid(contacts);
+            bool sameContacts = _threeFingerBaselineValid &&
+                                contacts.Select(contact => contact.ContactIdentifier)
+                                    .SequenceEqual(_threeFingerContactIdentifiers);
+            if (!sameContacts)
+            {
+                bool rebaseActiveDrag = _windowDragActive;
+                if (rebaseActiveDrag && !_windowDragMotionPaused)
+                {
+                    output.Add(TouchpadInteractionEvent.Window(
+                        TouchpadInteractionEventType.WindowDragPaused,
+                        _lastThreeFingerCentroid));
+                }
+
+                ConfigureThreeFingerBaseline(contacts, centroid);
+                if (rebaseActiveDrag)
+                {
+                    _windowDragMotionPaused = false;
+                    output.Add(TouchpadInteractionEvent.Window(
+                        TouchpadInteractionEventType.WindowDragResumed,
+                        centroid));
+                }
+                return;
+            }
+
+            _lastThreeFingerCentroid = centroid;
+            if (!_windowDragActive)
+            {
+                if (GetDistance(centroid, _threeFingerBaseline) < _options.WindowDragActivationDistance)
+                    return;
+
+                _windowDragActive = true;
+                _windowDragMotionPaused = false;
+                output.Add(TouchpadInteractionEvent.Window(
+                    TouchpadInteractionEventType.WindowDragStarted,
+                    centroid));
+                return;
+            }
+
+            TouchpadInteractionEventType eventType = _windowDragMotionPaused
+                ? TouchpadInteractionEventType.WindowDragResumed
+                : TouchpadInteractionEventType.WindowDragMoved;
+            _windowDragMotionPaused = false;
+            output.Add(TouchpadInteractionEvent.Window(eventType, centroid));
+        }
+
+        private void ConfigureThreeFingerBaseline(IReadOnlyList<TouchpadContact> contacts, TouchpadContact centroid)
+        {
+            _threeFingerContactIdentifiers.Clear();
+            _threeFingerContactIdentifiers.AddRange(contacts.Select(contact => contact.ContactIdentifier));
+            _threeFingerBaseline = centroid;
+            _lastThreeFingerCentroid = centroid;
+            _threeFingerBaselineValid = true;
+        }
+
+        private static TouchpadContact GetCentroid(IReadOnlyList<TouchpadContact> contacts)
+        {
+            double normalizedX = contacts.Average(contact => contact.NormalizedX);
+            double normalizedY = contacts.Average(contact => contact.NormalizedY);
+            return new TouchpadContact(contacts[0].ContactIdentifier, DeviceStates.Tip, normalizedX, normalizedY);
         }
 
         private void BeginEdgeCandidate(List<TouchpadContact> contacts)

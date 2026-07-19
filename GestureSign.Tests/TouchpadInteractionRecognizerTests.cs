@@ -361,6 +361,156 @@ namespace GestureSign.Tests
             Assert.False(released.SessionActive);
         }
 
+        [Fact]
+        public void ThreeFingerModeClaimsTheFrameWhereTheThirdFingerArrives()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            TouchpadInteractionFrameResult oneFinger = recognizer.ProcessFrame(Frame(Contact(1, 0.2, 0.3)), 0);
+            TouchpadInteractionFrameResult twoFingers = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3)), 20);
+            TouchpadInteractionFrameResult threeFingers = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3), Contact(3, 0.8, 0.3)), 40);
+
+            Assert.False(oneFinger.ClaimInput);
+            Assert.False(twoFingers.ClaimInput);
+            Assert.True(threeFingers.ClaimInput);
+            Assert.Empty(threeFingers.Events);
+        }
+
+        [Fact]
+        public void ThreeFingerTapClaimsWithoutStartingAMouseDrag()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            TouchpadInteractionFrameResult pressed = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3), Contact(3, 0.8, 0.3)), 0);
+            TouchpadInteractionFrameResult released = recognizer.ProcessFrame(Frame(), 80);
+
+            Assert.True(pressed.ClaimInput);
+            Assert.Empty(pressed.Events);
+            Assert.True(released.ClaimInput);
+            Assert.Empty(released.Events);
+            Assert.False(released.SessionActive);
+        }
+
+        [Fact]
+        public void ThreeFingerCentroidMovementStartsAndMovesDrag()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3), Contact(3, 0.8, 0.3)), 0);
+
+            TouchpadInteractionFrameResult belowThreshold = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.21, 0.3), Contact(2, 0.51, 0.3), Contact(3, 0.81, 0.3)), 20);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.23, 0.3), Contact(2, 0.53, 0.3), Contact(3, 0.83, 0.3)), 40);
+            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.25, 0.32), Contact(2, 0.55, 0.32), Contact(3, 0.85, 0.32)), 60);
+            TouchpadInteractionFrameResult released = recognizer.ProcessFrame(Frame(), 80);
+
+            Assert.Empty(belowThreshold.Events);
+            TouchpadInteractionEvent startedEvent = Assert.Single(started.Events);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, startedEvent.EventType);
+            Assert.Equal(0.53, startedEvent.NormalizedX, 3);
+            TouchpadInteractionEvent movedEvent = Assert.Single(moved.Events);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, movedEvent.EventType);
+            Assert.Equal(0.55, movedEvent.NormalizedX, 3);
+            Assert.Equal(0.32, movedEvent.NormalizedY, 3);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(released.Events).EventType);
+        }
+
+        [Fact]
+        public void ThreeFingerDragPausesAndRebasesWhenAFingerReturns()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+            StartThreeFingerDrag(recognizer);
+
+            TouchpadInteractionFrameResult paused = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.23, 0.3), Contact(2, 0.53, 0.3)), 60);
+            TouchpadInteractionFrameResult resumed = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.5), Contact(2, 0.7, 0.5), Contact(4, 0.9, 0.5)), 80);
+            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.52, 0.51), Contact(2, 0.72, 0.51), Contact(4, 0.92, 0.51)), 100);
+
+            Assert.Equal(TouchpadInteractionEventType.WindowDragPaused, Assert.Single(paused.Events).EventType);
+            TouchpadInteractionEvent resumedEvent = Assert.Single(resumed.Events);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragResumed, resumedEvent.EventType);
+            Assert.Equal(0.7, resumedEvent.NormalizedX, 3);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(moved.Events).EventType);
+        }
+
+        [Fact]
+        public void ThreeFingerReplacementInOneFramePausesThenRebases()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+            StartThreeFingerDrag(recognizer);
+
+            TouchpadInteractionFrameResult replaced = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.5), Contact(2, 0.7, 0.5), Contact(4, 0.9, 0.5)), 60);
+
+            Assert.Collection(replaced.Events,
+                interactionEvent => Assert.Equal(TouchpadInteractionEventType.WindowDragPaused, interactionEvent.EventType),
+                interactionEvent => Assert.Equal(TouchpadInteractionEventType.WindowDragResumed, interactionEvent.EventType));
+        }
+
+        [Fact]
+        public void ThreeFingerModeDoesNotActivateBottomAnchorDrag()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.5, 0.96)), 0);
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.96), Contact(2, 0.5, 0.5)), 110);
+            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.96), Contact(2, 0.55, 0.5)), 140);
+
+            Assert.False(moved.ClaimInput);
+            Assert.Empty(moved.Events);
+        }
+
+        [Fact]
+        public void TwoFingerEdgeGestureStillWorksInThreeFingerMode()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.TwoFingerLeftSwipeIn,
+                windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.3), Contact(2, 0.02, 0.7)), 0);
+            TouchpadInteractionFrameResult fired = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.14, 0.3), Contact(2, 0.14, 0.7)), 100);
+
+            Assert.True(fired.ClaimInput);
+            Assert.Equal(FixedEdgeGesture.TwoFingerLeftSwipeIn, Assert.Single(fired.Events).EdgeGesture);
+        }
+
+        [Fact]
+        public void ThirdFingerPreemptsUnclaimedTwoFingerEdgeCandidate()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.TwoFingerLeftSwipeIn,
+                windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.3), Contact(2, 0.02, 0.7)), 0);
+
+            TouchpadInteractionFrameResult thirdFinger = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.14, 0.3), Contact(2, 0.14, 0.7), Contact(3, 0.6, 0.5)), 100);
+
+            Assert.True(thirdFinger.ClaimInput);
+            Assert.Empty(thirdFinger.Events);
+        }
+
+        [Fact]
+        public void DisabledWindowDragLeavesThreeFingerInputUnclaimed()
+        {
+            var recognizer = CreateRecognizer();
+
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3), Contact(3, 0.8, 0.3)), 0);
+
+            Assert.False(result.ClaimInput);
+            Assert.Empty(result.Events);
+        }
+
         private static void StartBottomAnchoredDrag(TouchpadInteractionRecognizer recognizer, int anchorIdentifier, int movingIdentifier)
         {
             recognizer.ProcessFrame(Frame(Contact(anchorIdentifier, 0.5, 0.96)), 0);
@@ -368,6 +518,16 @@ namespace GestureSign.Tests
                 Frame(Contact(anchorIdentifier, 0.5, 0.96), Contact(movingIdentifier, 0.5, 0.5)), 110);
             TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
                 Frame(Contact(anchorIdentifier, 0.5, 0.96), Contact(movingIdentifier, 0.53, 0.5)), 130);
+
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        private static void StartThreeFingerDrag(TouchpadInteractionRecognizer recognizer)
+        {
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3), Contact(3, 0.8, 0.3)), 0);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.23, 0.3), Contact(2, 0.53, 0.3), Contact(3, 0.83, 0.3)), 40);
 
             Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
         }

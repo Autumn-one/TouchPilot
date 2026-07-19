@@ -16,10 +16,12 @@ namespace GestureSign.Daemon.Triggers
         private readonly WindowDragController _windowDragController = new WindowDragController();
         private Point _sessionStartPoint;
         private SystemWindow _sessionWindow;
+        private TouchpadWindowDragImplementation _sessionWindowDragImplementation;
 
         public TouchpadInteractionTrigger()
         {
-            _recognizer = CreateRecognizer();
+            _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
+            _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
             PointCapture.Instance.TouchpadFrame += PointCapture_TouchpadFrame;
         }
 
@@ -27,7 +29,8 @@ namespace GestureSign.Daemon.Triggers
         {
             if (!_recognizer.SessionActive)
             {
-                _recognizer = CreateRecognizer();
+                _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
+                _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
                 _sessionStartPoint = Cursor.Position;
                 _sessionWindow = ApplicationManager.Instance.GetWindowFromPoint(_sessionStartPoint);
             }
@@ -57,7 +60,7 @@ namespace GestureSign.Daemon.Triggers
                     break;
                 case TouchpadInteractionEventType.WindowDragStarted:
                     _windowDragController.Begin(_sessionWindow, interactionEvent.NormalizedX, interactionEvent.NormalizedY,
-                        AppConfig.TouchpadWindowDragImplementation);
+                        _sessionWindowDragImplementation);
                     break;
                 case TouchpadInteractionEventType.WindowDragMoved:
                     _windowDragController.Update(interactionEvent.NormalizedX, interactionEvent.NormalizedY, AppConfig.TouchpadWindowDragSensitivityPercent / 100d);
@@ -82,9 +85,17 @@ namespace GestureSign.Daemon.Triggers
                 OnTriggerFired(new TriggerFiredEventArgs(actions, _sessionStartPoint));
         }
 
-        private static TouchpadInteractionRecognizer CreateRecognizer()
+        private static TouchpadInteractionRecognizer CreateRecognizer(
+            TouchpadWindowDragImplementation windowDragImplementation)
         {
             bool enabled = AppConfig.TouchpadEdgeGesturesEnabled;
+            TouchpadWindowDragMode windowDragMode = AppConfig.TouchpadWindowDragMode;
+            if (windowDragMode != TouchpadWindowDragMode.Disabled)
+            {
+                windowDragMode = windowDragImplementation == TouchpadWindowDragImplementation.ThreeFingerDrag
+                    ? TouchpadWindowDragMode.ThreeFingerDrag
+                    : TouchpadWindowDragMode.BottomEdgeAnchor;
+            }
             var assignedGestures = new HashSet<FixedEdgeGesture>();
             if (enabled)
             {
@@ -102,7 +113,7 @@ namespace GestureSign.Daemon.Triggers
             {
                 EdgeGesturesEnabled = enabled,
                 EnabledEdgeGestures = assignedGestures,
-                WindowDragMode = enabled ? AppConfig.TouchpadWindowDragMode : TouchpadWindowDragMode.Disabled,
+                WindowDragMode = enabled ? windowDragMode : TouchpadWindowDragMode.Disabled,
                 EdgeZone = AppConfig.TouchpadEdgeZonePercent / 100d,
                 EdgeActivationDistance = activationDistance,
                 EdgeSlideStep = System.Math.Max(0.03, activationDistance * 0.625)

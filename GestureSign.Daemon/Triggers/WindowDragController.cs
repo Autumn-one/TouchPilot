@@ -48,7 +48,7 @@ namespace GestureSign.Daemon.Triggers
             _failureLogged = false;
             LastFailure = null;
 
-            if (implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
+            if (UsesSimulatedMouseDrag(implementation))
             {
                 if (!TryStartSimulatedMouseDrag())
                 {
@@ -79,7 +79,7 @@ namespace GestureSign.Daemon.Triggers
                 return false;
             }
 
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag &&
+            if (UsesSimulatedMouseDrag(_implementation) &&
                 (!_simulatedLeftButtonDown || !IsLeftButtonDown()))
             {
                 _simulatedLeftButtonDown = false;
@@ -115,7 +115,7 @@ namespace GestureSign.Daemon.Triggers
 
             _lastCommandedCursor = desiredCursor;
 
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
+            if (UsesSimulatedMouseDrag(_implementation))
                 return true;
 
             _pendingCursor = desiredCursor;
@@ -133,7 +133,7 @@ namespace GestureSign.Daemon.Triggers
                 return false;
 
             Point cursor = Cursor.Position;
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
+            if (UsesSimulatedMouseDrag(_implementation))
             {
                 if (!TryStartSimulatedMouseDrag())
                 {
@@ -153,7 +153,7 @@ namespace GestureSign.Daemon.Triggers
 
         public void Pause()
         {
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
+            if (UsesSimulatedMouseDrag(_implementation))
                 ReleaseSimulatedLeftButton();
             else
                 FlushPendingPosition();
@@ -237,6 +237,12 @@ namespace GestureSign.Daemon.Triggers
         private static bool IsLeftButtonDown()
         {
             return (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LBUTTON) & 0x8000) != 0;
+        }
+
+        private static bool UsesSimulatedMouseDrag(TouchpadWindowDragImplementation implementation)
+        {
+            return implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag ||
+                   implementation == TouchpadWindowDragImplementation.ThreeFingerDrag;
         }
 
         private void ReleaseSimulatedLeftButton()

@@ -21,13 +21,13 @@
                        FontWeight="SemiBold" />
             <controls:ToggleSwitch x:Name="WindowDragSwitch"
                                    Margin="0,12,0,0"
-                                   Header="{localization:LocalisedText EdgeTouch.BottomAnchor}"
+                                   Header="{localization:LocalisedText EdgeTouch.WindowDragEnabled}"
                                    OnLabel="{localization:LocalisedText Options.OnLabel}"
                                    OffLabel="{localization:LocalisedText Options.OffLabel}"
                                    Click="WindowDragSwitch_Click" />
             <Grid Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="210" />
+                    <ColumnDefinition Width="170" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="{localization:LocalisedText EdgeTouch.WindowDragImplementation}"
@@ -35,7 +35,7 @@
                            VerticalAlignment="Center" />
                 <ComboBox x:Name="WindowDragImplementationComboBox"
                           Grid.Column="1"
-                          Width="280"
+                          Width="350"
                           HorizontalAlignment="Left"
                           DisplayMemberPath="DisplayName"
                           SelectedValuePath="Value"

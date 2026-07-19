@@ -118,9 +118,12 @@ namespace GestureSign.Tests
             }
         }
 
-        [Fact]
+        [Theory]
+        [InlineData(TouchpadWindowDragImplementation.SimulatedMouseDrag)]
+        [InlineData(TouchpadWindowDragImplementation.ThreeFingerDrag)]
         [Trait("Category", "WindowsIntegration")]
-        public void SimulatedMouseControllerKeepsCursorPositionAndDragsCaption()
+        public void SimulatedMouseControllerKeepsCursorPositionAndDragsCaption(
+            TouchpadWindowDragImplementation implementation)
         {
             RunWithSimulatedMouseTestWindow((form, textBox, window, controller) =>
             {
@@ -131,7 +134,7 @@ namespace GestureSign.Tests
                 AssertCaptionPoint(window.HWnd, initialCursor);
                 Cursor.Position = initialCursor;
 
-                bool started = controller.Begin(window, 0.50, 0.50, TouchpadWindowDragImplementation.SimulatedMouseDrag);
+                bool started = controller.Begin(window, 0.50, 0.50, implementation);
                 Assert.True(started, controller.LastFailure);
                 Assert.Equal(initialCursor, Cursor.Position);
                 Thread.Sleep(100);
@@ -177,9 +180,12 @@ namespace GestureSign.Tests
             });
         }
 
-        [Fact]
+        [Theory]
+        [InlineData(TouchpadWindowDragImplementation.SimulatedMouseDrag)]
+        [InlineData(TouchpadWindowDragImplementation.ThreeFingerDrag)]
         [Trait("Category", "WindowsIntegration")]
-        public void SimulatedMouseControllerSelectsClientTextWithoutMovingWindow()
+        public void SimulatedMouseControllerSelectsClientTextWithoutMovingWindow(
+            TouchpadWindowDragImplementation implementation)
         {
             RunWithSimulatedMouseTestWindow((form, textBox, window, controller) =>
             {
@@ -189,7 +195,7 @@ namespace GestureSign.Tests
                 Assert.Equal(form.Handle, NativeMethods.GetAncestor(hitWindow, NativeMethods.GA_ROOT));
                 Cursor.Position = initialCursor;
 
-                bool started = controller.Begin(window, 0.50, 0.50, TouchpadWindowDragImplementation.SimulatedMouseDrag);
+                bool started = controller.Begin(window, 0.50, 0.50, implementation);
                 Assert.True(started, controller.LastFailure);
                 Assert.Equal(initialCursor, Cursor.Position);
                 Thread.Sleep(100);
