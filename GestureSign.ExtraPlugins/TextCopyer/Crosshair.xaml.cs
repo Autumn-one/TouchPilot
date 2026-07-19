@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -43,8 +42,8 @@ namespace GestureSign.ExtraPlugins.TextCopyer
 
             if (disposing)
             {
-                // Free any other managed objects here.
-                _myCursor?.Dispose();
+                if (!ReferenceEquals(_myCursor, Cursors.Cross))
+                    _myCursor?.Dispose();
             }
 
             // Free any unmanaged objects here.
@@ -60,8 +59,7 @@ namespace GestureSign.ExtraPlugins.TextCopyer
                 _isMove = true;
                 Dragger.Source = null;
                 if (_myCursor == null)
-                    // use file path to avoid System.IO.IOException caused by GetTempFileName in System.Windows.Input.Cursor.LoadFromStream
-                    _myCursor = new Cursor(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets\\crosshair.cur"));
+                    _myCursor = Cursors.Cross;
                 Dragger.Cursor = _myCursor;
                 Dragger.CaptureMouse();
             }
