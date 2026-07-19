@@ -239,6 +239,8 @@ QQ交流群：576981420
     <SimulatedCaptionDrag>模拟按住标题栏</SimulatedCaptionDrag>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
     <FixedGestures>固定边缘手势</FixedGestures>
+    <OneFinger>一根手指</OneFinger>
+    <TwoFingers>两根手指</TwoFingers>
     <LeftEdge>左边缘</LeftEdge>
     <RightEdge>右边缘</RightEdge>
     <TopEdge>顶部边缘</TopEdge>

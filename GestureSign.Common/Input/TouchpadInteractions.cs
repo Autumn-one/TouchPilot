@@ -18,7 +18,19 @@ namespace GestureSign.Common.Input
         TopSlideRight,
         BottomSwipeIn,
         BottomSlideLeft,
-        BottomSlideRight
+        BottomSlideRight,
+        TwoFingerLeftSwipeIn,
+        TwoFingerLeftSlideUp,
+        TwoFingerLeftSlideDown,
+        TwoFingerRightSwipeIn,
+        TwoFingerRightSlideUp,
+        TwoFingerRightSlideDown,
+        TwoFingerTopSwipeIn,
+        TwoFingerTopSlideLeft,
+        TwoFingerTopSlideRight,
+        TwoFingerBottomSwipeIn,
+        TwoFingerBottomSlideLeft,
+        TwoFingerBottomSlideRight
     }
 
     public enum TouchpadWindowDragMode
@@ -122,10 +134,13 @@ namespace GestureSign.Common.Input
         }
 
         private static readonly IReadOnlyList<TouchpadInteractionEvent> NoEvents = Array.Empty<TouchpadInteractionEvent>();
+        private const int TwoFingerGestureOffset = 12;
 
         private readonly TouchpadInteractionOptions _options;
         private readonly Dictionary<int, TouchpadContact> _activeContacts = new Dictionary<int, TouchpadContact>();
         private readonly Dictionary<int, TouchpadContact> _contactStarts = new Dictionary<int, TouchpadContact>();
+        private readonly List<int> _edgeContactIdentifiers = new List<int>(2);
+        private readonly Dictionary<int, TouchpadContact> _edgeContactStarts = new Dictionary<int, TouchpadContact>(2);
 
         private bool _sessionActive;
         private bool _claimed;
@@ -138,11 +153,11 @@ namespace GestureSign.Common.Input
         private long? _anchorMissingSinceTimestamp;
         private int? _movingContactIdentifier;
 
-        private int? _edgeContactIdentifier;
-        private TouchpadContact _edgeStart;
         private TouchpadEdge _edge;
         private EdgeTrackingMode _edgeTrackingMode;
-        private double _edgeLastAlongPosition;
+        private double _edgeLastAlongDisplacement;
+        private int _edgeObservedContactCount;
+        private bool _edgeCandidateClosed;
 
         public TouchpadInteractionRecognizer(TouchpadInteractionOptions options)
         {
@@ -192,9 +207,9 @@ namespace GestureSign.Common.Input
             }
             else if (!_claimed)
             {
-                TryActivateWindowDrag(timestampMilliseconds, output);
+                ProcessEdgeCandidate(timestampMilliseconds, output);
                 if (!_claimed)
-                    ProcessEdgeCandidate(timestampMilliseconds, output);
+                    TryActivateWindowDrag(timestampMilliseconds, output);
             }
             else if (_edgeTrackingMode == EdgeTrackingMode.Slide)
             {
@@ -215,9 +230,12 @@ namespace GestureSign.Common.Input
             _anchorContactIdentifier = null;
             _anchorMissingSinceTimestamp = null;
             _movingContactIdentifier = null;
-            _edgeContactIdentifier = null;
+            _edgeContactIdentifiers.Clear();
+            _edgeContactStarts.Clear();
             _edgeTrackingMode = EdgeTrackingMode.Candidate;
-            _edgeLastAlongPosition = 0;
+            _edgeLastAlongDisplacement = 0;
+            _edgeObservedContactCount = 0;
+            _edgeCandidateClosed = false;
         }
 
         private void UpdateActiveContacts(IReadOnlyList<TouchpadContact> contacts)
@@ -247,7 +265,7 @@ namespace GestureSign.Common.Input
 
             List<TouchpadContact> activeInFrameOrder = contacts.Where(contact => contact.IsActive).ToList();
             ConfigureAnchorCandidate(activeInFrameOrder, timestampMilliseconds);
-            ConfigureEdgeCandidate(activeInFrameOrder);
+            BeginEdgeCandidate(activeInFrameOrder);
         }
 
         private void ConfigureAnchorCandidate(List<TouchpadContact> contacts, long timestampMilliseconds)
@@ -274,21 +292,43 @@ namespace GestureSign.Common.Input
             _anchorMissingSinceTimestamp = null;
         }
 
-        private void ConfigureEdgeCandidate(List<TouchpadContact> contacts)
+        private void BeginEdgeCandidate(List<TouchpadContact> contacts)
         {
-            if (!_options.EdgeGesturesEnabled || _options.EnabledEdgeGestures.Count == 0 || contacts.Count != 1)
+            if (!_options.EdgeGesturesEnabled || _options.EnabledEdgeGestures.Count == 0)
+            {
+                _edgeCandidateClosed = true;
                 return;
+            }
 
+            _edgeObservedContactCount = contacts.Count;
+            if (contacts.Count == 0 || contacts.Count > 2)
+            {
+                _edgeCandidateClosed = true;
+                return;
+            }
+
+            if (!TryConfigureEdgeCandidate(contacts) && contacts.Count == 2)
+                _edgeCandidateClosed = true;
+        }
+
+        private bool TryConfigureEdgeCandidate(IReadOnlyList<TouchpadContact> contacts)
+        {
             TouchpadEdge edge;
-            TouchpadContact contact = contacts[0];
-            if (!TryGetClosestEnabledEdge(contact, out edge))
-                return;
+            if (!TryGetClosestEnabledEdge(contacts, contacts.Count, out edge))
+                return false;
 
-            _edgeContactIdentifier = contact.ContactIdentifier;
-            _edgeStart = contact;
+            _edgeContactIdentifiers.Clear();
+            _edgeContactStarts.Clear();
+            foreach (TouchpadContact contact in contacts)
+            {
+                _edgeContactIdentifiers.Add(contact.ContactIdentifier);
+                _edgeContactStarts[contact.ContactIdentifier] = contact;
+            }
+
             _edge = edge;
             _edgeTrackingMode = EdgeTrackingMode.Candidate;
-            _edgeLastAlongPosition = GetAlongPosition(edge, contact);
+            _edgeLastAlongDisplacement = 0;
+            return true;
         }
 
         private void TryActivateWindowDrag(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
@@ -326,7 +366,7 @@ namespace GestureSign.Common.Input
             _claimed = true;
             _windowDragActive = true;
             _anchorMissingSinceTimestamp = null;
-            _edgeContactIdentifier = null;
+            CloseEdgeCandidate();
             output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragStarted, currentMoving));
         }
 
@@ -435,72 +475,104 @@ namespace GestureSign.Common.Input
 
         private void ProcessEdgeCandidate(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
         {
-            if (!_edgeContactIdentifier.HasValue || _activeContacts.Count != 1 || timestampMilliseconds - _sessionStartTimestamp > _options.EdgeGestureTimeoutMilliseconds)
+            if (_edgeCandidateClosed)
+                return;
+
+            if (timestampMilliseconds - _sessionStartTimestamp > _options.EdgeGestureTimeoutMilliseconds ||
+                _activeContacts.Count > 2)
             {
-                _edgeContactIdentifier = null;
+                CloseEdgeCandidate();
                 return;
             }
 
-            TouchpadContact current;
-            if (!_activeContacts.TryGetValue(_edgeContactIdentifier.Value, out current))
-                return;
+            if (_activeContacts.Count > _edgeObservedContactCount)
+            {
+                _edgeObservedContactCount = _activeContacts.Count;
+                if (_activeContacts.Count == 2 &&
+                    TryConfigureEdgeCandidate(_activeContacts.Values.ToList()))
+                    return;
 
-            double inward = GetInwardDisplacement(_edge, _edgeStart, current);
-            double along = GetAlongPosition(_edge, current) - GetAlongPosition(_edge, _edgeStart);
-            FixedEdgeGesture inwardGesture = GetInwardGesture(_edge);
-            FixedEdgeGesture alongGesture = GetAlongGesture(_edge, along);
+                CloseEdgeCandidate();
+                return;
+            }
+
+            if (_activeContacts.Count != _edgeObservedContactCount || _edgeContactIdentifiers.Count == 0)
+            {
+                if (_activeContacts.Count != _edgeObservedContactCount)
+                    CloseEdgeCandidate();
+                return;
+            }
+
+            List<TouchpadContact> currentContacts;
+            if (!TryGetTrackedEdgeContacts(out currentContacts))
+            {
+                CloseEdgeCandidate();
+                return;
+            }
+
+            int fingerCount = _edgeContactIdentifiers.Count;
+            double inward = GetMinimumInwardDisplacement(currentContacts);
+            double along = GetConsistentAlongDisplacement(currentContacts);
+            double averageAlong = GetAverageAlongDisplacement(currentContacts);
+            FixedEdgeGesture inwardGesture = GetInwardGesture(_edge, fingerCount);
+            FixedEdgeGesture alongGesture = GetAlongGesture(_edge, along, fingerCount);
             bool inwardEnabled = _options.EnabledEdgeGestures.Contains(inwardGesture);
             bool alongEnabled = alongGesture != FixedEdgeGesture.None && _options.EnabledEdgeGestures.Contains(alongGesture);
 
             double inwardProgress = inwardEnabled && inward > 0 ? inward / _options.EdgeActivationDistance : 0;
             double alongProgress = alongEnabled ? Math.Abs(along) / _options.EdgeSlideStep : 0;
 
-            if (inwardProgress >= 1 && inwardProgress >= alongProgress && Math.Abs(along) <= inward * 1.5)
+            if (inwardProgress >= 1 && inwardProgress >= alongProgress && Math.Abs(averageAlong) <= inward * 1.5)
             {
                 _claimed = true;
+                _edgeCandidateClosed = true;
                 _edgeTrackingMode = EdgeTrackingMode.Completed;
                 output.Add(TouchpadInteractionEvent.Edge(inwardGesture));
             }
             else if (alongProgress >= 1 && alongProgress > inwardProgress)
             {
                 _claimed = true;
+                _edgeCandidateClosed = true;
                 _edgeTrackingMode = EdgeTrackingMode.Slide;
-                EmitEdgeSlideSteps(current, output);
+                EmitEdgeSlideSteps(currentContacts, output);
             }
         }
 
         private void ProcessClaimedEdgeSlide(List<TouchpadInteractionEvent> output)
         {
-            TouchpadContact current;
-            if (_edgeContactIdentifier.HasValue && _activeContacts.TryGetValue(_edgeContactIdentifier.Value, out current))
-                EmitEdgeSlideSteps(current, output);
+            if (_activeContacts.Count != _edgeContactIdentifiers.Count)
+                return;
+
+            List<TouchpadContact> currentContacts;
+            if (TryGetTrackedEdgeContacts(out currentContacts))
+                EmitEdgeSlideSteps(currentContacts, output);
         }
 
-        private void EmitEdgeSlideSteps(TouchpadContact current, List<TouchpadInteractionEvent> output)
+        private void EmitEdgeSlideSteps(IReadOnlyList<TouchpadContact> currentContacts, List<TouchpadInteractionEvent> output)
         {
-            double currentAlong = GetAlongPosition(_edge, current);
-            double delta = currentAlong - _edgeLastAlongPosition;
+            double currentAlongDisplacement = GetConsistentAlongDisplacement(currentContacts);
+            double delta = currentAlongDisplacement - _edgeLastAlongDisplacement;
             if (Math.Abs(delta) < _options.EdgeSlideStep)
                 return;
 
             int direction = Math.Sign(delta);
-            FixedEdgeGesture gesture = GetAlongGesture(_edge, direction);
+            FixedEdgeGesture gesture = GetAlongGesture(_edge, direction, _edgeContactIdentifiers.Count);
             if (!_options.EnabledEdgeGestures.Contains(gesture))
                 return;
 
             int steps = Math.Min(4, (int)(Math.Abs(delta) / _options.EdgeSlideStep));
             for (int i = 0; i < steps; i++)
                 output.Add(TouchpadInteractionEvent.Edge(gesture));
-            _edgeLastAlongPosition += direction * steps * _options.EdgeSlideStep;
+            _edgeLastAlongDisplacement += direction * steps * _options.EdgeSlideStep;
         }
 
-        private bool TryGetClosestEnabledEdge(TouchpadContact contact, out TouchpadEdge edge)
+        private bool TryGetClosestEnabledEdge(IReadOnlyList<TouchpadContact> contacts, int fingerCount, out TouchpadEdge edge)
         {
             var candidates = new List<KeyValuePair<TouchpadEdge, double>>();
-            AddEdgeCandidate(candidates, TouchpadEdge.Left, contact.NormalizedX);
-            AddEdgeCandidate(candidates, TouchpadEdge.Right, 1 - contact.NormalizedX);
-            AddEdgeCandidate(candidates, TouchpadEdge.Top, contact.NormalizedY);
-            AddEdgeCandidate(candidates, TouchpadEdge.Bottom, 1 - contact.NormalizedY);
+            AddEdgeCandidate(candidates, TouchpadEdge.Left, contacts, fingerCount);
+            AddEdgeCandidate(candidates, TouchpadEdge.Right, contacts, fingerCount);
+            AddEdgeCandidate(candidates, TouchpadEdge.Top, contacts, fingerCount);
+            AddEdgeCandidate(candidates, TouchpadEdge.Bottom, contacts, fingerCount);
 
             if (candidates.Count == 0)
             {
@@ -512,49 +584,144 @@ namespace GestureSign.Common.Input
             return true;
         }
 
-        private void AddEdgeCandidate(List<KeyValuePair<TouchpadEdge, double>> candidates, TouchpadEdge edge, double distance)
+        private void AddEdgeCandidate(List<KeyValuePair<TouchpadEdge, double>> candidates, TouchpadEdge edge,
+            IReadOnlyList<TouchpadContact> contacts, int fingerCount)
         {
-            if (distance <= _options.EdgeZone && HasEnabledGesture(edge))
-                candidates.Add(new KeyValuePair<TouchpadEdge, double>(edge, distance));
-        }
+            if (!HasEnabledGesture(edge, fingerCount))
+                return;
 
-        private bool HasEnabledGesture(TouchpadEdge edge)
-        {
-            return _options.EnabledEdgeGestures.Contains(GetInwardGesture(edge)) ||
-                   _options.EnabledEdgeGestures.Contains(GetAlongGesture(edge, -1)) ||
-                   _options.EnabledEdgeGestures.Contains(GetAlongGesture(edge, 1));
-        }
-
-        private static FixedEdgeGesture GetInwardGesture(TouchpadEdge edge)
-        {
-            switch (edge)
+            double maximumDistance = contacts.Max(contact => GetEdgeDistance(edge, contact));
+            if (maximumDistance <= _options.EdgeZone)
             {
-                case TouchpadEdge.Left: return FixedEdgeGesture.LeftSwipeIn;
-                case TouchpadEdge.Right: return FixedEdgeGesture.RightSwipeIn;
-                case TouchpadEdge.Top: return FixedEdgeGesture.TopSwipeIn;
-                case TouchpadEdge.Bottom: return FixedEdgeGesture.BottomSwipeIn;
-                default: return FixedEdgeGesture.None;
+                double averageDistance = contacts.Average(contact => GetEdgeDistance(edge, contact));
+                candidates.Add(new KeyValuePair<TouchpadEdge, double>(edge, averageDistance));
             }
         }
 
-        private static FixedEdgeGesture GetAlongGesture(TouchpadEdge edge, double direction)
+        private bool HasEnabledGesture(TouchpadEdge edge, int fingerCount)
+        {
+            return _options.EnabledEdgeGestures.Contains(GetInwardGesture(edge, fingerCount)) ||
+                   _options.EnabledEdgeGestures.Contains(GetAlongGesture(edge, -1, fingerCount)) ||
+                   _options.EnabledEdgeGestures.Contains(GetAlongGesture(edge, 1, fingerCount));
+        }
+
+        private static FixedEdgeGesture GetInwardGesture(TouchpadEdge edge, int fingerCount)
+        {
+            FixedEdgeGesture gesture;
+            switch (edge)
+            {
+                case TouchpadEdge.Left: gesture = FixedEdgeGesture.LeftSwipeIn; break;
+                case TouchpadEdge.Right: gesture = FixedEdgeGesture.RightSwipeIn; break;
+                case TouchpadEdge.Top: gesture = FixedEdgeGesture.TopSwipeIn; break;
+                case TouchpadEdge.Bottom: gesture = FixedEdgeGesture.BottomSwipeIn; break;
+                default: gesture = FixedEdgeGesture.None; break;
+            }
+            return ForFingerCount(gesture, fingerCount);
+        }
+
+        private static FixedEdgeGesture GetAlongGesture(TouchpadEdge edge, double direction, int fingerCount)
         {
             if (direction == 0)
                 return FixedEdgeGesture.None;
 
+            FixedEdgeGesture gesture;
             switch (edge)
             {
                 case TouchpadEdge.Left:
-                    return direction < 0 ? FixedEdgeGesture.LeftSlideUp : FixedEdgeGesture.LeftSlideDown;
+                    gesture = direction < 0 ? FixedEdgeGesture.LeftSlideUp : FixedEdgeGesture.LeftSlideDown;
+                    break;
                 case TouchpadEdge.Right:
-                    return direction < 0 ? FixedEdgeGesture.RightSlideUp : FixedEdgeGesture.RightSlideDown;
+                    gesture = direction < 0 ? FixedEdgeGesture.RightSlideUp : FixedEdgeGesture.RightSlideDown;
+                    break;
                 case TouchpadEdge.Top:
-                    return direction < 0 ? FixedEdgeGesture.TopSlideLeft : FixedEdgeGesture.TopSlideRight;
+                    gesture = direction < 0 ? FixedEdgeGesture.TopSlideLeft : FixedEdgeGesture.TopSlideRight;
+                    break;
                 case TouchpadEdge.Bottom:
-                    return direction < 0 ? FixedEdgeGesture.BottomSlideLeft : FixedEdgeGesture.BottomSlideRight;
+                    gesture = direction < 0 ? FixedEdgeGesture.BottomSlideLeft : FixedEdgeGesture.BottomSlideRight;
+                    break;
                 default:
-                    return FixedEdgeGesture.None;
+                    gesture = FixedEdgeGesture.None;
+                    break;
             }
+            return ForFingerCount(gesture, fingerCount);
+        }
+
+        private static FixedEdgeGesture ForFingerCount(FixedEdgeGesture oneFingerGesture, int fingerCount)
+        {
+            return fingerCount == 2 && oneFingerGesture != FixedEdgeGesture.None
+                ? (FixedEdgeGesture)((int)oneFingerGesture + TwoFingerGestureOffset)
+                : oneFingerGesture;
+        }
+
+        private bool TryGetTrackedEdgeContacts(out List<TouchpadContact> contacts)
+        {
+            contacts = new List<TouchpadContact>(_edgeContactIdentifiers.Count);
+            foreach (int identifier in _edgeContactIdentifiers)
+            {
+                TouchpadContact contact;
+                if (!_activeContacts.TryGetValue(identifier, out contact))
+                    return false;
+                contacts.Add(contact);
+            }
+            return true;
+        }
+
+        private double GetMinimumInwardDisplacement(IReadOnlyList<TouchpadContact> currentContacts)
+        {
+            double minimum = double.MaxValue;
+            foreach (TouchpadContact current in currentContacts)
+                minimum = Math.Min(minimum, GetInwardDisplacement(_edge, _edgeContactStarts[current.ContactIdentifier], current));
+            return minimum == double.MaxValue ? 0 : minimum;
+        }
+
+        private double GetConsistentAlongDisplacement(IReadOnlyList<TouchpadContact> currentContacts)
+        {
+            double average = GetAverageAlongDisplacement(currentContacts);
+            int direction = Math.Sign(average);
+            if (direction == 0)
+                return 0;
+
+            double minimum = double.MaxValue;
+            foreach (TouchpadContact current in currentContacts)
+            {
+                TouchpadContact start = _edgeContactStarts[current.ContactIdentifier];
+                double displacement = GetAlongPosition(_edge, current) - GetAlongPosition(_edge, start);
+                if (Math.Sign(displacement) != direction)
+                    return 0;
+                minimum = Math.Min(minimum, Math.Abs(displacement));
+            }
+
+            return direction * (minimum == double.MaxValue ? 0 : minimum);
+        }
+
+        private double GetAverageAlongDisplacement(IReadOnlyList<TouchpadContact> currentContacts)
+        {
+            double total = 0;
+            foreach (TouchpadContact current in currentContacts)
+            {
+                TouchpadContact start = _edgeContactStarts[current.ContactIdentifier];
+                total += GetAlongPosition(_edge, current) - GetAlongPosition(_edge, start);
+            }
+            return currentContacts.Count == 0 ? 0 : total / currentContacts.Count;
+        }
+
+        private static double GetEdgeDistance(TouchpadEdge edge, TouchpadContact contact)
+        {
+            switch (edge)
+            {
+                case TouchpadEdge.Left: return contact.NormalizedX;
+                case TouchpadEdge.Right: return 1 - contact.NormalizedX;
+                case TouchpadEdge.Top: return contact.NormalizedY;
+                case TouchpadEdge.Bottom: return 1 - contact.NormalizedY;
+                default: return 1;
+            }
+        }
+
+        private void CloseEdgeCandidate()
+        {
+            _edgeContactIdentifiers.Clear();
+            _edgeContactStarts.Clear();
+            _edgeCandidateClosed = true;
         }
 
         private static double GetInwardDisplacement(TouchpadEdge edge, TouchpadContact start, TouchpadContact current)

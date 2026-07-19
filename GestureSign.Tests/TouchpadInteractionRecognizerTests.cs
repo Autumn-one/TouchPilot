@@ -62,6 +62,111 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void TwoFingerInwardSwipeRequiresBothContactsFromSameEdge()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.TwoFingerLeftSwipeIn);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.4)), 0);
+            TouchpadInteractionFrameResult joined = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.4), Contact(2, 0.03, 0.65)), 20);
+            TouchpadInteractionFrameResult fired = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.13, 0.4), Contact(2, 0.14, 0.65)), 100);
+
+            Assert.False(joined.ClaimInput);
+            Assert.Empty(joined.Events);
+            Assert.True(fired.ClaimInput);
+            Assert.Equal(FixedEdgeGesture.TwoFingerLeftSwipeIn, Assert.Single(fired.Events).EdgeGesture);
+        }
+
+        [Fact]
+        public void TwoFingerEdgeGestureDoesNotFireWhenOnlyOneFingerMoves()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.TwoFingerLeftSwipeIn);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.4)), 0);
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.4), Contact(2, 0.03, 0.65)), 20);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.14, 0.4), Contact(2, 0.03, 0.65)), 100);
+
+            Assert.False(result.ClaimInput);
+            Assert.Empty(result.Events);
+        }
+
+        [Fact]
+        public void TwoFingerEdgeGestureDoesNotCombineDifferentEdges()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.TwoFingerLeftSwipeIn);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.4)), 0);
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.4), Contact(2, 0.98, 0.6)), 20);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.14, 0.4), Contact(2, 0.86, 0.6)), 100);
+
+            Assert.False(result.ClaimInput);
+            Assert.Empty(result.Events);
+        }
+
+        [Fact]
+        public void TwoFingerEdgeSlideRepeatsAndCanReverseDirection()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.TwoFingerLeftSlideUp,
+                FixedEdgeGesture.TwoFingerLeftSlideDown);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.55)), 0);
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.55), Contact(2, 0.03, 0.65)), 20);
+            TouchpadInteractionFrameResult upward = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.43), Contact(2, 0.03, 0.53)), 100);
+            TouchpadInteractionFrameResult oneFingerContinued = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.30), Contact(2, 0.03, 0.53)), 140);
+            TouchpadInteractionFrameResult downward = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.62), Contact(2, 0.03, 0.72)), 180);
+
+            Assert.True(upward.ClaimInput);
+            Assert.All(upward.Events, item => Assert.Equal(FixedEdgeGesture.TwoFingerLeftSlideUp, item.EdgeGesture));
+            Assert.Empty(oneFingerContinued.Events);
+            Assert.Contains(downward.Events, item => item.EdgeGesture == FixedEdgeGesture.TwoFingerLeftSlideDown);
+        }
+
+        [Fact]
+        public void InteriorSecondContactPreservesBottomAnchoredWindowDrag()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.TwoFingerBottomSlideRight,
+                windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+
+            recognizer.ProcessFrame(Frame(Contact(0, 0.4, 0.96)), 0);
+            recognizer.ProcessFrame(Frame(Contact(0, 0.4, 0.96), Contact(1, 0.5, 0.5)), 50);
+            recognizer.ProcessFrame(Frame(Contact(0, 0.4, 0.96), Contact(1, 0.5, 0.5)), 120);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(0, 0.4, 0.96), Contact(1, 0.54, 0.5)), 140);
+
+            Assert.True(started.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
+        public void CoherentTwoFingerBottomSlideWinsOverWindowDrag()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.TwoFingerBottomSlideRight,
+                windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+
+            recognizer.ProcessFrame(Frame(Contact(0, 0.4, 0.96)), 0);
+            recognizer.ProcessFrame(Frame(Contact(0, 0.4, 0.96), Contact(1, 0.6, 0.95)), 20);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(0, 0.48, 0.96), Contact(1, 0.68, 0.95)), 120);
+
+            Assert.True(result.ClaimInput);
+            Assert.NotEmpty(result.Events);
+            Assert.All(result.Events, item =>
+            {
+                Assert.Equal(TouchpadInteractionEventType.EdgeGesture, item.EventType);
+                Assert.Equal(FixedEdgeGesture.TwoFingerBottomSlideRight, item.EdgeGesture);
+            });
+        }
+
+        [Fact]
         public void BottomAnchorRequiresHoldAndMovingFingerMotion()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);

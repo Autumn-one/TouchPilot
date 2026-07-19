@@ -28,13 +28,25 @@ namespace GestureSign.Tests
             var action = new GestureAction
             {
                 Name = "Volume",
-                EdgeGestures = new List<FixedEdgeGesture> { FixedEdgeGesture.LeftSlideUp }
+                EdgeGestures = new List<FixedEdgeGesture>
+                {
+                    FixedEdgeGesture.LeftSlideUp,
+                    FixedEdgeGesture.TwoFingerRightSlideDown
+                }
             };
 
             string json = JsonConvert.SerializeObject(action);
             GestureAction restored = JsonConvert.DeserializeObject<GestureAction>(json);
 
-            Assert.Equal(FixedEdgeGesture.LeftSlideUp, Assert.Single(restored.EdgeGestures));
+            Assert.Equal(action.EdgeGestures, restored.EdgeGestures);
+        }
+
+        [Fact]
+        public void ExistingOneFingerGestureValuesRemainStable()
+        {
+            Assert.Equal(1, (int)FixedEdgeGesture.LeftSwipeIn);
+            Assert.Equal(12, (int)FixedEdgeGesture.BottomSlideRight);
+            Assert.Equal(13, (int)FixedEdgeGesture.TwoFingerLeftSwipeIn);
         }
     }
 }

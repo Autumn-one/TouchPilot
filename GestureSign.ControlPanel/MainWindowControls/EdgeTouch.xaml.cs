@@ -44,7 +44,19 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 { TopSlideRightComboBox, FixedEdgeGesture.TopSlideRight },
                 { BottomSwipeInComboBox, FixedEdgeGesture.BottomSwipeIn },
                 { BottomSlideLeftComboBox, FixedEdgeGesture.BottomSlideLeft },
-                { BottomSlideRightComboBox, FixedEdgeGesture.BottomSlideRight }
+                { BottomSlideRightComboBox, FixedEdgeGesture.BottomSlideRight },
+                { TwoFingerLeftSwipeInComboBox, FixedEdgeGesture.TwoFingerLeftSwipeIn },
+                { TwoFingerLeftSlideUpComboBox, FixedEdgeGesture.TwoFingerLeftSlideUp },
+                { TwoFingerLeftSlideDownComboBox, FixedEdgeGesture.TwoFingerLeftSlideDown },
+                { TwoFingerRightSwipeInComboBox, FixedEdgeGesture.TwoFingerRightSwipeIn },
+                { TwoFingerRightSlideUpComboBox, FixedEdgeGesture.TwoFingerRightSlideUp },
+                { TwoFingerRightSlideDownComboBox, FixedEdgeGesture.TwoFingerRightSlideDown },
+                { TwoFingerTopSwipeInComboBox, FixedEdgeGesture.TwoFingerTopSwipeIn },
+                { TwoFingerTopSlideLeftComboBox, FixedEdgeGesture.TwoFingerTopSlideLeft },
+                { TwoFingerTopSlideRightComboBox, FixedEdgeGesture.TwoFingerTopSlideRight },
+                { TwoFingerBottomSwipeInComboBox, FixedEdgeGesture.TwoFingerBottomSwipeIn },
+                { TwoFingerBottomSlideLeftComboBox, FixedEdgeGesture.TwoFingerBottomSlideLeft },
+                { TwoFingerBottomSlideRightComboBox, FixedEdgeGesture.TwoFingerBottomSlideRight }
             };
         }
 

@@ -235,6 +235,8 @@ Email:ccfyzh@gmail.com
     <SimulatedCaptionDrag>Simulated title-bar hold</SimulatedCaptionDrag>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>
     <FixedGestures>Fixed edge gestures</FixedGestures>
+    <OneFinger>One finger</OneFinger>
+    <TwoFingers>Two fingers</TwoFingers>
     <LeftEdge>Left edge</LeftEdge>
     <RightEdge>Right edge</RightEdge>
     <TopEdge>Top edge</TopEdge>
