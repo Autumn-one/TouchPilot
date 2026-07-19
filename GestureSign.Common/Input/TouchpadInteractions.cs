@@ -145,6 +145,7 @@ namespace GestureSign.Common.Input
         private bool _sessionActive;
         private bool _claimed;
         private bool _windowDragActive;
+        private bool _windowDragMotionPaused;
         private long _sessionStartTimestamp;
 
         private int? _anchorContactIdentifier;
@@ -230,6 +231,7 @@ namespace GestureSign.Common.Input
             _sessionActive = false;
             _claimed = false;
             _windowDragActive = false;
+            _windowDragMotionPaused = false;
             _sessionStartTimestamp = 0;
             _anchorContactIdentifier = null;
             _anchorMissingSinceTimestamp = null;
@@ -369,6 +371,7 @@ namespace GestureSign.Common.Input
 
             _claimed = true;
             _windowDragActive = true;
+            _windowDragMotionPaused = false;
             _anchorMissingSinceTimestamp = null;
             CloseEdgeCandidate();
             output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragStarted, currentMoving));
@@ -377,36 +380,49 @@ namespace GestureSign.Common.Input
         private void ProcessActiveWindowDrag(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
         {
             TouchpadContact anchor;
-            if (!TryMaintainActiveAnchor(timestampMilliseconds, out anchor))
+            bool anchorAllowsMovement;
+            if (!TryMaintainActiveAnchor(timestampMilliseconds, out anchor, out anchorAllowsMovement))
             {
                 _windowDragActive = false;
+                _windowDragMotionPaused = false;
                 _movingContactIdentifier = null;
                 output.Add(TouchpadInteractionEvent.WindowEnded());
                 return;
             }
 
-            TouchpadContact moving;
-            if (_movingContactIdentifier.HasValue && _activeContacts.TryGetValue(_movingContactIdentifier.Value, out moving))
-            {
-                output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragMoved, moving));
-                return;
-            }
-
-            if (_movingContactIdentifier.HasValue)
+            TouchpadContact moving = default(TouchpadContact);
+            bool movingAvailable = _movingContactIdentifier.HasValue &&
+                                   _activeContacts.TryGetValue(_movingContactIdentifier.Value, out moving);
+            if (!movingAvailable)
             {
                 _movingContactIdentifier = null;
-                output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragPaused, anchor));
+                TouchpadContact replacement;
+                if (TryGetNonAnchorContact(out replacement))
+                {
+                    _movingContactIdentifier = replacement.ContactIdentifier;
+                    moving = replacement;
+                    movingAvailable = true;
+                }
             }
 
-            TouchpadContact replacement;
-            if (!TryGetNonAnchorContact(out replacement))
+            if (anchorAllowsMovement && movingAvailable)
+            {
+                TouchpadInteractionEventType eventType = _windowDragMotionPaused
+                    ? TouchpadInteractionEventType.WindowDragResumed
+                    : TouchpadInteractionEventType.WindowDragMoved;
+                _windowDragMotionPaused = false;
+                output.Add(TouchpadInteractionEvent.Window(eventType, moving));
                 return;
+            }
 
-            _movingContactIdentifier = replacement.ContactIdentifier;
-            output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragResumed, replacement));
+            if (!_windowDragMotionPaused)
+            {
+                _windowDragMotionPaused = true;
+                output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragPaused, anchor));
+            }
         }
 
-        private bool TryMaintainActiveAnchor(long timestampMilliseconds, out TouchpadContact anchor)
+        private bool TryMaintainActiveAnchor(long timestampMilliseconds, out TouchpadContact anchor, out bool movementAllowed)
         {
             TouchpadContact current;
             if (_anchorContactIdentifier.HasValue &&
@@ -415,12 +431,14 @@ namespace GestureSign.Common.Input
                 if (!IsInBottomEdgeZone(current))
                 {
                     anchor = current;
+                    movementAllowed = false;
                     return false;
                 }
 
                 _lastAnchorContact = current;
                 _anchorMissingSinceTimestamp = null;
                 anchor = current;
+                movementAllowed = true;
                 return true;
             }
 
@@ -431,6 +449,7 @@ namespace GestureSign.Common.Input
                 _lastAnchorContact = replacement;
                 _anchorMissingSinceTimestamp = null;
                 anchor = replacement;
+                movementAllowed = true;
                 return true;
             }
 
@@ -438,7 +457,9 @@ namespace GestureSign.Common.Input
                 _anchorMissingSinceTimestamp = timestampMilliseconds;
 
             anchor = _lastAnchorContact;
-            return timestampMilliseconds - _anchorMissingSinceTimestamp.Value <= _options.AnchorDropoutGraceMilliseconds;
+            movementAllowed = timestampMilliseconds - _anchorMissingSinceTimestamp.Value <=
+                              _options.AnchorDropoutGraceMilliseconds;
+            return true;
         }
 
         private bool TryGetReplacementAnchor(out TouchpadContact contact)

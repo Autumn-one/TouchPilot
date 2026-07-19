@@ -14,7 +14,7 @@ namespace GestureSign.Tests
     {
         [Fact]
         [Trait("Category", "WindowsIntegration")]
-        public void DirectControllerMovesARealWindowAndCursor()
+        public void DirectControllerMovesARealWindowAndSupportsReclutch()
         {
             Exception failure = null;
             var thread = new Thread(() =>
@@ -79,6 +79,29 @@ namespace GestureSign.Tests
                     Assert.InRange(movedCursor.Y - initialCursor.Y, expectedY - 3, expectedY + 3);
                     Assert.InRange(movedRectangle.Left - initialRectangle.Left, expectedX - 4, expectedX + 4);
                     Assert.InRange(movedRectangle.Top - initialRectangle.Top, expectedY - 4, expectedY + 4);
+
+                    controller.Pause();
+                    Assert.True(controller.Rebase(0.55, 0.52));
+                    Point reclutchedCursor = Cursor.Position;
+                    RECT reclutchedRectangle = window.Rectangle;
+                    Thread.Sleep(25);
+                    Assert.True(controller.Update(0.57, 0.53, 1));
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Application.DoEvents();
+                        Thread.Sleep(20);
+                    }
+
+                    Point finalCursor = Cursor.Position;
+                    RECT finalRectangle = window.Rectangle;
+                    int reclutchExpectedX = (int)Math.Round(screen.Bounds.Width * 0.02);
+                    int reclutchExpectedY = (int)Math.Round(screen.Bounds.Height * 0.01);
+
+                    Assert.InRange(finalCursor.X - reclutchedCursor.X, reclutchExpectedX - 3, reclutchExpectedX + 3);
+                    Assert.InRange(finalCursor.Y - reclutchedCursor.Y, reclutchExpectedY - 3, reclutchExpectedY + 3);
+                    Assert.InRange(finalRectangle.Left - reclutchedRectangle.Left, reclutchExpectedX - 4, reclutchExpectedX + 4);
+                    Assert.InRange(finalRectangle.Top - reclutchedRectangle.Top, reclutchExpectedY - 4, reclutchExpectedY + 4);
                 }
                 finally
                 {

@@ -299,16 +299,31 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void MovingFingerCannotReplaceMissingAnchor()
+        public void ReleasedAnchorPausesAndCanReclutchWhileMovingFingerStaysDown()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
             StartBottomAnchoredDrag(recognizer, 10, 11);
 
             TouchpadInteractionFrameResult missing = recognizer.ProcessFrame(Frame(Contact(11, 0.55, 0.95)), 150);
-            TouchpadInteractionFrameResult expired = recognizer.ProcessFrame(Frame(Contact(11, 0.57, 0.94)), 231);
+            TouchpadInteractionFrameResult paused = recognizer.ProcessFrame(Frame(Contact(11, 0.57, 0.94)), 231);
+            TouchpadInteractionFrameResult stillPaused = recognizer.ProcessFrame(Frame(Contact(11, 0.59, 0.92)), 400);
+            TouchpadInteractionFrameResult resumed = recognizer.ProcessFrame(
+                Frame(Contact(11, 0.59, 0.92), Contact(12, 0.75, 0.96)), 450);
+            TouchpadInteractionFrameResult continued = recognizer.ProcessFrame(
+                Frame(Contact(11, 0.62, 0.90), Contact(12, 0.55, 0.92)), 480);
+            TouchpadInteractionFrameResult movingFingerPaused = recognizer.ProcessFrame(
+                Frame(Contact(12, 0.55, 0.92)), 520);
+            TouchpadInteractionFrameResult movingFingerResumed = recognizer.ProcessFrame(
+                Frame(Contact(12, 0.7, 0.90), Contact(13, 0.4, 0.4)), 560);
 
             Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(missing.Events).EventType);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(expired.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragPaused, Assert.Single(paused.Events).EventType);
+            Assert.True(stillPaused.ClaimInput);
+            Assert.Empty(stillPaused.Events);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragResumed, Assert.Single(resumed.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(continued.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragPaused, Assert.Single(movingFingerPaused.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragResumed, Assert.Single(movingFingerResumed.Events).EventType);
         }
 
         [Fact]
