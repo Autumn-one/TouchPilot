@@ -209,7 +209,11 @@ namespace GestureSign.Common.Input
             {
                 ProcessEdgeCandidate(timestampMilliseconds, output);
                 if (!_claimed)
+                {
+                    if (!_anchorContactIdentifier.HasValue)
+                        ConfigureAnchorCandidate(_activeContacts.Values.ToList(), timestampMilliseconds);
                     TryActivateWindowDrag(timestampMilliseconds, output);
+                }
             }
             else if (_edgeTrackingMode == EdgeTrackingMode.Slide)
             {

@@ -186,6 +186,46 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void MovingFingerCanArriveBeforeBottomAnchor()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.45, 0.45)), 0);
+            TouchpadInteractionFrameResult anchorArrived = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.48, 0.45), Contact(2, 0.25, 0.96)), 30);
+            TouchpadInteractionFrameResult beforeHold = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.50, 0.46), Contact(2, 0.55, 0.92)), 100);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.53, 0.48), Contact(2, 0.75, 0.90)), 140);
+
+            Assert.False(anchorArrived.ClaimInput);
+            Assert.False(beforeHold.ClaimInput);
+            Assert.True(started.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
+        public void ClaimedEdgeGestureCannotBeReplacedByLateBottomAnchor()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.LeftSwipeIn,
+                windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.5)), 0);
+            TouchpadInteractionFrameResult edgeFired = recognizer.ProcessFrame(Frame(Contact(1, 0.14, 0.5)), 100);
+            TouchpadInteractionFrameResult anchorArrived = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.17, 0.5), Contact(2, 0.5, 0.96)), 130);
+            TouchpadInteractionFrameResult continued = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.22, 0.5), Contact(2, 0.7, 0.92)), 260);
+
+            Assert.Equal(FixedEdgeGesture.LeftSwipeIn, Assert.Single(edgeFired.Events).EdgeGesture);
+            Assert.True(anchorArrived.ClaimInput);
+            Assert.Empty(anchorArrived.Events);
+            Assert.True(continued.ClaimInput);
+            Assert.Empty(continued.Events);
+        }
+
+        [Fact]
         public void BottomAnchorCanMoveWithinEdgeZoneBeforeActivation()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
