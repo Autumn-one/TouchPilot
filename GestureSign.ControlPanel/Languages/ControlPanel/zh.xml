@@ -229,6 +229,31 @@ QQ交流群：576981420
       <ImportComplete>已添加 {0} 个程序</ImportComplete>
     </Messages>
   </Ignored>
+  <EdgeTouch>
+    <Header>边缘</Header>
+    <Enabled>边缘触控</Enabled>
+    <WindowDrag>窗口拖动</WindowDrag>
+    <WindowDragMode>触发方式</WindowDragMode>
+    <DragDisabled>关闭</DragDisabled>
+    <BottomAnchor>底部边缘锚点</BottomAnchor>
+    <FreeAnchor>自由双指锚点</FreeAnchor>
+    <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
+    <FixedGestures>固定边缘手势</FixedGestures>
+    <LeftEdge>左边缘</LeftEdge>
+    <RightEdge>右边缘</RightEdge>
+    <TopEdge>顶部边缘</TopEdge>
+    <BottomEdge>底部边缘</BottomEdge>
+    <SwipeIn>向内滑动</SwipeIn>
+    <SlideUp>向上滑动</SlideUp>
+    <SlideDown>向下滑动</SlideDown>
+    <SlideLeft>向左滑动</SlideLeft>
+    <SlideRight>向右滑动</SlideRight>
+    <Unassigned>未设置</Unassigned>
+    <Tuning>识别参数</Tuning>
+    <EdgeZone>边缘区域 {0:F0}%</EdgeZone>
+    <ActivationDistance>激活距离 {0:F0}%</ActivationDistance>
+    <AnchorDrift>锚点允许漂移 {0:F0}%</AnchorDrift>
+  </EdgeTouch>
   <Options>
     <Header>选项</Header>
     <Language>语言（重启生效）</Language>

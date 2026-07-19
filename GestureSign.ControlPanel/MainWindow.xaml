@@ -56,6 +56,10 @@
                      controls:ControlsHelper.HeaderFontSize="32">
                 <mainWindowControl:AvailableGestures x:Name="availableGestures"></mainWindowControl:AvailableGestures>
             </TabItem>
+            <TabItem Header="{localization:LocalisedText EdgeTouch.Header}"
+                     controls:ControlsHelper.HeaderFontSize="32">
+                <mainWindowControl:EdgeTouch />
+            </TabItem>
             <TabItem Header="{localization:LocalisedText Options.Header}"
                      controls:ControlsHelper.HeaderFontSize="32">
                 <mainWindowControl:Options Width="Auto"
