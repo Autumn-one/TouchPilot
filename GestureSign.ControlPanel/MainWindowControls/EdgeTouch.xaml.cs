@@ -56,7 +56,19 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 { TwoFingerTopSlideRightComboBox, FixedEdgeGesture.TwoFingerTopSlideRight },
                 { TwoFingerBottomSwipeInComboBox, FixedEdgeGesture.TwoFingerBottomSwipeIn },
                 { TwoFingerBottomSlideLeftComboBox, FixedEdgeGesture.TwoFingerBottomSlideLeft },
-                { TwoFingerBottomSlideRightComboBox, FixedEdgeGesture.TwoFingerBottomSlideRight }
+                { TwoFingerBottomSlideRightComboBox, FixedEdgeGesture.TwoFingerBottomSlideRight },
+                { ThreeFingerLeftSwipeInComboBox, FixedEdgeGesture.ThreeFingerLeftSwipeIn },
+                { ThreeFingerLeftSlideUpComboBox, FixedEdgeGesture.ThreeFingerLeftSlideUp },
+                { ThreeFingerLeftSlideDownComboBox, FixedEdgeGesture.ThreeFingerLeftSlideDown },
+                { ThreeFingerRightSwipeInComboBox, FixedEdgeGesture.ThreeFingerRightSwipeIn },
+                { ThreeFingerRightSlideUpComboBox, FixedEdgeGesture.ThreeFingerRightSlideUp },
+                { ThreeFingerRightSlideDownComboBox, FixedEdgeGesture.ThreeFingerRightSlideDown },
+                { ThreeFingerTopSwipeInComboBox, FixedEdgeGesture.ThreeFingerTopSwipeIn },
+                { ThreeFingerTopSlideLeftComboBox, FixedEdgeGesture.ThreeFingerTopSlideLeft },
+                { ThreeFingerTopSlideRightComboBox, FixedEdgeGesture.ThreeFingerTopSlideRight },
+                { ThreeFingerBottomSwipeInComboBox, FixedEdgeGesture.ThreeFingerBottomSwipeIn },
+                { ThreeFingerBottomSlideLeftComboBox, FixedEdgeGesture.ThreeFingerBottomSlideLeft },
+                { ThreeFingerBottomSlideRightComboBox, FixedEdgeGesture.ThreeFingerBottomSlideRight }
             };
         }
 

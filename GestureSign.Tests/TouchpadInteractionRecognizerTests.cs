@@ -129,6 +129,146 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void ThreeFingerInwardSwipeRequiresAllContactsFromSameEdge()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.ThreeFingerLeftSwipeIn);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.3)), 0);
+            recognizer.ProcessFrame(Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5)), 20);
+            TouchpadInteractionFrameResult joined = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5), Contact(3, 0.02, 0.7)), 40);
+            TouchpadInteractionFrameResult fired = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.13, 0.3), Contact(2, 0.14, 0.5), Contact(3, 0.13, 0.7)), 100);
+
+            Assert.False(joined.ClaimInput);
+            Assert.Empty(joined.Events);
+            Assert.True(fired.ClaimInput);
+            Assert.Equal(FixedEdgeGesture.ThreeFingerLeftSwipeIn, Assert.Single(fired.Events).EdgeGesture);
+        }
+
+        [Fact]
+        public void ThreeFingerEdgeGestureDoesNotFireWhenOnlyTwoFingersMove()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.ThreeFingerLeftSwipeIn);
+
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5), Contact(3, 0.02, 0.7)), 0);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.14, 0.3), Contact(2, 0.15, 0.5), Contact(3, 0.02, 0.7)), 100);
+
+            Assert.False(result.ClaimInput);
+            Assert.Empty(result.Events);
+        }
+
+        [Fact]
+        public void ThreeFingerEdgeGestureDoesNotCombineDifferentEdges()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.ThreeFingerLeftSwipeIn);
+
+            TouchpadInteractionFrameResult pressed = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5), Contact(3, 0.98, 0.7)), 0);
+            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.14, 0.3), Contact(2, 0.15, 0.5), Contact(3, 0.86, 0.7)), 100);
+
+            Assert.False(pressed.ClaimInput);
+            Assert.False(moved.ClaimInput);
+            Assert.Empty(moved.Events);
+        }
+
+        [Fact]
+        public void ThreeFingerEdgeSlideRepeatsAndCanReverseDirection()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.ThreeFingerLeftSlideUp,
+                FixedEdgeGesture.ThreeFingerLeftSlideDown);
+
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.4), Contact(2, 0.03, 0.55), Contact(3, 0.02, 0.7)), 0);
+            TouchpadInteractionFrameResult upward = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.28), Contact(2, 0.03, 0.43), Contact(3, 0.02, 0.58)), 100);
+            TouchpadInteractionFrameResult inconsistent = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.18), Contact(2, 0.03, 0.43), Contact(3, 0.02, 0.58)), 140);
+            TouchpadInteractionFrameResult downward = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.48), Contact(2, 0.03, 0.63), Contact(3, 0.02, 0.78)), 180);
+
+            Assert.True(upward.ClaimInput);
+            Assert.All(upward.Events, item => Assert.Equal(FixedEdgeGesture.ThreeFingerLeftSlideUp, item.EdgeGesture));
+            Assert.Empty(inconsistent.Events);
+            Assert.Contains(downward.Events, item => item.EdgeGesture == FixedEdgeGesture.ThreeFingerLeftSlideDown);
+        }
+
+        [Fact]
+        public void ThreeFingerBottomSlideRightUsesThreeFingerBinding()
+        {
+            var recognizer = CreateRecognizer(FixedEdgeGesture.ThreeFingerBottomSlideRight);
+
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.25, 0.98), Contact(2, 0.5, 0.97), Contact(3, 0.75, 0.98)), 0);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.33, 0.98), Contact(2, 0.58, 0.97), Contact(3, 0.83, 0.98)), 100);
+
+            Assert.True(result.ClaimInput);
+            Assert.NotEmpty(result.Events);
+            Assert.All(result.Events,
+                item => Assert.Equal(FixedEdgeGesture.ThreeFingerBottomSlideRight, item.EdgeGesture));
+        }
+
+        [Fact]
+        public void ThreeFingerEdgeGestureWinsOverThreeFingerDragAtTheEdge()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.ThreeFingerLeftSwipeIn,
+                windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            TouchpadInteractionFrameResult pressed = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5), Contact(3, 0.02, 0.7)), 0);
+            TouchpadInteractionFrameResult fired = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.13, 0.3), Contact(2, 0.14, 0.5), Contact(3, 0.13, 0.7)), 100);
+
+            Assert.True(pressed.ClaimInput);
+            Assert.Empty(pressed.Events);
+            Assert.True(fired.ClaimInput);
+            Assert.Equal(FixedEdgeGesture.ThreeFingerLeftSwipeIn, Assert.Single(fired.Events).EdgeGesture);
+        }
+
+        [Fact]
+        public void InteriorThreeFingerDragStillWorksWhenEdgeGestureIsAssigned()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.ThreeFingerLeftSwipeIn,
+                windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            recognizer.ProcessFrame(
+                Frame(Contact(1, 0.2, 0.3), Contact(2, 0.5, 0.3), Contact(3, 0.8, 0.3)), 0);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.23, 0.3), Contact(2, 0.53, 0.3), Contact(3, 0.83, 0.3)), 40);
+
+            Assert.True(started.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
+        public void ExpiredThreeFingerEdgeCandidateRebasesBeforeFallingBackToDrag()
+        {
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.ThreeFingerLeftSwipeIn,
+                windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
+
+            TouchpadInteractionFrameResult pressed = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5), Contact(3, 0.02, 0.7)), 0);
+            TouchpadInteractionFrameResult expired = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.02, 0.3), Contact(2, 0.03, 0.5), Contact(3, 0.02, 0.7)), 900);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.05, 0.3), Contact(2, 0.06, 0.5), Contact(3, 0.05, 0.7)), 930);
+
+            Assert.True(pressed.ClaimInput);
+            Assert.Empty(pressed.Events);
+            Assert.True(expired.ClaimInput);
+            Assert.Empty(expired.Events);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
         public void InteriorSecondContactPreservesBottomAnchoredWindowDrag()
         {
             var recognizer = CreateRecognizer(
@@ -535,9 +675,11 @@ namespace GestureSign.Tests
         private static TouchpadInteractionRecognizer CreateRecognizer(
             FixedEdgeGesture gesture1 = FixedEdgeGesture.None,
             FixedEdgeGesture gesture2 = FixedEdgeGesture.None,
+            FixedEdgeGesture gesture3 = FixedEdgeGesture.None,
             TouchpadWindowDragMode windowDragMode = TouchpadWindowDragMode.Disabled)
         {
-            var enabled = new HashSet<FixedEdgeGesture>(new[] { gesture1, gesture2 }.Where(gesture => gesture != FixedEdgeGesture.None));
+            var enabled = new HashSet<FixedEdgeGesture>(new[] { gesture1, gesture2, gesture3 }
+                .Where(gesture => gesture != FixedEdgeGesture.None));
             return new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
             {
                 EdgeGesturesEnabled = enabled.Count != 0,

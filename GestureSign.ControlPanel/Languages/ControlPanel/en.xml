@@ -239,6 +239,7 @@ Email:ccfyzh@gmail.com
     <FixedGestures>Fixed edge gestures</FixedGestures>
     <OneFinger>One finger</OneFinger>
     <TwoFingers>Two fingers</TwoFingers>
+    <ThreeFingers>Three fingers</ThreeFingers>
     <LeftEdge>Left edge</LeftEdge>
     <RightEdge>Right edge</RightEdge>
     <TopEdge>Top edge</TopEdge>

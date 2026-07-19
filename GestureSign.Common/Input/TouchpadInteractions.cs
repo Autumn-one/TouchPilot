@@ -30,7 +30,19 @@ namespace GestureSign.Common.Input
         TwoFingerTopSlideRight,
         TwoFingerBottomSwipeIn,
         TwoFingerBottomSlideLeft,
-        TwoFingerBottomSlideRight
+        TwoFingerBottomSlideRight,
+        ThreeFingerLeftSwipeIn,
+        ThreeFingerLeftSlideUp,
+        ThreeFingerLeftSlideDown,
+        ThreeFingerRightSwipeIn,
+        ThreeFingerRightSlideUp,
+        ThreeFingerRightSlideDown,
+        ThreeFingerTopSwipeIn,
+        ThreeFingerTopSlideLeft,
+        ThreeFingerTopSlideRight,
+        ThreeFingerBottomSwipeIn,
+        ThreeFingerBottomSlideLeft,
+        ThreeFingerBottomSlideRight
     }
 
     public enum TouchpadWindowDragMode
@@ -138,13 +150,14 @@ namespace GestureSign.Common.Input
         }
 
         private static readonly IReadOnlyList<TouchpadInteractionEvent> NoEvents = Array.Empty<TouchpadInteractionEvent>();
-        private const int TwoFingerGestureOffset = 12;
+        private const int GesturesPerFingerCount = 12;
+        private const int MaximumEdgeFingerCount = 3;
 
         private readonly TouchpadInteractionOptions _options;
         private readonly Dictionary<int, TouchpadContact> _activeContacts = new Dictionary<int, TouchpadContact>();
         private readonly Dictionary<int, TouchpadContact> _contactStarts = new Dictionary<int, TouchpadContact>();
-        private readonly List<int> _edgeContactIdentifiers = new List<int>(2);
-        private readonly Dictionary<int, TouchpadContact> _edgeContactStarts = new Dictionary<int, TouchpadContact>(2);
+        private readonly List<int> _edgeContactIdentifiers = new List<int>(MaximumEdgeFingerCount);
+        private readonly Dictionary<int, TouchpadContact> _edgeContactStarts = new Dictionary<int, TouchpadContact>(MaximumEdgeFingerCount);
 
         private bool _sessionActive;
         private bool _claimed;
@@ -169,6 +182,7 @@ namespace GestureSign.Common.Input
         private double _edgeLastAlongDisplacement;
         private int _edgeObservedContactCount;
         private bool _edgeCandidateClosed;
+        private bool _claimedThreeFingerEdgeCandidate;
 
         public TouchpadInteractionRecognizer(TouchpadInteractionOptions options)
         {
@@ -212,7 +226,11 @@ namespace GestureSign.Common.Input
             }
 
             var output = new List<TouchpadInteractionEvent>();
-            if (_windowDragActive)
+            if (_claimedThreeFingerEdgeCandidate)
+            {
+                ProcessClaimedThreeFingerEdgeCandidate(timestampMilliseconds, output);
+            }
+            else if (_windowDragActive)
             {
                 if (_options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag)
                     ProcessThreeFingerWindowDrag(output);
@@ -222,7 +240,8 @@ namespace GestureSign.Common.Input
             else if (_options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag &&
                      (_threeFingerTracking || (!_claimed && _activeContacts.Count >= 3)))
             {
-                ProcessThreeFingerWindowDrag(output);
+                if (_threeFingerTracking || !TryClaimThreeFingerEdgeCandidate())
+                    ProcessThreeFingerWindowDrag(output);
             }
             else if (!_claimed)
             {
@@ -265,6 +284,7 @@ namespace GestureSign.Common.Input
             _edgeLastAlongDisplacement = 0;
             _edgeObservedContactCount = 0;
             _edgeCandidateClosed = false;
+            _claimedThreeFingerEdgeCandidate = false;
         }
 
         private void UpdateActiveContacts(IReadOnlyList<TouchpadContact> contacts)
@@ -409,6 +429,36 @@ namespace GestureSign.Common.Input
             return new TouchpadContact(contacts[0].ContactIdentifier, DeviceStates.Tip, normalizedX, normalizedY);
         }
 
+        private bool TryClaimThreeFingerEdgeCandidate()
+        {
+            if (!_options.EdgeGesturesEnabled || _activeContacts.Count != MaximumEdgeFingerCount ||
+                !TryConfigureEdgeCandidate(_activeContacts.Values.ToList()))
+                return false;
+
+            _edgeObservedContactCount = MaximumEdgeFingerCount;
+            _edgeCandidateClosed = false;
+            _claimed = true;
+            _claimedThreeFingerEdgeCandidate = true;
+            return true;
+        }
+
+        private void ProcessClaimedThreeFingerEdgeCandidate(long timestampMilliseconds,
+            List<TouchpadInteractionEvent> output)
+        {
+            ProcessEdgeCandidate(timestampMilliseconds, output);
+            if (_edgeTrackingMode != EdgeTrackingMode.Candidate)
+            {
+                _claimedThreeFingerEdgeCandidate = false;
+                return;
+            }
+
+            if (!_edgeCandidateClosed)
+                return;
+
+            _claimedThreeFingerEdgeCandidate = false;
+            ProcessThreeFingerWindowDrag(output);
+        }
+
         private void BeginEdgeCandidate(List<TouchpadContact> contacts)
         {
             if (!_options.EdgeGesturesEnabled || _options.EnabledEdgeGestures.Count == 0)
@@ -418,13 +468,13 @@ namespace GestureSign.Common.Input
             }
 
             _edgeObservedContactCount = contacts.Count;
-            if (contacts.Count == 0 || contacts.Count > 2)
+            if (contacts.Count == 0 || contacts.Count > MaximumEdgeFingerCount)
             {
                 _edgeCandidateClosed = true;
                 return;
             }
 
-            if (!TryConfigureEdgeCandidate(contacts) && contacts.Count == 2)
+            if (!TryConfigureEdgeCandidate(contacts) && contacts.Count == MaximumEdgeFingerCount)
                 _edgeCandidateClosed = true;
         }
 
@@ -626,7 +676,7 @@ namespace GestureSign.Common.Input
                 return;
 
             if (timestampMilliseconds - _sessionStartTimestamp > _options.EdgeGestureTimeoutMilliseconds ||
-                _activeContacts.Count > 2)
+                _activeContacts.Count > MaximumEdgeFingerCount)
             {
                 CloseEdgeCandidate();
                 return;
@@ -635,11 +685,13 @@ namespace GestureSign.Common.Input
             if (_activeContacts.Count > _edgeObservedContactCount)
             {
                 _edgeObservedContactCount = _activeContacts.Count;
-                if (_activeContacts.Count == 2 &&
-                    TryConfigureEdgeCandidate(_activeContacts.Values.ToList()))
+                if (TryConfigureEdgeCandidate(_activeContacts.Values.ToList()))
                     return;
 
-                CloseEdgeCandidate();
+                _edgeContactIdentifiers.Clear();
+                _edgeContactStarts.Clear();
+                if (_activeContacts.Count == MaximumEdgeFingerCount)
+                    CloseEdgeCandidate();
                 return;
             }
 
@@ -795,9 +847,11 @@ namespace GestureSign.Common.Input
 
         private static FixedEdgeGesture ForFingerCount(FixedEdgeGesture oneFingerGesture, int fingerCount)
         {
-            return fingerCount == 2 && oneFingerGesture != FixedEdgeGesture.None
-                ? (FixedEdgeGesture)((int)oneFingerGesture + TwoFingerGestureOffset)
-                : oneFingerGesture;
+            if (oneFingerGesture == FixedEdgeGesture.None || fingerCount < 1 || fingerCount > MaximumEdgeFingerCount)
+                return FixedEdgeGesture.None;
+
+            return (FixedEdgeGesture)((int)oneFingerGesture +
+                                      (fingerCount - 1) * GesturesPerFingerCount);
         }
 
         private bool TryGetTrackedEdgeContacts(out List<TouchpadContact> contacts)

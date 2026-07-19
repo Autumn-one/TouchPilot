@@ -31,7 +31,8 @@ namespace GestureSign.Tests
                 EdgeGestures = new List<FixedEdgeGesture>
                 {
                     FixedEdgeGesture.LeftSlideUp,
-                    FixedEdgeGesture.TwoFingerRightSlideDown
+                    FixedEdgeGesture.TwoFingerRightSlideDown,
+                    FixedEdgeGesture.ThreeFingerBottomSwipeIn
                 }
             };
 
@@ -47,6 +48,9 @@ namespace GestureSign.Tests
             Assert.Equal(1, (int)FixedEdgeGesture.LeftSwipeIn);
             Assert.Equal(12, (int)FixedEdgeGesture.BottomSlideRight);
             Assert.Equal(13, (int)FixedEdgeGesture.TwoFingerLeftSwipeIn);
+            Assert.Equal(24, (int)FixedEdgeGesture.TwoFingerBottomSlideRight);
+            Assert.Equal(25, (int)FixedEdgeGesture.ThreeFingerLeftSwipeIn);
+            Assert.Equal(36, (int)FixedEdgeGesture.ThreeFingerBottomSlideRight);
         }
     }
 }

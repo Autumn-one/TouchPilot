@@ -243,6 +243,7 @@ QQ交流群：576981420
     <FixedGestures>固定边缘手势</FixedGestures>
     <OneFinger>一根手指</OneFinger>
     <TwoFingers>两根手指</TwoFingers>
+    <ThreeFingers>三根手指</ThreeFingers>
     <LeftEdge>左边缘</LeftEdge>
     <RightEdge>右边缘</RightEdge>
     <TopEdge>顶部边缘</TopEdge>
