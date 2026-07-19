@@ -12,6 +12,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -38,7 +40,8 @@ namespace GestureSign.ControlPanel.Dialogs
 
         private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            var clientList = new List<WebClient>();
+            var clientList = new List<HttpClient>();
+            var cancellationTokenSource = new CancellationTokenSource();
 
             Action<Task<byte[]>> checkData = (task) =>
             {
@@ -68,12 +71,16 @@ namespace GestureSign.ControlPanel.Dialogs
 
             foreach (string url in _source)
             {
-                var client = new WebClient();
-                client.Headers.Add(HttpRequestHeader.Accept, "*/*");
-                client.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip, deflate");
-                client.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla/5.0 (Windows NT 6.3; Trident/7.0; .NET4.0E; .NET4.0C; rv:11.0) like Gecko");
+                var handler = new HttpClientHandler
+                {
+                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+                };
+                var client = new HttpClient(handler);
+                client.DefaultRequestHeaders.Accept.ParseAdd("*/*");
+                client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip, deflate");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.3; Trident/7.0; .NET4.0E; .NET4.0C; rv:11.0) like Gecko");
                 clientList.Add(client);
-                var downloadTask = client.DownloadDataTaskAsync(url);
+                var downloadTask = client.GetByteArrayAsync(url, cancellationTokenSource.Token);
                 downloadTask.ContinueWith(checkData).ContinueWith(observeExceptions, TaskContinuationOptions.OnlyOnFaulted);
             }
             Task.Run(async () =>
@@ -81,12 +88,10 @@ namespace GestureSign.ControlPanel.Dialogs
                 await Task.Delay(10000);
                 Dispatcher.Invoke(() =>
                 {
+                    cancellationTokenSource.Cancel();
                     foreach (var client in clientList)
-                    {
-                        if (client.IsBusy)
-                            client.CancelAsync();
                         client.Dispose();
-                    }
+                    cancellationTokenSource.Dispose();
                 });
             });
         }

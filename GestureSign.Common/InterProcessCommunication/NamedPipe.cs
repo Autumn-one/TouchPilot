@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,10 +6,12 @@ using System.IO.Pipes;
 using System.IO;
 
 using System.Threading;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using GestureSign.Common.Input;
 using GestureSign.Common.Log;
+using Newtonsoft.Json;
+using Point = System.Drawing.Point;
 
 namespace GestureSign.Common.InterProcessCommunication
 {
@@ -38,13 +38,45 @@ namespace GestureSign.Common.InterProcessCommunication
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                BinaryFormatter binForm = new BinaryFormatter();
-
                 pipe.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
-                command = (IpcCommands)memoryStream.ReadByte();
-                return memoryStream.Length == memoryStream.Position ? null : binForm.Deserialize(memoryStream);
+                int commandValue = memoryStream.ReadByte();
+                if (commandValue < 0 || !Enum.IsDefined(typeof(IpcCommands), commandValue))
+                    throw new InvalidDataException("The named pipe message does not contain a valid command.");
+
+                command = (IpcCommands)commandValue;
+                if (memoryStream.Length == memoryStream.Position)
+                    return null;
+
+                byte[] payload = new byte[memoryStream.Length - memoryStream.Position];
+                memoryStream.Read(payload, 0, payload.Length);
+                string json = Encoding.UTF8.GetString(payload);
+
+                switch (command)
+                {
+                    case IpcCommands.GotGesture:
+                        return JsonConvert.DeserializeObject<Point[][][]>(json);
+                    case IpcCommands.SynDeviceState:
+                        return JsonConvert.DeserializeObject<Devices>(json);
+                    default:
+                        throw new InvalidDataException($"Command {command} does not accept a payload.");
+                }
             }
+        }
+
+        internal static void WriteMessage(Stream stream, IpcCommands command, object message)
+        {
+            stream.WriteByte((byte)command);
+            if (message == null)
+                return;
+
+            bool validPayload = command == IpcCommands.GotGesture && message is Point[][][] ||
+                                command == IpcCommands.SynDeviceState && message is Devices;
+            if (!validPayload)
+                throw new InvalidDataException($"Command {command} received an unsupported payload type.");
+
+            byte[] payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message));
+            stream.Write(payload, 0, payload.Length);
         }
 
         private static bool WaitForNamedPipeConnection(string pipeName, int interval = 1000)
@@ -87,12 +119,7 @@ namespace GestureSign.Common.InterProcessCommunication
 
                                pipeClient.Connect(10);
 
-                               ms.WriteByte((byte)command);
-                               if (message != null)
-                               {
-                                   BinaryFormatter bf = new BinaryFormatter();
-                                   bf.Serialize(ms, message);
-                               }
+                               WriteMessage(ms, command, message);
                                ms.Seek(0, SeekOrigin.Begin);
 
                                ms.CopyTo(pipeClient);

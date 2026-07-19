@@ -66,11 +66,7 @@ namespace GestureSign.ControlPanel.Log
             }
             result.AppendLine(version);
 
-            string directoryPath = Path.GetDirectoryName(new Uri(Application.ResourceAssembly.CodeBase).LocalPath);
-            if (directoryPath != null)
-            {
-                result.AppendLine(directoryPath);
-            }
+            result.AppendLine(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
             result.AppendLine();
 
             try

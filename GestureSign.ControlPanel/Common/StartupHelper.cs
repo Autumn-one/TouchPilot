@@ -1,6 +1,5 @@
 ﻿using GestureSign.Common.Configuration;
 using GestureSign.Common.Localization;
-using IWshRuntimeLibrary;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -61,17 +60,7 @@ namespace GestureSign.ControlPanel.Common
 
         private static void CreateLnk(string lnkPath, string targetPath)
         {
-            WshShell shell = new WshShell();
-            IWshShortcut shortCut = (IWshShortcut)shell.CreateShortcut(lnkPath);
-            shortCut.TargetPath = targetPath;
-            //Application.ResourceAssembly.Location;// System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-            shortCut.WindowStyle = 7;
-            shortCut.Arguments = "";
-            shortCut.Description = Application.ResourceAssembly.GetName().Version.ToString();
-            // Application.ProductName + Application.ProductVersion;
-            //shortCut.IconLocation = Application.ResourceAssembly.Location;// Application.ExecutablePath;
-            //shortCut.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory;// Application.ResourceAssembly.;
-            shortCut.Save();
+            ShortcutHelper.Create(lnkPath, targetPath, Application.ResourceAssembly.GetName().Version.ToString());
         }
 
         private static bool AddStartupTask(string filePath)

@@ -3,7 +3,6 @@ using GestureSign.Common.Configuration;
 using GestureSign.Common.Localization;
 using GestureSign.ControlPanel.Common;
 using GestureSign.ControlPanel.Flyouts;
-using IWshRuntimeLibrary;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using ManagedWinapi.Windows;
@@ -224,9 +223,7 @@ namespace GestureSign.ControlPanel.Dialogs
                         string targetFile = files[0];
                         if (targetFile.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
                         {
-                            WshShell shell = new WshShell();
-                            IWshShortcut link = (IWshShortcut)shell.CreateShortcut(targetFile);
-                            targetFile = link.TargetPath;
+                            targetFile = ShortcutHelper.GetTargetPath(targetFile);
                         }
                         if (Path.GetExtension(targetFile).ToLower() == ".exe")
                         {

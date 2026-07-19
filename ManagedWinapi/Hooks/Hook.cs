@@ -96,6 +96,7 @@ namespace ManagedWinapi.Hooks
         /// <summary>
         /// The type of the hook.
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public HookType Type
         {
             get { return type; }
