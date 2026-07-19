@@ -118,6 +118,122 @@ namespace GestureSign.Tests
             }
         }
 
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerRetargetsWindowUnderCursorWhenReclutched()
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    RunWindowDragRetargetTest();
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+
+            Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "The window drag retarget integration test timed out.");
+            if (failure != null)
+                ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
+        private static void RunWindowDragRetargetTest()
+        {
+            Point originalCursor = Cursor.Position;
+            var controller = new WindowDragController();
+            Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
+            int width = Math.Min(320, workingArea.Width / 3);
+            int height = Math.Min(220, workingArea.Height / 2);
+            using (var firstForm = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Left + 40, workingArea.Top + 80, width, height), "first"))
+            using (var secondForm = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Right - width - 40, workingArea.Top + 80, width, height), "second"))
+            {
+                try
+                {
+                    firstForm.Show();
+                    secondForm.Show();
+                    Application.DoEvents();
+
+                    var firstWindow = new SystemWindow(firstForm.Handle);
+                    var secondWindow = new SystemWindow(secondForm.Handle);
+                    RECT firstInitialRectangle = firstWindow.Rectangle;
+                    Point firstCursor = new Point(firstInitialRectangle.Left + 80, firstInitialRectangle.Top + 60);
+                    Cursor.Position = firstCursor;
+
+                    Assert.True(controller.Begin(firstWindow, 0.50, 0.50,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos));
+                    Thread.Sleep(25);
+                    Assert.True(controller.Update(0.52, 0.51, 1));
+                    PumpWindowMessages();
+
+                    controller.Pause();
+                    RECT firstPausedRectangle = firstWindow.Rectangle;
+                    RECT secondInitialRectangle = secondWindow.Rectangle;
+                    Point secondCursor = new Point(secondInitialRectangle.Left + 80, secondInitialRectangle.Top + 60);
+                    Cursor.Position = secondCursor;
+                    SystemWindow windowUnderCursor = SystemWindow.FromPointEx(secondCursor.X, secondCursor.Y, true, true);
+
+                    Assert.NotNull(windowUnderCursor);
+                    Assert.Equal(secondWindow.HWnd, windowUnderCursor.HWnd);
+                    Assert.True(controller.Rebase(windowUnderCursor, 0.52, 0.51));
+                    Assert.Equal(secondCursor, Cursor.Position);
+                    Thread.Sleep(25);
+                    Assert.True(controller.Update(0.55, 0.53, 1));
+                    PumpWindowMessages();
+
+                    RECT firstFinalRectangle = firstWindow.Rectangle;
+                    RECT secondFinalRectangle = secondWindow.Rectangle;
+                    Point finalCursor = Cursor.Position;
+                    Screen screen = Screen.FromPoint(secondCursor);
+                    int expectedX = (int)Math.Round(screen.Bounds.Width * 0.03);
+                    int expectedY = (int)Math.Round(screen.Bounds.Height * 0.02);
+
+                    Assert.InRange(firstFinalRectangle.Left - firstPausedRectangle.Left, -1, 1);
+                    Assert.InRange(firstFinalRectangle.Top - firstPausedRectangle.Top, -1, 1);
+                    Assert.InRange(finalCursor.X - secondCursor.X, expectedX - 3, expectedX + 3);
+                    Assert.InRange(finalCursor.Y - secondCursor.Y, expectedY - 3, expectedY + 3);
+                    Assert.InRange(secondFinalRectangle.Left - secondInitialRectangle.Left, expectedX - 4, expectedX + 4);
+                    Assert.InRange(secondFinalRectangle.Top - secondInitialRectangle.Top, expectedY - 4, expectedY + 4);
+                }
+                finally
+                {
+                    controller.End();
+                    Cursor.Position = originalCursor;
+                    secondForm.Close();
+                    firstForm.Close();
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        private static Form CreateDirectDragTestForm(Rectangle bounds, string label)
+        {
+            return new Form
+            {
+                Bounds = bounds,
+                FormBorderStyle = FormBorderStyle.FixedToolWindow,
+                ShowInTaskbar = false,
+                StartPosition = FormStartPosition.Manual,
+                TopMost = true,
+                Text = $"GestureSign direct drag {label} window"
+            };
+        }
+
+        private static void PumpWindowMessages()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                Application.DoEvents();
+                Thread.Sleep(20);
+            }
+        }
+
         [Theory]
         [InlineData(TouchpadWindowDragImplementation.SimulatedMouseDrag)]
         [InlineData(TouchpadWindowDragImplementation.ThreeFingerDrag)]

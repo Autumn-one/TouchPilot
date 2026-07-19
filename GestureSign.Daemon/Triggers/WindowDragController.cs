@@ -129,10 +129,25 @@ namespace GestureSign.Daemon.Triggers
 
         public bool Rebase(double normalizedX, double normalizedY)
         {
+            return Rebase(_window, normalizedX, normalizedY);
+        }
+
+        public bool Rebase(SystemWindow window, double normalizedX, double normalizedY)
+        {
             if (!_active)
                 return false;
 
             Point cursor = Cursor.Position;
+            if (!UsesSimulatedMouseDrag(_implementation))
+                FlushPendingPosition();
+
+            if (!IsMovableWindow(window))
+            {
+                End();
+                return false;
+            }
+
+            _window = window;
             if (UsesSimulatedMouseDrag(_implementation))
             {
                 if (!TryStartSimulatedMouseDrag())
@@ -143,8 +158,7 @@ namespace GestureSign.Daemon.Triggers
             }
             else
             {
-                FlushPendingPosition();
-                ConfigureDirectWindowAnchor(_window, cursor);
+                ConfigureDirectWindowAnchor(window, cursor);
             }
 
             InitializeCursorTracking(normalizedX, normalizedY, cursor);

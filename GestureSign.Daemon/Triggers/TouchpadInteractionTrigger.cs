@@ -15,7 +15,6 @@ namespace GestureSign.Daemon.Triggers
         private TouchpadInteractionRecognizer _recognizer;
         private readonly WindowDragController _windowDragController = new WindowDragController();
         private Point _sessionStartPoint;
-        private SystemWindow _sessionWindow;
         private TouchpadWindowDragImplementation _sessionWindowDragImplementation;
 
         public TouchpadInteractionTrigger()
@@ -32,7 +31,6 @@ namespace GestureSign.Daemon.Triggers
                 _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
                 _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
                 _sessionStartPoint = Cursor.Position;
-                _sessionWindow = ApplicationManager.Instance.GetWindowFromPoint(_sessionStartPoint);
             }
 
             TouchpadInteractionFrameResult result = _recognizer.ProcessFrame(e.Contacts, e.TimestampMilliseconds);
@@ -47,7 +45,6 @@ namespace GestureSign.Daemon.Triggers
             if (!result.SessionActive)
             {
                 _windowDragController.End();
-                _sessionWindow = null;
             }
         }
 
@@ -59,7 +56,7 @@ namespace GestureSign.Daemon.Triggers
                     FireEdgeGesture(interactionEvent.EdgeGesture);
                     break;
                 case TouchpadInteractionEventType.WindowDragStarted:
-                    _windowDragController.Begin(_sessionWindow, interactionEvent.NormalizedX, interactionEvent.NormalizedY,
+                    _windowDragController.Begin(GetWindowUnderCursor(), interactionEvent.NormalizedX, interactionEvent.NormalizedY,
                         _sessionWindowDragImplementation);
                     break;
                 case TouchpadInteractionEventType.WindowDragMoved:
@@ -69,12 +66,18 @@ namespace GestureSign.Daemon.Triggers
                     _windowDragController.Pause();
                     break;
                 case TouchpadInteractionEventType.WindowDragResumed:
-                    _windowDragController.Rebase(interactionEvent.NormalizedX, interactionEvent.NormalizedY);
+                    _windowDragController.Rebase(GetWindowUnderCursor(), interactionEvent.NormalizedX,
+                        interactionEvent.NormalizedY);
                     break;
                 case TouchpadInteractionEventType.WindowDragEnded:
                     _windowDragController.End();
                     break;
             }
+        }
+
+        private static SystemWindow GetWindowUnderCursor()
+        {
+            return ApplicationManager.Instance.GetWindowFromPoint(Cursor.Position);
         }
 
         private void FireEdgeGesture(FixedEdgeGesture gesture)
