@@ -59,6 +59,8 @@ namespace GestureSign.Daemon.Input
 
         private int? _blockTouchInputThreshold;
         private Point _touchPadStartPoint;
+        private bool _inputSessionClaimed;
+        private bool _releaseClaimAfterCurrentFrame;
 
         #endregion
 
@@ -160,6 +162,8 @@ namespace GestureSign.Daemon.Input
         // Create event to notify subscribers that a single point has been captured
         public event PointsCapturedEventHandler PointCaptured;
 
+        public event EventHandler<TouchpadFrameEventArgs> TouchpadFrame;
+
         protected virtual void OnPointCaptured(PointsCapturedEventArgs e)
         {
             if (PointCaptured != null) PointCaptured(this, e);
@@ -210,7 +214,9 @@ namespace GestureSign.Daemon.Input
             };
 
             _inputProvider = new InputProvider();
+            _inputProvider.PointsIntercepted += InputProvider_PublishTouchpadFrame;
             _pointEventTranslator = new PointEventTranslator(_inputProvider);
+            _inputProvider.PointsIntercepted += InputProvider_CompleteTouchpadFrame;
             _pointEventTranslator.PointDown += (PointEventTranslator_PointDown);
             _pointEventTranslator.PointUp += (PointEventTranslator_PointUp);
             _pointEventTranslator.PointMove += (PointEventTranslator_PointMove);
@@ -329,6 +335,12 @@ namespace GestureSign.Daemon.Input
 
         protected void PointEventTranslator_PointDown(object sender, InputPointsEventArgs e)
         {
+            if (_inputSessionClaimed && e.PointSource == Devices.TouchPad)
+            {
+                e.Handled = Mode != CaptureMode.UserDisabled;
+                return;
+            }
+
             if (State == CaptureState.Ready || State == CaptureState.Capturing || State == CaptureState.CapturingInvalid)
             {
                 Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
@@ -354,6 +366,9 @@ namespace GestureSign.Daemon.Input
 
         protected void PointEventTranslator_PointMove(object sender, InputPointsEventArgs e)
         {
+            if (_inputSessionClaimed && e.PointSource == Devices.TouchPad)
+                return;
+
             // Only add point if we're capturing
             if (State == CaptureState.Capturing || State == CaptureState.CapturingInvalid)
             {
@@ -364,6 +379,12 @@ namespace GestureSign.Daemon.Input
 
         protected void PointEventTranslator_PointUp(object sender, InputPointsEventArgs e)
         {
+            if (_inputSessionClaimed && e.PointSource == Devices.TouchPad)
+            {
+                e.Handled = Mode != CaptureMode.UserDisabled;
+                return;
+            }
+
             if (State == CaptureState.Capturing || State == CaptureState.CapturingInvalid && (SourceDevice & Devices.TouchDevice) != 0)
             {
                 e.Handled = Mode != CaptureMode.UserDisabled;
@@ -436,6 +457,54 @@ namespace GestureSign.Daemon.Input
         #endregion
 
         #region Private Methods
+
+        private void InputProvider_PublishTouchpadFrame(object sender, RawPointsDataMessageEventArgs e)
+        {
+            if (e.SourceDevice != Devices.TouchPad || TouchpadFrame == null)
+                return;
+
+            var contacts = e.RawData
+                .Where(contact => !double.IsNaN(contact.NormalizedX) && !double.IsNaN(contact.NormalizedY))
+                .Select(contact => new TouchpadContact(contact.ContactIdentifier, contact.State, contact.NormalizedX, contact.NormalizedY))
+                .ToList();
+
+            var frame = new TouchpadFrameEventArgs(contacts, e.TimestampMilliseconds);
+            TouchpadFrame(this, frame);
+
+            if (frame.ClaimInput)
+                ClaimInputSession();
+
+            _releaseClaimAfterCurrentFrame = contacts.Count != 0 && contacts.All(contact => !contact.IsActive);
+        }
+
+        private void InputProvider_CompleteTouchpadFrame(object sender, RawPointsDataMessageEventArgs e)
+        {
+            if (e.SourceDevice != Devices.TouchPad || !_releaseClaimAfterCurrentFrame)
+                return;
+
+            _releaseClaimAfterCurrentFrame = false;
+            _inputSessionClaimed = false;
+        }
+
+        private void ClaimInputSession()
+        {
+            if (_inputSessionClaimed)
+                return;
+
+            _inputSessionClaimed = true;
+            if (State != CaptureState.Capturing && State != CaptureState.CapturingInvalid)
+                return;
+
+            if (_pointsCaptured != null)
+            {
+                OnCaptureCanceled(new PointsCapturedEventArgs(new List<List<Point>>(_pointsCaptured.Values), _pointsCaptured.Values.Select(points => points.FirstOrDefault()).ToList()));
+                _pointsCaptured.Clear();
+            }
+
+            State = CaptureState.Ready;
+            _initialTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
+        }
 
         private void UpdateBlockTouchInputThreshold(int? threshold = null)
         {

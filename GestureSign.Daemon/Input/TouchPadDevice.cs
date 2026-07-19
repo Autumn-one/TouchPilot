@@ -17,11 +17,9 @@ namespace GestureSign.Daemon.Input
 
         protected override Point GetCoordinate(short linkCollection, Screen currentScr, IntPtr pRawDataPacket)
         {
-            int physicalX = 0;
-            int physicalY = 0;
-
-            HidNativeApi.HidP_GetScaledUsageValue(HidReportType.Input, NativeMethods.GenericDesktopPage, linkCollection, NativeMethods.XCoordinateId, ref physicalX, _hPreparsedData.DangerousGetHandle(), pRawDataPacket, _dwSizHid);
-            HidNativeApi.HidP_GetScaledUsageValue(HidReportType.Input, NativeMethods.GenericDesktopPage, linkCollection, NativeMethods.YCoordinateId, ref physicalY, _hPreparsedData.DangerousGetHandle(), pRawDataPacket, _dwSizHid);
+            Point physicalPoint = GetPhysicalCoordinate(linkCollection, pRawDataPacket);
+            int physicalX = physicalPoint.X;
+            int physicalY = physicalPoint.Y;
 
             int x, y;
             x = physicalX * currentScr.Bounds.Width / _physicalMax.X;
@@ -38,12 +36,17 @@ namespace GestureSign.Daemon.Input
                 for (short nodeIndex = 1; nodeIndex <= numberOfChildren; nodeIndex++)
                 {
                     int contactIdentifier = GetContactId(nodeIndex, pRawDataPacket);
-                    Point point = GetCoordinate(nodeIndex, currentScr, pRawDataPacket);
+                    Point physicalPoint = GetPhysicalCoordinate(nodeIndex, pRawDataPacket);
+                    int x = physicalPoint.X * currentScr.Bounds.Width / _physicalMax.X;
+                    int y = physicalPoint.Y * currentScr.Bounds.Height / _physicalMax.Y;
+                    Point point = new Point(x + currentScr.Bounds.X, y + currentScr.Bounds.Y);
+                    double normalizedX = NormalizePhysicalCoordinate(physicalPoint.X, _physicalMin.X, _physicalMax.X);
+                    double normalizedY = NormalizePhysicalCoordinate(physicalPoint.Y, _physicalMin.Y, _physicalMax.Y);
 
                     ushort[] usageList = GetButtonList(_hPreparsedData.DangerousGetHandle(), _pRawData, nodeIndex, _dwSizHid);
                     bool tip = usageList.Length != 0 && usageList[0] == NativeMethods.TipId;
 
-                    _outputTouchs.Add(new RawData(tip ? DeviceStates.Tip : DeviceStates.None, contactIdentifier, point));
+                    _outputTouchs.Add(new RawData(tip ? DeviceStates.Tip : DeviceStates.None, contactIdentifier, point, normalizedX, normalizedY));
 
                     if (--requiringContactCount == 0) break;
                 }

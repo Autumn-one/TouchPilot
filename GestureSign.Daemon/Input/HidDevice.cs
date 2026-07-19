@@ -14,6 +14,7 @@ namespace GestureSign.Daemon.Input
         protected IntPtr _pRawData;
         protected int _dwCount;
         protected int _dwSizHid;
+        protected Point _physicalMin;
         protected Point _physicalMax;
 
         protected static bool _isAxisCorresponds;
@@ -56,11 +57,9 @@ namespace GestureSign.Daemon.Input
 
         protected virtual Point GetCoordinate(short linkCollection, Screen currentScr, IntPtr pRawDataPacket)
         {
-            int physicalX = 0;
-            int physicalY = 0;
-
-            HidNativeApi.HidP_GetScaledUsageValue(HidReportType.Input, NativeMethods.GenericDesktopPage, linkCollection, NativeMethods.XCoordinateId, ref physicalX, _hPreparsedData.DangerousGetHandle(), pRawDataPacket, _dwSizHid);
-            HidNativeApi.HidP_GetScaledUsageValue(HidReportType.Input, NativeMethods.GenericDesktopPage, linkCollection, NativeMethods.YCoordinateId, ref physicalY, _hPreparsedData.DangerousGetHandle(), pRawDataPacket, _dwSizHid);
+            Point physicalPoint = GetPhysicalCoordinate(linkCollection, pRawDataPacket);
+            int physicalX = physicalPoint.X;
+            int physicalY = physicalPoint.Y;
 
             int x, y;
             if (_isAxisCorresponds)
@@ -77,6 +76,26 @@ namespace GestureSign.Daemon.Input
             y = _yAxisDirection ? y : currentScr.Bounds.Height - y;
 
             return new Point(x + currentScr.Bounds.X, y + currentScr.Bounds.Y);
+        }
+
+        protected Point GetPhysicalCoordinate(short linkCollection, IntPtr pRawDataPacket)
+        {
+            int physicalX = 0;
+            int physicalY = 0;
+
+            HidNativeApi.HidP_GetScaledUsageValue(HidReportType.Input, NativeMethods.GenericDesktopPage, linkCollection, NativeMethods.XCoordinateId, ref physicalX, _hPreparsedData.DangerousGetHandle(), pRawDataPacket, _dwSizHid);
+            HidNativeApi.HidP_GetScaledUsageValue(HidReportType.Input, NativeMethods.GenericDesktopPage, linkCollection, NativeMethods.YCoordinateId, ref physicalY, _hPreparsedData.DangerousGetHandle(), pRawDataPacket, _dwSizHid);
+
+            return new Point(physicalX, physicalY);
+        }
+
+        protected double NormalizePhysicalCoordinate(int value, int minimum, int maximum)
+        {
+            if (maximum <= minimum)
+                return 0;
+
+            double normalized = (value - minimum) / (double)(maximum - minimum);
+            return Math.Max(0, Math.Min(1, normalized));
         }
 
         public virtual Point GetCoordinate(short linkCollection, Screen currentScr)
@@ -199,9 +218,11 @@ namespace GestureSign.Daemon.Input
             HidNativeApi.HidP_Value_Caps[] hvc = new HidNativeApi.HidP_Value_Caps[valueCapsLength];
 
             HidNativeApi.HidP_GetSpecificValueCaps(HidReportType.Input, NativeMethods.GenericDesktopPage, 0, NativeMethods.XCoordinateId, hvc, ref valueCapsLength, _hPreparsedData.DangerousGetHandle());
+            _physicalMin.X = hvc[0].PhysicalMax != 0 ? hvc[0].PhysicalMin : hvc[0].LogicalMin;
             _physicalMax.X = hvc[0].PhysicalMax != 0 ? hvc[0].PhysicalMax : hvc[0].LogicalMax;
 
             HidNativeApi.HidP_GetSpecificValueCaps(HidReportType.Input, NativeMethods.GenericDesktopPage, 0, NativeMethods.YCoordinateId, hvc, ref valueCapsLength, _hPreparsedData.DangerousGetHandle());
+            _physicalMin.Y = hvc[0].PhysicalMax != 0 ? hvc[0].PhysicalMin : hvc[0].LogicalMin;
             _physicalMax.Y = hvc[0].PhysicalMax != 0 ? hvc[0].PhysicalMax : hvc[0].LogicalMax;
         }
 

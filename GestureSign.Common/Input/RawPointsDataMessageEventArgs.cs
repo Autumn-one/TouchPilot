@@ -11,6 +11,7 @@ namespace GestureSign.Common.Input
         {
             this.RawData = rawData;
             SourceDevice = device;
+            TimestampMilliseconds = Environment.TickCount64;
         }
 
 
@@ -20,6 +21,7 @@ namespace GestureSign.Common.Input
 
         public List<RawData> RawData { get; set; }
         public Devices SourceDevice { get; set; }
+        public long TimestampMilliseconds { get; }
 
         #endregion
     }
