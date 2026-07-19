@@ -81,53 +81,118 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void AnchorDriftCancelsCandidateWithoutClaiming()
+        public void BottomAnchorCanMoveWithinEdgeZoneBeforeActivation()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
 
-            recognizer.ProcessFrame(Frame(Contact(3, 0.5, 0.96)), 0);
-            recognizer.ProcessFrame(Frame(Contact(3, 0.54, 0.96), Contact(4, 0.5, 0.5)), 120);
-            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
-                Frame(Contact(3, 0.54, 0.96), Contact(4, 0.55, 0.5)), 150);
+            recognizer.ProcessFrame(Frame(Contact(3, 0.2, 0.96)), 0);
+            TouchpadInteractionFrameResult beforeHold = recognizer.ProcessFrame(
+                Frame(Contact(3, 0.65, 0.91), Contact(4, 0.5, 0.5)), 50);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(3, 0.8, 0.89), Contact(4, 0.54, 0.48)), 120);
 
-            Assert.False(result.ClaimInput);
-            Assert.Empty(result.Events);
+            Assert.False(beforeHold.ClaimInput);
+            Assert.True(started.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
         }
 
         [Fact]
-        public void ClaimedDragSupportsPauseReclutchAndAnchorRelease()
+        public void ActiveDragContinuesWhenAnchorMovesWithinBottomZone()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
 
-            recognizer.ProcessFrame(Frame(Contact(10, 0.5, 0.96)), 0);
-            recognizer.ProcessFrame(Frame(Contact(10, 0.5, 0.96), Contact(11, 0.5, 0.5)), 110);
-            recognizer.ProcessFrame(Frame(Contact(10, 0.5, 0.96), Contact(11, 0.53, 0.5)), 130);
+            TouchpadInteractionFrameResult continued = recognizer.ProcessFrame(
+                Frame(Contact(10, 0.82, 0.90), Contact(11, 0.56, 0.53)), 160);
+
+            Assert.True(continued.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(continued.Events).EventType);
+        }
+
+        [Fact]
+        public void AnchorLeavingBottomZoneEndsDragImmediately()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
+
+            TouchpadInteractionFrameResult ended = recognizer.ProcessFrame(
+                Frame(Contact(10, 0.7, 0.80), Contact(11, 0.55, 0.5)), 140);
+
+            Assert.True(ended.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(ended.Events).EventType);
+        }
+
+        [Fact]
+        public void BriefMissingAnchorReportKeepsDragActive()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
+
+            TouchpadInteractionFrameResult missing = recognizer.ProcessFrame(Frame(Contact(11, 0.55, 0.5)), 150);
+            TouchpadInteractionFrameResult returned = recognizer.ProcessFrame(
+                Frame(Contact(10, 0.75, 0.91), Contact(11, 0.57, 0.51)), 210);
+
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(missing.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(returned.Events).EventType);
+            Assert.True(returned.ClaimInput);
+        }
+
+        [Fact]
+        public void BottomContactWithNewIdentifierContinuesAnchor()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
+
+            TouchpadInteractionFrameResult replaced = recognizer.ProcessFrame(
+                Frame(Contact(12, 0.6, 0.94), Contact(11, 0.55, 0.5)), 150);
+            TouchpadInteractionFrameResult continued = recognizer.ProcessFrame(
+                Frame(Contact(12, 0.82, 0.90), Contact(11, 0.57, 0.51)), 180);
+
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(replaced.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(continued.Events).EventType);
+            Assert.True(continued.ClaimInput);
+        }
+
+        [Fact]
+        public void MovingFingerCannotReplaceMissingAnchor()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
+
+            TouchpadInteractionFrameResult missing = recognizer.ProcessFrame(Frame(Contact(11, 0.55, 0.95)), 150);
+            TouchpadInteractionFrameResult expired = recognizer.ProcessFrame(Frame(Contact(11, 0.57, 0.94)), 231);
+
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(missing.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(expired.Events).EventType);
+        }
+
+        [Fact]
+        public void ClaimedDragSupportsMovingFingerPauseAndReclutch()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
+
             TouchpadInteractionFrameResult paused = recognizer.ProcessFrame(Frame(Contact(10, 0.5, 0.96)), 160);
             TouchpadInteractionFrameResult resumed = recognizer.ProcessFrame(
-                Frame(Contact(10, 0.5, 0.96), Contact(12, 0.4, 0.4)), 180);
-            TouchpadInteractionFrameResult ended = recognizer.ProcessFrame(Frame(Contact(12, 0.4, 0.4)), 200);
+                Frame(Contact(10, 0.7, 0.92), Contact(12, 0.4, 0.4)), 180);
             TouchpadInteractionFrameResult released = recognizer.ProcessFrame(Frame(), 220);
 
             Assert.Equal(TouchpadInteractionEventType.WindowDragPaused, Assert.Single(paused.Events).EventType);
             Assert.Equal(TouchpadInteractionEventType.WindowDragResumed, Assert.Single(resumed.Events).EventType);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(ended.Events).EventType);
-            Assert.True(ended.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(released.Events).EventType);
             Assert.True(released.ClaimInput);
             Assert.False(released.SessionActive);
         }
 
-        [Fact]
-        public void FreeAnchorRequiresFirstFingerToArriveAlone()
+        private static void StartBottomAnchoredDrag(TouchpadInteractionRecognizer recognizer, int anchorIdentifier, int movingIdentifier)
         {
-            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.FreeTwoFingerAnchor);
+            recognizer.ProcessFrame(Frame(Contact(anchorIdentifier, 0.5, 0.96)), 0);
+            recognizer.ProcessFrame(
+                Frame(Contact(anchorIdentifier, 0.5, 0.96), Contact(movingIdentifier, 0.5, 0.5)), 110);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(anchorIdentifier, 0.5, 0.96), Contact(movingIdentifier, 0.53, 0.5)), 130);
 
-            recognizer.ProcessFrame(Frame(Contact(1, 0.4, 0.4)), 0);
-            recognizer.ProcessFrame(Frame(Contact(1, 0.4, 0.4), Contact(2, 0.6, 0.6)), 190);
-            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.4, 0.4), Contact(2, 0.63, 0.6)), 220);
-
-            Assert.True(result.ClaimInput);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(result.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
         }
 
         private static TouchpadInteractionRecognizer CreateRecognizer(

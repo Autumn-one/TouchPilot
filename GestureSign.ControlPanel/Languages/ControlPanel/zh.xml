@@ -233,10 +233,7 @@ QQ交流群：576981420
     <Header>边缘</Header>
     <Enabled>边缘触控</Enabled>
     <WindowDrag>窗口拖动</WindowDrag>
-    <WindowDragMode>触发方式</WindowDragMode>
-    <DragDisabled>关闭</DragDisabled>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
-    <FreeAnchor>自由双指锚点</FreeAnchor>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
     <FixedGestures>固定边缘手势</FixedGestures>
     <LeftEdge>左边缘</LeftEdge>
@@ -252,7 +249,6 @@ QQ交流群：576981420
     <Tuning>识别参数</Tuning>
     <EdgeZone>边缘区域 {0:F0}%</EdgeZone>
     <ActivationDistance>激活距离 {0:F0}%</ActivationDistance>
-    <AnchorDrift>锚点允许漂移 {0:F0}%</AnchorDrift>
   </EdgeTouch>
   <Options>
     <Header>选项</Header>

@@ -24,8 +24,7 @@ namespace GestureSign.Common.Input
     public enum TouchpadWindowDragMode
     {
         Disabled = 0,
-        BottomEdgeAnchor,
-        FreeTwoFingerAnchor
+        BottomEdgeAnchor
     }
 
     public sealed class TouchpadInteractionOptions
@@ -38,8 +37,7 @@ namespace GestureSign.Common.Input
         public double EdgeSlideStep { get; set; } = 0.05;
         public int EdgeGestureTimeoutMilliseconds { get; set; } = 800;
         public int BottomAnchorHoldMilliseconds { get; set; } = 100;
-        public int FreeAnchorHoldMilliseconds { get; set; } = 180;
-        public double AnchorDriftTolerance { get; set; } = 0.02;
+        public int AnchorDropoutGraceMilliseconds { get; set; } = 80;
         public double WindowDragActivationDistance { get; set; } = 0.015;
     }
 
@@ -129,8 +127,9 @@ namespace GestureSign.Common.Input
         private long _sessionStartTimestamp;
 
         private int? _anchorContactIdentifier;
-        private TouchpadContact _anchorStart;
+        private TouchpadContact _lastAnchorContact;
         private long _anchorStartTimestamp;
+        private long? _anchorMissingSinceTimestamp;
         private int? _movingContactIdentifier;
 
         private int? _edgeContactIdentifier;
@@ -148,8 +147,8 @@ namespace GestureSign.Common.Input
                 throw new ArgumentOutOfRangeException(nameof(options.EdgeActivationDistance));
             if (_options.EdgeSlideStep <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.EdgeSlideStep));
-            if (_options.AnchorDriftTolerance <= 0)
-                throw new ArgumentOutOfRangeException(nameof(options.AnchorDriftTolerance));
+            if (_options.AnchorDropoutGraceMilliseconds < 0)
+                throw new ArgumentOutOfRangeException(nameof(options.AnchorDropoutGraceMilliseconds));
             if (_options.WindowDragActivationDistance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.WindowDragActivationDistance));
         }
@@ -183,7 +182,7 @@ namespace GestureSign.Common.Input
             var output = new List<TouchpadInteractionEvent>();
             if (_windowDragActive)
             {
-                ProcessActiveWindowDrag(output);
+                ProcessActiveWindowDrag(timestampMilliseconds, output);
             }
             else if (!_claimed)
             {
@@ -208,6 +207,7 @@ namespace GestureSign.Common.Input
             _windowDragActive = false;
             _sessionStartTimestamp = 0;
             _anchorContactIdentifier = null;
+            _anchorMissingSinceTimestamp = null;
             _movingContactIdentifier = null;
             _edgeContactIdentifier = null;
             _edgeTrackingMode = EdgeTrackingMode.Candidate;
@@ -246,31 +246,26 @@ namespace GestureSign.Common.Input
 
         private void ConfigureAnchorCandidate(List<TouchpadContact> contacts, long timestampMilliseconds)
         {
+            if (_options.WindowDragMode != TouchpadWindowDragMode.BottomEdgeAnchor)
+                return;
+
             TouchpadContact? anchor = null;
-            switch (_options.WindowDragMode)
+            foreach (TouchpadContact contact in contacts.OrderByDescending(contact => contact.NormalizedY))
             {
-                case TouchpadWindowDragMode.BottomEdgeAnchor:
-                    foreach (TouchpadContact contact in contacts.OrderByDescending(contact => contact.NormalizedY))
-                    {
-                        if (contact.NormalizedY >= 1 - _options.EdgeZone)
-                        {
-                            anchor = contact;
-                            break;
-                        }
-                    }
+                if (IsInBottomEdgeZone(contact))
+                {
+                    anchor = contact;
                     break;
-                case TouchpadWindowDragMode.FreeTwoFingerAnchor:
-                    if (contacts.Count == 1)
-                        anchor = contacts[0];
-                    break;
+                }
             }
 
             if (!anchor.HasValue)
                 return;
 
             _anchorContactIdentifier = anchor.Value.ContactIdentifier;
-            _anchorStart = anchor.Value;
+            _lastAnchorContact = anchor.Value;
             _anchorStartTimestamp = timestampMilliseconds;
+            _anchorMissingSinceTimestamp = null;
         }
 
         private void ConfigureEdgeCandidate(List<TouchpadContact> contacts)
@@ -296,17 +291,15 @@ namespace GestureSign.Common.Input
                 return;
 
             TouchpadContact anchor;
-            if (!_activeContacts.TryGetValue(_anchorContactIdentifier.Value, out anchor) || GetDistance(anchor, _anchorStart) > _options.AnchorDriftTolerance)
+            if (!_activeContacts.TryGetValue(_anchorContactIdentifier.Value, out anchor) || !IsInBottomEdgeZone(anchor))
             {
                 _anchorContactIdentifier = null;
                 _movingContactIdentifier = null;
                 return;
             }
+            _lastAnchorContact = anchor;
 
-            int holdMilliseconds = _options.WindowDragMode == TouchpadWindowDragMode.BottomEdgeAnchor
-                ? _options.BottomAnchorHoldMilliseconds
-                : _options.FreeAnchorHoldMilliseconds;
-            if (timestampMilliseconds - _anchorStartTimestamp < holdMilliseconds)
+            if (timestampMilliseconds - _anchorStartTimestamp < _options.BottomAnchorHoldMilliseconds)
                 return;
 
             if (!_movingContactIdentifier.HasValue)
@@ -326,16 +319,15 @@ namespace GestureSign.Common.Input
 
             _claimed = true;
             _windowDragActive = true;
+            _anchorMissingSinceTimestamp = null;
             _edgeContactIdentifier = null;
             output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragStarted, currentMoving));
         }
 
-        private void ProcessActiveWindowDrag(List<TouchpadInteractionEvent> output)
+        private void ProcessActiveWindowDrag(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
         {
             TouchpadContact anchor;
-            if (!_anchorContactIdentifier.HasValue ||
-                !_activeContacts.TryGetValue(_anchorContactIdentifier.Value, out anchor) ||
-                GetDistance(anchor, _anchorStart) > _options.AnchorDriftTolerance)
+            if (!TryMaintainActiveAnchor(timestampMilliseconds, out anchor))
             {
                 _windowDragActive = false;
                 _movingContactIdentifier = null;
@@ -364,6 +356,57 @@ namespace GestureSign.Common.Input
             output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragResumed, replacement));
         }
 
+        private bool TryMaintainActiveAnchor(long timestampMilliseconds, out TouchpadContact anchor)
+        {
+            TouchpadContact current;
+            if (_anchorContactIdentifier.HasValue &&
+                _activeContacts.TryGetValue(_anchorContactIdentifier.Value, out current))
+            {
+                if (!IsInBottomEdgeZone(current))
+                {
+                    anchor = current;
+                    return false;
+                }
+
+                _lastAnchorContact = current;
+                _anchorMissingSinceTimestamp = null;
+                anchor = current;
+                return true;
+            }
+
+            TouchpadContact replacement;
+            if (TryGetReplacementAnchor(out replacement))
+            {
+                _anchorContactIdentifier = replacement.ContactIdentifier;
+                _lastAnchorContact = replacement;
+                _anchorMissingSinceTimestamp = null;
+                anchor = replacement;
+                return true;
+            }
+
+            if (!_anchorMissingSinceTimestamp.HasValue)
+                _anchorMissingSinceTimestamp = timestampMilliseconds;
+
+            anchor = _lastAnchorContact;
+            return timestampMilliseconds - _anchorMissingSinceTimestamp.Value <= _options.AnchorDropoutGraceMilliseconds;
+        }
+
+        private bool TryGetReplacementAnchor(out TouchpadContact contact)
+        {
+            foreach (KeyValuePair<int, TouchpadContact> candidate in _activeContacts)
+            {
+                if ((!_movingContactIdentifier.HasValue || candidate.Key != _movingContactIdentifier.Value) &&
+                    IsInBottomEdgeZone(candidate.Value))
+                {
+                    contact = candidate.Value;
+                    return true;
+                }
+            }
+
+            contact = default(TouchpadContact);
+            return false;
+        }
+
         private bool TryGetNonAnchorContact(out TouchpadContact contact)
         {
             foreach (KeyValuePair<int, TouchpadContact> candidate in _activeContacts)
@@ -377,6 +420,11 @@ namespace GestureSign.Common.Input
 
             contact = default(TouchpadContact);
             return false;
+        }
+
+        private bool IsInBottomEdgeZone(TouchpadContact contact)
+        {
+            return contact.NormalizedY >= 1 - _options.EdgeZone;
         }
 
         private void ProcessEdgeCandidate(long timestampMilliseconds, List<TouchpadInteractionEvent> output)

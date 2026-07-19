@@ -19,22 +19,12 @@
             <TextBlock Text="{localization:LocalisedText EdgeTouch.WindowDrag}"
                        FontSize="18"
                        FontWeight="SemiBold" />
-            <Grid Margin="0,12,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="210" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{localization:LocalisedText EdgeTouch.WindowDragMode}"
-                           FontSize="14"
-                           VerticalAlignment="Center" />
-                <ComboBox x:Name="WindowDragModeComboBox"
-                          Grid.Column="1"
-                          Width="280"
-                          HorizontalAlignment="Left"
-                          DisplayMemberPath="DisplayName"
-                          SelectedValuePath="Value"
-                          SelectionChanged="WindowDragModeComboBox_SelectionChanged" />
-            </Grid>
+            <controls:ToggleSwitch x:Name="WindowDragSwitch"
+                                   Margin="0,12,0,0"
+                                   Header="{localization:LocalisedText EdgeTouch.BottomAnchor}"
+                                   OnLabel="{localization:LocalisedText Options.OnLabel}"
+                                   OffLabel="{localization:LocalisedText Options.OffLabel}"
+                                   Click="WindowDragSwitch_Click" />
             <TextBlock Margin="0,15,0,0"
                        Text="{Binding ElementName=WindowDragSensitivitySlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.WindowDragSensitivity}}"
                        FontSize="14" />
@@ -268,19 +258,6 @@
                     IsSnapToTickEnabled="True"
                     common:SliderTools.MoveToPointOnDrag="True"
                     ValueChanged="EdgeActivationSlider_ValueChanged" />
-            <TextBlock Margin="0,13,0,0"
-                       Text="{Binding ElementName=AnchorDriftSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.AnchorDrift}}"
-                       FontSize="14" />
-            <Slider x:Name="AnchorDriftSlider"
-                    Width="360"
-                    HorizontalAlignment="Left"
-                    Margin="0,7,0,0"
-                    Minimum="1"
-                    Maximum="8"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True"
-                    common:SliderTools.MoveToPointOnDrag="True"
-                    ValueChanged="AnchorDriftSlider_ValueChanged" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

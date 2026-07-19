@@ -307,8 +307,18 @@ namespace GestureSign.Common.Configuration
 
         public static TouchpadWindowDragMode TouchpadWindowDragMode
         {
-            get { return (TouchpadWindowDragMode)GetValue(nameof(TouchpadWindowDragMode), 0); }
-            set { SetValue(nameof(TouchpadWindowDragMode), (int)value); }
+            get
+            {
+                int storedMode = GetValue(nameof(TouchpadWindowDragMode), 0);
+                // Value 2 was the removed free-anchor mode; keep existing users enabled on the supported mode.
+                return storedMode == (int)TouchpadWindowDragMode.BottomEdgeAnchor || storedMode == 2
+                    ? TouchpadWindowDragMode.BottomEdgeAnchor
+                    : TouchpadWindowDragMode.Disabled;
+            }
+            set
+            {
+                SetValue(nameof(TouchpadWindowDragMode), value == TouchpadWindowDragMode.BottomEdgeAnchor ? 1 : 0);
+            }
         }
 
         public static int TouchpadEdgeZonePercent
@@ -321,12 +331,6 @@ namespace GestureSign.Common.Configuration
         {
             get { return GetValue(nameof(TouchpadEdgeActivationPercent), 8); }
             set { SetValue(nameof(TouchpadEdgeActivationPercent), Math.Max(3, Math.Min(20, value))); }
-        }
-
-        public static int TouchpadAnchorDriftPercent
-        {
-            get { return GetValue(nameof(TouchpadAnchorDriftPercent), 2); }
-            set { SetValue(nameof(TouchpadAnchorDriftPercent), Math.Max(1, Math.Min(8, value))); }
         }
 
         public static int TouchpadWindowDragSensitivityPercent

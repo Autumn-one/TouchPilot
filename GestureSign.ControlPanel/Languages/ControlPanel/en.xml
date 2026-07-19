@@ -229,10 +229,7 @@ Email:ccfyzh@gmail.com
     <Header>Edges</Header>
     <Enabled>Edge touch</Enabled>
     <WindowDrag>Window dragging</WindowDrag>
-    <WindowDragMode>Trigger</WindowDragMode>
-    <DragDisabled>Off</DragDisabled>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
-    <FreeAnchor>Free two-finger anchor</FreeAnchor>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>
     <FixedGestures>Fixed edge gestures</FixedGestures>
     <LeftEdge>Left edge</LeftEdge>
@@ -248,7 +245,6 @@ Email:ccfyzh@gmail.com
     <Tuning>Recognition</Tuning>
     <EdgeZone>Edge zone {0:F0}%</EdgeZone>
     <ActivationDistance>Activation distance {0:F0}%</ActivationDistance>
-    <AnchorDrift>Anchor drift {0:F0}%</AnchorDrift>
   </EdgeTouch>
   <Options>
     <Header>Options</Header>

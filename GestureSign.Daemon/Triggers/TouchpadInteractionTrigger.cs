@@ -104,8 +104,7 @@ namespace GestureSign.Daemon.Triggers
                 WindowDragMode = enabled ? AppConfig.TouchpadWindowDragMode : TouchpadWindowDragMode.Disabled,
                 EdgeZone = AppConfig.TouchpadEdgeZonePercent / 100d,
                 EdgeActivationDistance = activationDistance,
-                EdgeSlideStep = System.Math.Max(0.03, activationDistance * 0.625),
-                AnchorDriftTolerance = AppConfig.TouchpadAnchorDriftPercent / 100d
+                EdgeSlideStep = System.Math.Max(0.03, activationDistance * 0.625)
             });
         }
     }

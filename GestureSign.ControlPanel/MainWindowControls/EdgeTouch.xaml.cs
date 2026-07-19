@@ -18,12 +18,6 @@ namespace GestureSign.ControlPanel.MainWindowControls
             public string DisplayName { get; set; }
         }
 
-        private sealed class WindowDragModeChoice
-        {
-            public TouchpadWindowDragMode Value { get; set; }
-            public string DisplayName { get; set; }
-        }
-
         private readonly Dictionary<ComboBox, FixedEdgeGesture> _gestureSelectors;
         private bool _loading;
         private bool _subscribed;
@@ -89,29 +83,10 @@ namespace GestureSign.ControlPanel.MainWindowControls
             try
             {
                 EdgeTouchSwitch.IsChecked = AppConfig.TouchpadEdgeGesturesEnabled;
-                WindowDragModeComboBox.ItemsSource = new[]
-                {
-                    new WindowDragModeChoice
-                    {
-                        Value = TouchpadWindowDragMode.Disabled,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.DragDisabled")
-                    },
-                    new WindowDragModeChoice
-                    {
-                        Value = TouchpadWindowDragMode.BottomEdgeAnchor,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.BottomAnchor")
-                    },
-                    new WindowDragModeChoice
-                    {
-                        Value = TouchpadWindowDragMode.FreeTwoFingerAnchor,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.FreeAnchor")
-                    }
-                };
-                WindowDragModeComboBox.SelectedValue = AppConfig.TouchpadWindowDragMode;
+                WindowDragSwitch.IsChecked = AppConfig.TouchpadWindowDragMode == TouchpadWindowDragMode.BottomEdgeAnchor;
                 WindowDragSensitivitySlider.Value = AppConfig.TouchpadWindowDragSensitivityPercent;
                 EdgeZoneSlider.Value = AppConfig.TouchpadEdgeZonePercent;
                 EdgeActivationSlider.Value = AppConfig.TouchpadEdgeActivationPercent;
-                AnchorDriftSlider.Value = AppConfig.TouchpadAnchorDriftPercent;
                 LoadActionChoicesCore();
             }
             finally
@@ -172,12 +147,12 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 AppConfig.TouchpadEdgeGesturesEnabled = EdgeTouchSwitch.IsChecked.GetValueOrDefault();
         }
 
-        private void WindowDragModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void WindowDragSwitch_Click(object sender, RoutedEventArgs e)
         {
-            if (_loading || WindowDragModeComboBox.SelectedValue == null)
-                return;
-
-            AppConfig.TouchpadWindowDragMode = (TouchpadWindowDragMode)WindowDragModeComboBox.SelectedValue;
+            if (!_loading)
+                AppConfig.TouchpadWindowDragMode = WindowDragSwitch.IsChecked.GetValueOrDefault()
+                    ? TouchpadWindowDragMode.BottomEdgeAnchor
+                    : TouchpadWindowDragMode.Disabled;
         }
 
         private void FixedGestureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -219,10 +194,5 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 AppConfig.TouchpadEdgeActivationPercent = (int)Math.Round(e.NewValue);
         }
 
-        private void AnchorDriftSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (!_loading && IsLoaded)
-                AppConfig.TouchpadAnchorDriftPercent = (int)Math.Round(e.NewValue);
-        }
     }
 }
