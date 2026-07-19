@@ -42,7 +42,9 @@ namespace GestureSign.Common.Input
     public enum TouchpadWindowDragImplementation
     {
         DirectSetWindowPos = 0,
-        SimulatedCaptionDrag
+        SimulatedMouseDrag = 1,
+        [Obsolete("Use SimulatedMouseDrag.")]
+        SimulatedCaptionDrag = SimulatedMouseDrag
     }
 
     public sealed class TouchpadInteractionOptions

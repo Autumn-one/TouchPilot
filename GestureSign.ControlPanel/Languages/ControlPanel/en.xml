@@ -231,8 +231,8 @@ Email:ccfyzh@gmail.com
     <WindowDrag>Window dragging</WindowDrag>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
     <WindowDragImplementation>Window movement method</WindowDragImplementation>
-    <DirectSetWindowPos>Direct window movement (SetWindowPos)</DirectSetWindowPos>
-    <SimulatedCaptionDrag>Simulated title-bar hold</SimulatedCaptionDrag>
+    <DirectSetWindowPos>Bottom anchor: direct window movement (SetWindowPos)</DirectSetWindowPos>
+    <SimulatedMouseDrag>Bottom anchor: simulated mouse hold</SimulatedMouseDrag>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>
     <FixedGestures>Fixed edge gestures</FixedGestures>
     <OneFinger>One finger</OneFinger>

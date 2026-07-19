@@ -5,7 +5,6 @@ using ManagedWinapi.Windows;
 using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using WindowsInput;
@@ -16,8 +15,6 @@ namespace GestureSign.Daemon.Triggers
     internal sealed class WindowDragController
     {
         private const int UpdateIntervalMilliseconds = 16;
-        private const int CaptionHitTestTimeoutMilliseconds = 20;
-        private const int MaxCaptionSearchDepth = 96;
 
         private readonly Stopwatch _updateStopwatch = new Stopwatch();
         private readonly InputSimulator _inputSimulator = new InputSimulator();
@@ -51,9 +48,9 @@ namespace GestureSign.Daemon.Triggers
             _failureLogged = false;
             LastFailure = null;
 
-            if (implementation == TouchpadWindowDragImplementation.SimulatedCaptionDrag)
+            if (implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
             {
-                if (!TryStartSimulatedCaptionDrag(cursor, out cursor))
+                if (!TryStartSimulatedMouseDrag())
                 {
                     _window = null;
                     return false;
@@ -82,7 +79,7 @@ namespace GestureSign.Daemon.Triggers
                 return false;
             }
 
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedCaptionDrag &&
+            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag &&
                 (!_simulatedLeftButtonDown || !IsLeftButtonDown()))
             {
                 _simulatedLeftButtonDown = false;
@@ -118,7 +115,7 @@ namespace GestureSign.Daemon.Triggers
 
             _lastCommandedCursor = desiredCursor;
 
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedCaptionDrag)
+            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
                 return true;
 
             _pendingCursor = desiredCursor;
@@ -136,9 +133,9 @@ namespace GestureSign.Daemon.Triggers
                 return false;
 
             Point cursor = Cursor.Position;
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedCaptionDrag)
+            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
             {
-                if (!TryStartSimulatedCaptionDrag(cursor, out cursor))
+                if (!TryStartSimulatedMouseDrag())
                 {
                     End();
                     return false;
@@ -156,7 +153,7 @@ namespace GestureSign.Daemon.Triggers
 
         public void Pause()
         {
-            if (_implementation == TouchpadWindowDragImplementation.SimulatedCaptionDrag)
+            if (_implementation == TouchpadWindowDragImplementation.SimulatedMouseDrag)
                 ReleaseSimulatedLeftButton();
             else
                 FlushPendingPosition();
@@ -215,50 +212,11 @@ namespace GestureSign.Daemon.Triggers
             _pendingCursor = cursor;
         }
 
-        private bool TryStartSimulatedCaptionDrag(Point preferredCursor, out Point captionCursor)
+        private bool TryStartSimulatedMouseDrag()
         {
-            captionCursor = preferredCursor;
             if (IsLeftButtonDown())
             {
-                LogFailureOnce("start the simulated caption drag because the left button is already down", 0);
-                return false;
-            }
-
-            IntPtr zOrderTarget = (_window.ExtendedStyle & WindowExStyleFlags.TOPMOST) != 0
-                ? new IntPtr(-1)
-                : IntPtr.Zero;
-            NativeMethods.SetWindowPos(
-                _window.HWnd,
-                zOrderTarget,
-                0,
-                0,
-                0,
-                0,
-                NativeMethods.SWP.SWP_NOMOVE |
-                NativeMethods.SWP.SWP_NOSIZE |
-                NativeMethods.SWP.SWP_SHOWWINDOW);
-            NativeMethods.SetForegroundWindow(_window.HWnd);
-            if (!TryFindCaptionPoint(_window, preferredCursor, out captionCursor))
-            {
-                LogFailureOnce("find a draggable title-bar point", 0);
-                return false;
-            }
-
-            if (!NativeMethods.SetCursorPos(captionCursor.X, captionCursor.Y))
-            {
-                LogFailureOnce("SetCursorPos", Marshal.GetLastWin32Error());
-                return false;
-            }
-
-            IntPtr windowAtCaption = NativeMethods.WindowFromPoint(
-                new NativeMethods.Point(captionCursor.X, captionCursor.Y));
-            IntPtr rootAtCaption = NativeMethods.GetAncestor(windowAtCaption, NativeMethods.GA_ROOT);
-            if (windowAtCaption != _window.HWnd && rootAtCaption != _window.HWnd)
-            {
-                LogFailureOnce(
-                    "expose the target title-bar point",
-                    $"Target=0x{_window.HWnd.ToInt64():X}, Hit=0x{windowAtCaption.ToInt64():X}, " +
-                    $"Root=0x{rootAtCaption.ToInt64():X}, Point=({captionCursor.X},{captionCursor.Y})");
+                LogFailureOnce("start the simulated mouse drag because the left button is already down", 0);
                 return false;
             }
 
@@ -274,73 +232,6 @@ namespace GestureSign.Daemon.Triggers
                 TryReleaseLeftButtonAfterFailure();
                 return false;
             }
-        }
-
-        private static bool TryFindCaptionPoint(SystemWindow window, Point preferredCursor, out Point captionPoint)
-        {
-            WindowRect rectangle = window.Rectangle;
-            int width = rectangle.Width;
-            int height = rectangle.Height;
-            if (width <= 2 || height <= 2)
-            {
-                captionPoint = default(Point);
-                return false;
-            }
-
-            int horizontalMargin = Math.Min(16, Math.Max(1, width / 4));
-            int minimumX = rectangle.Left + horizontalMargin;
-            int maximumX = rectangle.Right - horizontalMargin - 1;
-            var xCandidates = new[]
-            {
-                Math.Max(minimumX, Math.Min(maximumX, preferredCursor.X)),
-                rectangle.Left + width / 2,
-                rectangle.Left + width / 4,
-                rectangle.Left + width * 3 / 4,
-                rectangle.Left + width / 8,
-                rectangle.Left + width * 7 / 8
-            }
-            .Where(x => x >= minimumX && x <= maximumX)
-            .Distinct()
-            .OrderBy(x => Math.Abs(x - preferredCursor.X))
-            .ToList();
-
-            int maximumDepth = Math.Min(MaxCaptionSearchDepth, height - 1);
-            int[] yOffsets = { 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96 };
-            foreach (int offset in yOffsets.Where(offset => offset <= maximumDepth))
-            {
-                foreach (int x in xCandidates)
-                {
-                    var candidate = new Point(x, rectangle.Top + offset);
-                    if (IsCaptionPoint(window.HWnd, candidate))
-                    {
-                        captionPoint = candidate;
-                        return true;
-                    }
-                }
-            }
-
-            captionPoint = default(Point);
-            return false;
-        }
-
-        private static bool IsCaptionPoint(IntPtr windowHandle, Point point)
-        {
-            IntPtr hitTestResult;
-            IntPtr callResult = NativeMethods.SendMessageTimeout(
-                windowHandle,
-                NativeMethods.WM_NCHITTEST,
-                IntPtr.Zero,
-                PackScreenPoint(point),
-                NativeMethods.SMTO_BLOCK | NativeMethods.SMTO_ABORTIFHUNG,
-                CaptionHitTestTimeoutMilliseconds,
-                out hitTestResult);
-            return callResult != IntPtr.Zero && hitTestResult.ToInt64() == NativeMethods.HTCAPTION;
-        }
-
-        private static IntPtr PackScreenPoint(Point point)
-        {
-            int packed = ((point.Y & 0xffff) << 16) | (point.X & 0xffff);
-            return new IntPtr(packed);
         }
 
         private static bool IsLeftButtonDown()

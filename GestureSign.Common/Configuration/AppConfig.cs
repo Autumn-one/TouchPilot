@@ -326,14 +326,14 @@ namespace GestureSign.Common.Configuration
             get
             {
                 return GetValue(nameof(TouchpadWindowDragImplementation), 0) ==
-                       (int)TouchpadWindowDragImplementation.SimulatedCaptionDrag
-                    ? TouchpadWindowDragImplementation.SimulatedCaptionDrag
+                       (int)TouchpadWindowDragImplementation.SimulatedMouseDrag
+                    ? TouchpadWindowDragImplementation.SimulatedMouseDrag
                     : TouchpadWindowDragImplementation.DirectSetWindowPos;
             }
             set
             {
                 SetValue(nameof(TouchpadWindowDragImplementation),
-                    value == TouchpadWindowDragImplementation.SimulatedCaptionDrag ? 1 : 0);
+                    value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0);
             }
         }
 

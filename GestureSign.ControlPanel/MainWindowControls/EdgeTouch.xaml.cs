@@ -111,8 +111,8 @@ namespace GestureSign.ControlPanel.MainWindowControls
                     },
                     new WindowDragImplementationChoice
                     {
-                        Value = TouchpadWindowDragImplementation.SimulatedCaptionDrag,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.SimulatedCaptionDrag")
+                        Value = TouchpadWindowDragImplementation.SimulatedMouseDrag,
+                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.SimulatedMouseDrag")
                     }
                 };
                 WindowDragImplementationComboBox.SelectedValue = AppConfig.TouchpadWindowDragImplementation;
