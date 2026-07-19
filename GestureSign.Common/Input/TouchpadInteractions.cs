@@ -73,6 +73,8 @@ namespace GestureSign.Common.Input
         public int BottomAnchorHoldMilliseconds { get; set; } = 100;
         public int AnchorDropoutGraceMilliseconds { get; set; } = 80;
         public double WindowDragActivationDistance { get; set; } = 0.015;
+        public int ThreeFingerChordHoldMilliseconds { get; set; } = 100;
+        public double ThreeFingerChordMovementTolerance { get; set; } = 0.03;
     }
 
     public enum TouchpadInteractionEventType
@@ -155,6 +157,7 @@ namespace GestureSign.Common.Input
 
         private readonly TouchpadInteractionOptions _options;
         private readonly Dictionary<int, TouchpadContact> _activeContacts = new Dictionary<int, TouchpadContact>();
+        private readonly Dictionary<int, TouchpadContact> _releasedContacts = new Dictionary<int, TouchpadContact>();
         private readonly Dictionary<int, TouchpadContact> _contactStarts = new Dictionary<int, TouchpadContact>();
         private readonly List<int> _edgeContactIdentifiers = new List<int>(MaximumEdgeFingerCount);
         private readonly Dictionary<int, TouchpadContact> _edgeContactStarts = new Dictionary<int, TouchpadContact>(MaximumEdgeFingerCount);
@@ -163,6 +166,7 @@ namespace GestureSign.Common.Input
         private bool _claimed;
         private bool _windowDragActive;
         private bool _windowDragMotionPaused;
+        private bool _bottomDragReactivationPending;
         private long _sessionStartTimestamp;
 
         private int? _anchorContactIdentifier;
@@ -170,6 +174,14 @@ namespace GestureSign.Common.Input
         private long _anchorStartTimestamp;
         private long? _anchorMissingSinceTimestamp;
         private int? _movingContactIdentifier;
+
+        private readonly List<int> _threeFingerChordContactIdentifiers = new List<int>(3);
+        private readonly Dictionary<int, TouchpadContact> _threeFingerChordContactStarts =
+            new Dictionary<int, TouchpadContact>(3);
+        private bool _threeFingerChordTracking;
+        private bool _threeFingerChordInvalidated;
+        private bool _threeFingerChordArmed;
+        private long _threeFingerChordStartTimestamp;
 
         private readonly List<int> _threeFingerContactIdentifiers = new List<int>(3);
         private bool _threeFingerTracking;
@@ -197,6 +209,10 @@ namespace GestureSign.Common.Input
                 throw new ArgumentOutOfRangeException(nameof(options.AnchorDropoutGraceMilliseconds));
             if (_options.WindowDragActivationDistance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.WindowDragActivationDistance));
+            if (_options.ThreeFingerChordHoldMilliseconds < 0)
+                throw new ArgumentOutOfRangeException(nameof(options.ThreeFingerChordHoldMilliseconds));
+            if (_options.ThreeFingerChordMovementTolerance <= 0)
+                throw new ArgumentOutOfRangeException(nameof(options.ThreeFingerChordMovementTolerance));
         }
 
         public bool SessionActive => _sessionActive;
@@ -243,6 +259,10 @@ namespace GestureSign.Common.Input
                 if (_threeFingerTracking || !TryClaimThreeFingerEdgeCandidate())
                     ProcessThreeFingerWindowDrag(output);
             }
+            else if (ShouldProcessBottomDragCandidate())
+            {
+                ProcessBottomDragCandidate(timestampMilliseconds, output);
+            }
             else if (!_claimed)
             {
                 ProcessEdgeCandidate(timestampMilliseconds, output);
@@ -264,15 +284,18 @@ namespace GestureSign.Common.Input
         public void Reset()
         {
             _activeContacts.Clear();
+            _releasedContacts.Clear();
             _contactStarts.Clear();
             _sessionActive = false;
             _claimed = false;
             _windowDragActive = false;
             _windowDragMotionPaused = false;
+            _bottomDragReactivationPending = false;
             _sessionStartTimestamp = 0;
             _anchorContactIdentifier = null;
             _anchorMissingSinceTimestamp = null;
             _movingContactIdentifier = null;
+            CancelThreeFingerChord();
             _threeFingerContactIdentifiers.Clear();
             _threeFingerTracking = false;
             _threeFingerBaselineValid = false;
@@ -290,10 +313,16 @@ namespace GestureSign.Common.Input
         private void UpdateActiveContacts(IReadOnlyList<TouchpadContact> contacts)
         {
             _activeContacts.Clear();
+            _releasedContacts.Clear();
             foreach (TouchpadContact contact in contacts)
             {
                 if (contact.IsActive)
                     _activeContacts[contact.ContactIdentifier] = contact;
+                else
+                {
+                    _releasedContacts[contact.ContactIdentifier] = contact;
+                    _contactStarts.Remove(contact.ContactIdentifier);
+                }
             }
         }
 
@@ -317,7 +346,8 @@ namespace GestureSign.Common.Input
             BeginEdgeCandidate(activeInFrameOrder);
         }
 
-        private void ConfigureAnchorCandidate(List<TouchpadContact> contacts, long timestampMilliseconds)
+        private void ConfigureAnchorCandidate(List<TouchpadContact> contacts, long timestampMilliseconds,
+            bool resetMovingContactStarts = false)
         {
             if (_options.WindowDragMode != TouchpadWindowDragMode.BottomEdgeAnchor)
                 return;
@@ -339,6 +369,199 @@ namespace GestureSign.Common.Input
             _lastAnchorContact = anchor.Value;
             _anchorStartTimestamp = timestampMilliseconds;
             _anchorMissingSinceTimestamp = null;
+            if (resetMovingContactStarts)
+            {
+                foreach (TouchpadContact contact in contacts)
+                {
+                    if (contact.ContactIdentifier != anchor.Value.ContactIdentifier)
+                        _contactStarts[contact.ContactIdentifier] = contact;
+                }
+            }
+        }
+
+        private bool ShouldProcessBottomDragCandidate()
+        {
+            return _options.WindowDragMode == TouchpadWindowDragMode.BottomEdgeAnchor &&
+                   (!_claimed || _bottomDragReactivationPending ||
+                    _threeFingerChordTracking || _threeFingerChordArmed);
+        }
+
+        private void ProcessBottomDragCandidate(long timestampMilliseconds,
+            List<TouchpadInteractionEvent> output)
+        {
+            ResetReleasedBottomDragCandidateContacts();
+            if (!_claimed)
+            {
+                ProcessEdgeCandidate(timestampMilliseconds, output);
+                if (_claimed)
+                {
+                    CancelThreeFingerChord();
+                    return;
+                }
+            }
+
+            UpdateThreeFingerChord(timestampMilliseconds);
+            if (_threeFingerChordArmed)
+            {
+                TryActivateThreeFingerChord(output);
+                return;
+            }
+
+            if (!_anchorContactIdentifier.HasValue)
+                ConfigureAnchorCandidate(_activeContacts.Values.ToList(), timestampMilliseconds,
+                    _bottomDragReactivationPending);
+            TryActivateWindowDrag(timestampMilliseconds, output);
+        }
+
+        private void ResetReleasedBottomDragCandidateContacts()
+        {
+            if (_anchorContactIdentifier.HasValue &&
+                _releasedContacts.ContainsKey(_anchorContactIdentifier.Value))
+            {
+                _anchorContactIdentifier = null;
+                _anchorMissingSinceTimestamp = null;
+                _movingContactIdentifier = null;
+            }
+            else if (_movingContactIdentifier.HasValue &&
+                     _releasedContacts.ContainsKey(_movingContactIdentifier.Value))
+            {
+                _movingContactIdentifier = null;
+            }
+        }
+
+        private void UpdateThreeFingerChord(long timestampMilliseconds)
+        {
+            if (_threeFingerChordArmed)
+                return;
+
+            if (_activeContacts.Count == 3)
+            {
+                List<int> activeIdentifiers = _activeContacts.Keys.OrderBy(identifier => identifier).ToList();
+                if (!_threeFingerChordTracking ||
+                    !activeIdentifiers.SequenceEqual(_threeFingerChordContactIdentifiers))
+                {
+                    BeginThreeFingerChord(activeIdentifiers, timestampMilliseconds);
+                    return;
+                }
+
+                if (ThreeFingerChordMovedBeyondTolerance())
+                    _threeFingerChordInvalidated = true;
+                return;
+            }
+
+            if (!_threeFingerChordTracking)
+                return;
+
+            List<int> remainingIdentifiers = _threeFingerChordContactIdentifiers
+                .Where(identifier => _activeContacts.ContainsKey(identifier))
+                .ToList();
+            int releasedCount = _threeFingerChordContactIdentifiers.Count(identifier =>
+                _releasedContacts.ContainsKey(identifier));
+            bool heldLongEnough = timestampMilliseconds - _threeFingerChordStartTimestamp >=
+                                  _options.ThreeFingerChordHoldMilliseconds;
+            bool chordCompleted = !_threeFingerChordInvalidated && heldLongEnough &&
+                                  _activeContacts.Count == 2 && remainingIdentifiers.Count == 2 &&
+                                  releasedCount == 1 && !ThreeFingerChordMovedBeyondTolerance();
+            if (chordCompleted)
+                ArmThreeFingerChord(remainingIdentifiers);
+            else
+                CancelThreeFingerChord();
+        }
+
+        private void BeginThreeFingerChord(IReadOnlyList<int> contactIdentifiers, long timestampMilliseconds)
+        {
+            _threeFingerChordContactIdentifiers.Clear();
+            _threeFingerChordContactIdentifiers.AddRange(contactIdentifiers);
+            _threeFingerChordContactStarts.Clear();
+            foreach (int identifier in contactIdentifiers)
+                _threeFingerChordContactStarts.Add(identifier, _activeContacts[identifier]);
+            _threeFingerChordTracking = true;
+            _threeFingerChordInvalidated = false;
+            _threeFingerChordArmed = false;
+            _threeFingerChordStartTimestamp = timestampMilliseconds;
+        }
+
+        private bool ThreeFingerChordMovedBeyondTolerance()
+        {
+            foreach (int identifier in _threeFingerChordContactIdentifiers)
+            {
+                TouchpadContact current;
+                if (!_activeContacts.TryGetValue(identifier, out current) &&
+                    !_releasedContacts.TryGetValue(identifier, out current))
+                    return true;
+
+                if (GetDistance(current, _threeFingerChordContactStarts[identifier]) >
+                    _options.ThreeFingerChordMovementTolerance)
+                    return true;
+            }
+            return false;
+        }
+
+        private void ArmThreeFingerChord(IReadOnlyList<int> remainingIdentifiers)
+        {
+            var remainingContacts = remainingIdentifiers
+                .Select(identifier => _activeContacts[identifier])
+                .ToList();
+            _threeFingerChordContactIdentifiers.Clear();
+            _threeFingerChordContactIdentifiers.AddRange(remainingIdentifiers);
+            _threeFingerChordContactStarts.Clear();
+            foreach (TouchpadContact contact in remainingContacts)
+                _threeFingerChordContactStarts.Add(contact.ContactIdentifier, contact);
+            _threeFingerChordTracking = false;
+            _threeFingerChordInvalidated = false;
+            _threeFingerChordArmed = true;
+            _claimed = true;
+            _bottomDragReactivationPending = true;
+            _anchorContactIdentifier = null;
+            _anchorMissingSinceTimestamp = null;
+            _movingContactIdentifier = null;
+            CloseEdgeCandidate();
+        }
+
+        private bool TryActivateThreeFingerChord(List<TouchpadInteractionEvent> output)
+        {
+            if (_activeContacts.Count != 2 ||
+                _threeFingerChordContactIdentifiers.Any(identifier =>
+                    !_activeContacts.ContainsKey(identifier) || _releasedContacts.ContainsKey(identifier)))
+            {
+                CancelThreeFingerChord();
+                _bottomDragReactivationPending = true;
+                return false;
+            }
+
+            int movingIdentifier = _threeFingerChordContactIdentifiers
+                .OrderByDescending(identifier => GetDistance(
+                    _activeContacts[identifier], _threeFingerChordContactStarts[identifier]))
+                .ThenBy(identifier => identifier)
+                .First();
+            TouchpadContact moving = _activeContacts[movingIdentifier];
+            if (GetDistance(moving, _threeFingerChordContactStarts[movingIdentifier]) <
+                _options.WindowDragActivationDistance)
+                return false;
+
+            int anchorIdentifier = _threeFingerChordContactIdentifiers
+                .First(identifier => identifier != movingIdentifier);
+            _anchorContactIdentifier = anchorIdentifier;
+            _lastAnchorContact = _activeContacts[anchorIdentifier];
+            _movingContactIdentifier = movingIdentifier;
+            _windowDragActive = true;
+            _windowDragMotionPaused = false;
+            _bottomDragReactivationPending = false;
+            _anchorMissingSinceTimestamp = null;
+            CancelThreeFingerChord();
+            output.Add(TouchpadInteractionEvent.Window(
+                TouchpadInteractionEventType.WindowDragStarted, moving));
+            return true;
+        }
+
+        private void CancelThreeFingerChord()
+        {
+            _threeFingerChordContactIdentifiers.Clear();
+            _threeFingerChordContactStarts.Clear();
+            _threeFingerChordTracking = false;
+            _threeFingerChordInvalidated = false;
+            _threeFingerChordArmed = false;
+            _threeFingerChordStartTimestamp = 0;
         }
 
         private void ProcessThreeFingerWindowDrag(List<TouchpadInteractionEvent> output)
@@ -533,13 +756,21 @@ namespace GestureSign.Common.Input
             _claimed = true;
             _windowDragActive = true;
             _windowDragMotionPaused = false;
+            _bottomDragReactivationPending = false;
             _anchorMissingSinceTimestamp = null;
+            CancelThreeFingerChord();
             CloseEdgeCandidate();
             output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragStarted, currentMoving));
         }
 
         private void ProcessActiveWindowDrag(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
         {
+            if (TrackedBottomDragContactWasReleased())
+            {
+                EndBottomDragForReactivation(output);
+                return;
+            }
+
             TouchpadContact anchor;
             bool anchorAllowsMovement;
             bool anchorRequiresRebase;
@@ -587,6 +818,25 @@ namespace GestureSign.Common.Input
             }
         }
 
+        private bool TrackedBottomDragContactWasReleased()
+        {
+            return (_anchorContactIdentifier.HasValue &&
+                    _releasedContacts.ContainsKey(_anchorContactIdentifier.Value)) ||
+                   (_movingContactIdentifier.HasValue &&
+                    _releasedContacts.ContainsKey(_movingContactIdentifier.Value));
+        }
+
+        private void EndBottomDragForReactivation(List<TouchpadInteractionEvent> output)
+        {
+            _windowDragActive = false;
+            _windowDragMotionPaused = false;
+            _bottomDragReactivationPending = true;
+            _anchorContactIdentifier = null;
+            _anchorMissingSinceTimestamp = null;
+            _movingContactIdentifier = null;
+            output.Add(TouchpadInteractionEvent.WindowEnded());
+        }
+
         private bool TryMaintainActiveAnchor(long timestampMilliseconds, out TouchpadContact anchor,
             out bool movementAllowed, out bool requiresRebase)
         {
@@ -598,14 +848,6 @@ namespace GestureSign.Common.Input
             if (_anchorContactIdentifier.HasValue &&
                 _activeContacts.TryGetValue(_anchorContactIdentifier.Value, out current))
             {
-                if (!IsInBottomEdgeZone(current))
-                {
-                    anchor = current;
-                    movementAllowed = false;
-                    requiresRebase = false;
-                    return false;
-                }
-
                 _lastAnchorContact = current;
                 _anchorMissingSinceTimestamp = null;
                 anchor = current;
@@ -638,8 +880,7 @@ namespace GestureSign.Common.Input
         {
             foreach (KeyValuePair<int, TouchpadContact> candidate in _activeContacts)
             {
-                if ((!_movingContactIdentifier.HasValue || candidate.Key != _movingContactIdentifier.Value) &&
-                    IsInBottomEdgeZone(candidate.Value))
+                if (!_movingContactIdentifier.HasValue || candidate.Key != _movingContactIdentifier.Value)
                 {
                     contact = candidate.Value;
                     return true;

@@ -2,6 +2,7 @@ using GestureSign.Common.Input;
 using GestureSign.Daemon.Triggers;
 using ManagedWinapi.Windows;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -210,6 +211,147 @@ namespace GestureSign.Tests
                     Application.DoEvents();
                 }
             }
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void ThreeFingerReleaseChordDrivesARealWindowAndStopsAfterRelease()
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    RunThreeFingerReleaseChordWindowTest();
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+
+            Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "The release chord window integration test timed out.");
+            if (failure != null)
+                ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
+        private static void RunThreeFingerReleaseChordWindowTest()
+        {
+            Point originalCursor = Cursor.Position;
+            var controller = new WindowDragController();
+            var recognizer = new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
+            {
+                WindowDragMode = TouchpadWindowDragMode.BottomEdgeAnchor
+            });
+            Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
+            using (var form = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Left + 80, workingArea.Top + 80, 360, 240), "release chord"))
+            {
+                try
+                {
+                    form.Show();
+                    Application.DoEvents();
+
+                    var window = new SystemWindow(form.Handle);
+                    RECT initialRectangle = window.Rectangle;
+                    Point initialCursor = new Point(initialRectangle.Left + 80, initialRectangle.Top + 60);
+                    Cursor.Position = initialCursor;
+
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)),
+                        0, controller, window);
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)),
+                        110, controller, window);
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)),
+                        120, controller, window);
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.3, 0.4), Contact(2, 0.53, 0.4)),
+                        150, controller, window);
+
+                    Assert.Equal(initialCursor, Cursor.Position);
+                    Thread.Sleep(25);
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.32, 0.4), Contact(2, 0.56, 0.4)),
+                        180, controller, window);
+                    PumpWindowMessages();
+
+                    RECT movedRectangle = window.Rectangle;
+                    Point movedCursor = Cursor.Position;
+                    Screen screen = Screen.FromPoint(initialCursor);
+                    int expectedX = (int)Math.Round(screen.Bounds.Width * 0.03);
+                    Assert.InRange(movedCursor.X - initialCursor.X, expectedX - 3, expectedX + 3);
+                    Assert.InRange(movedRectangle.Left - initialRectangle.Left, expectedX - 4, expectedX + 4);
+
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.32, 0.4), ReleasedContact(2, 0.56, 0.4)),
+                        200, controller, window);
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.32, 0.4), Contact(4, 0.6, 0.4)),
+                        220, controller, window);
+                    ProcessWindowDragFrame(recognizer,
+                        Frame(Contact(1, 0.36, 0.4), Contact(4, 0.64, 0.4)),
+                        350, controller, window);
+                    PumpWindowMessages();
+
+                    RECT stoppedRectangle = window.Rectangle;
+                    Assert.InRange(stoppedRectangle.Left - movedRectangle.Left, -1, 1);
+                    Assert.InRange(stoppedRectangle.Top - movedRectangle.Top, -1, 1);
+                }
+                finally
+                {
+                    controller.End();
+                    Cursor.Position = originalCursor;
+                    form.Close();
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        private static TouchpadInteractionFrameResult ProcessWindowDragFrame(
+            TouchpadInteractionRecognizer recognizer,
+            IReadOnlyList<TouchpadContact> contacts,
+            long timestampMilliseconds,
+            WindowDragController controller,
+            SystemWindow window)
+        {
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(contacts, timestampMilliseconds);
+            foreach (TouchpadInteractionEvent interactionEvent in result.Events)
+            {
+                switch (interactionEvent.EventType)
+                {
+                    case TouchpadInteractionEventType.WindowDragStarted:
+                        Assert.True(controller.Begin(window, interactionEvent.NormalizedX,
+                            interactionEvent.NormalizedY, TouchpadWindowDragImplementation.DirectSetWindowPos));
+                        break;
+                    case TouchpadInteractionEventType.WindowDragMoved:
+                        Assert.True(controller.Update(interactionEvent.NormalizedX,
+                            interactionEvent.NormalizedY, 1));
+                        break;
+                    case TouchpadInteractionEventType.WindowDragEnded:
+                        controller.End();
+                        break;
+                }
+            }
+            return result;
+        }
+
+        private static TouchpadContact Contact(int id, double x, double y)
+        {
+            return new TouchpadContact(id, DeviceStates.Tip, x, y);
+        }
+
+        private static TouchpadContact ReleasedContact(int id, double x, double y)
+        {
+            return new TouchpadContact(id, DeviceStates.None, x, y);
+        }
+
+        private static IReadOnlyList<TouchpadContact> Frame(params TouchpadContact[] contacts)
+        {
+            return contacts;
         }
 
         private static Form CreateDirectDragTestForm(Rectangle bounds, string label)
