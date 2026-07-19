@@ -16,6 +16,7 @@ namespace GestureSign.Common.Applications
         Hotkey Hotkey { get; set; }
         MouseActions MouseHotkey { get; set; }
         ContinuousGesture ContinuousGesture { get; set; }
+        List<FixedEdgeGesture> EdgeGestures { get; set; }
         Devices IgnoredDevices { get; set; }
 
         void AddCommand(ICommand command);

@@ -13,7 +13,7 @@ namespace GestureSign.Daemon.Triggers
     {
         #region Private Variables
 
-        private List<Trigger> _triggerList = new List<Trigger>(3);
+        private List<Trigger> _triggerList = new List<Trigger>(4);
 
         #endregion
 
@@ -39,6 +39,7 @@ namespace GestureSign.Daemon.Triggers
             AddTrigger(new HotKeyManager());
             AddTrigger(new MouseTrigger());
             AddTrigger(new ContinuousGestureTrigger());
+            AddTrigger(new TouchpadInteractionTrigger());
         }
 
         #endregion

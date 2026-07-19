@@ -179,6 +179,7 @@ namespace GestureSign.Daemon.Native
             SWP_FRAMECHANGED = 0x0020, /* The frame changed: send WM_NCCALCSIZE */
             SWP_SHOWWINDOW = 0x0040,
             SWP_HIDEWINDOW = 0x0080,
+            SWP_ASYNCWINDOWPOS = 0x4000,
             SWP_NOOWNERZORDER = 0x0200, /* Don't do owner Z ordering */
             SWP_DRAWFRAME = SWP_FRAMECHANGED,
             SWP_NOREPOSITION = SWP_NOOWNERZORDER,
@@ -186,9 +187,18 @@ namespace GestureSign.Daemon.Native
             SWP_STARTUP = 0x08000000
         }
 
-        [DllImport(User32Dll)]
+        [DllImport(User32Dll, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy,
             SWP uFlags);
+
+        [DllImport(User32Dll, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetCursorPos(int x, int y);
+
+        [DllImport(User32Dll)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsWindow(IntPtr hWnd);
 
         [DllImport(User32Dll)]
         public static extern bool UpdateWindow(IntPtr hwnd);

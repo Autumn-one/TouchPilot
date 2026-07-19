@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClipboardMatch", "GestureSi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextCopyer", "GestureSign.ExtraPlugins\TextCopyer\TextCopyer.csproj", "{46CED5B0-5546-4838-9AA8-8669FD2E880A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestureSign.Tests", "GestureSign.Tests\GestureSign.Tests.csproj", "{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Centennial|Any CPU = Centennial|Any CPU
@@ -130,6 +132,16 @@ Global
 		{46CED5B0-5546-4838-9AA8-8669FD2E880A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{46CED5B0-5546-4838-9AA8-8669FD2E880A}.uiAccessRelease|Any CPU.ActiveCfg = Release|Any CPU
 		{46CED5B0-5546-4838-9AA8-8669FD2E880A}.uiAccessRelease|Any CPU.Build.0 = Release|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Centennial|Any CPU.ActiveCfg = Centennial|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Centennial|Any CPU.Build.0 = Centennial|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Portable|Any CPU.ActiveCfg = Portable|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Portable|Any CPU.Build.0 = Portable|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.uiAccessRelease|Any CPU.ActiveCfg = uiAccessRelease|Any CPU
+		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.uiAccessRelease|Any CPU.Build.0 = uiAccessRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

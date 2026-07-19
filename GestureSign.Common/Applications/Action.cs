@@ -16,6 +16,7 @@ namespace GestureSign.Common.Applications
         #region Private Variable
 
         private List<ICommand> _commands;
+        private List<FixedEdgeGesture> _edgeGestures;
 
         #endregion
 
@@ -48,6 +49,11 @@ namespace GestureSign.Common.Applications
 
         public MouseActions MouseHotkey { get; set; }
         public ContinuousGesture ContinuousGesture { get; set; }
+        public List<FixedEdgeGesture> EdgeGestures
+        {
+            get { return _edgeGestures ?? (_edgeGestures = new List<FixedEdgeGesture>()); }
+            set { _edgeGestures = value; }
+        }
         public Devices IgnoredDevices { get; set; }
 
         public event NotifyCollectionChangedEventHandler CollectionChanged;
@@ -90,8 +96,14 @@ namespace GestureSign.Common.Applications
             action._commands = new List<ICommand>(_commands);
             action.Hotkey = Hotkey == null ? null : new Hotkey() { KeyCode = Hotkey.KeyCode, ModifierKeys = Hotkey.ModifierKeys };
             action.ContinuousGesture = ContinuousGesture == null ? null : new ContinuousGesture(ContinuousGesture.ContactCount, ContinuousGesture.Gesture);
+            action._edgeGestures = _edgeGestures == null ? null : new List<FixedEdgeGesture>(_edgeGestures);
 
             return action;
+        }
+
+        public bool ShouldSerializeEdgeGestures()
+        {
+            return _edgeGestures != null && _edgeGestures.Count != 0;
         }
 
         public void AddCommand(ICommand command)

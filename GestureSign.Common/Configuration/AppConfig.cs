@@ -299,6 +299,42 @@ namespace GestureSign.Common.Configuration
             }
         }
 
+        public static bool TouchpadEdgeGesturesEnabled
+        {
+            get { return GetValue(nameof(TouchpadEdgeGesturesEnabled), false); }
+            set { SetValue(nameof(TouchpadEdgeGesturesEnabled), value); }
+        }
+
+        public static TouchpadWindowDragMode TouchpadWindowDragMode
+        {
+            get { return (TouchpadWindowDragMode)GetValue(nameof(TouchpadWindowDragMode), 0); }
+            set { SetValue(nameof(TouchpadWindowDragMode), (int)value); }
+        }
+
+        public static int TouchpadEdgeZonePercent
+        {
+            get { return GetValue(nameof(TouchpadEdgeZonePercent), 12); }
+            set { SetValue(nameof(TouchpadEdgeZonePercent), Math.Max(5, Math.Min(25, value))); }
+        }
+
+        public static int TouchpadEdgeActivationPercent
+        {
+            get { return GetValue(nameof(TouchpadEdgeActivationPercent), 8); }
+            set { SetValue(nameof(TouchpadEdgeActivationPercent), Math.Max(3, Math.Min(20, value))); }
+        }
+
+        public static int TouchpadAnchorDriftPercent
+        {
+            get { return GetValue(nameof(TouchpadAnchorDriftPercent), 2); }
+            set { SetValue(nameof(TouchpadAnchorDriftPercent), Math.Max(1, Math.Min(8, value))); }
+        }
+
+        public static int TouchpadWindowDragSensitivityPercent
+        {
+            get { return GetValue(nameof(TouchpadWindowDragSensitivityPercent), 100); }
+            set { SetValue(nameof(TouchpadWindowDragSensitivityPercent), Math.Max(40, Math.Min(250, value))); }
+        }
+
         #endregion
 
         static AppConfig()
