@@ -81,8 +81,11 @@ namespace GestureSign.Tests
                     Assert.InRange(movedRectangle.Top - initialRectangle.Top, expectedY - 4, expectedY + 4);
 
                     controller.Pause();
+                    Point pausedCursor = Cursor.Position;
+                    Point reclutchedCursor = new Point(pausedCursor.X + 30, pausedCursor.Y + 20);
+                    Cursor.Position = reclutchedCursor;
                     Assert.True(controller.Rebase(0.55, 0.52));
-                    Point reclutchedCursor = Cursor.Position;
+                    Assert.Equal(reclutchedCursor, Cursor.Position);
                     RECT reclutchedRectangle = window.Rectangle;
                     Thread.Sleep(25);
                     Assert.True(controller.Update(0.57, 0.53, 1));

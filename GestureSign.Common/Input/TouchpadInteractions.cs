@@ -381,7 +381,8 @@ namespace GestureSign.Common.Input
         {
             TouchpadContact anchor;
             bool anchorAllowsMovement;
-            if (!TryMaintainActiveAnchor(timestampMilliseconds, out anchor, out anchorAllowsMovement))
+            bool anchorRequiresRebase;
+            if (!TryMaintainActiveAnchor(timestampMilliseconds, out anchor, out anchorAllowsMovement, out anchorRequiresRebase))
             {
                 _windowDragActive = false;
                 _windowDragMotionPaused = false;
@@ -405,6 +406,9 @@ namespace GestureSign.Common.Input
                 }
             }
 
+            if (anchorRequiresRebase)
+                _windowDragMotionPaused = true;
+
             if (anchorAllowsMovement && movingAvailable)
             {
                 TouchpadInteractionEventType eventType = _windowDragMotionPaused
@@ -422,8 +426,13 @@ namespace GestureSign.Common.Input
             }
         }
 
-        private bool TryMaintainActiveAnchor(long timestampMilliseconds, out TouchpadContact anchor, out bool movementAllowed)
+        private bool TryMaintainActiveAnchor(long timestampMilliseconds, out TouchpadContact anchor,
+            out bool movementAllowed, out bool requiresRebase)
         {
+            requiresRebase = _anchorMissingSinceTimestamp.HasValue &&
+                             timestampMilliseconds - _anchorMissingSinceTimestamp.Value >
+                             _options.AnchorDropoutGraceMilliseconds;
+
             TouchpadContact current;
             if (_anchorContactIdentifier.HasValue &&
                 _activeContacts.TryGetValue(_anchorContactIdentifier.Value, out current))
@@ -432,6 +441,7 @@ namespace GestureSign.Common.Input
                 {
                     anchor = current;
                     movementAllowed = false;
+                    requiresRebase = false;
                     return false;
                 }
 
@@ -459,6 +469,7 @@ namespace GestureSign.Common.Input
             anchor = _lastAnchorContact;
             movementAllowed = timestampMilliseconds - _anchorMissingSinceTimestamp.Value <=
                               _options.AnchorDropoutGraceMilliseconds;
+            requiresRebase = false;
             return true;
         }
 

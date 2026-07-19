@@ -147,6 +147,7 @@ namespace GestureSign.Daemon.Triggers
             else
             {
                 FlushPendingPosition();
+                ConfigureDirectWindowAnchor(_window, cursor);
             }
 
             InitializeCursorTracking(normalizedX, normalizedY, cursor);

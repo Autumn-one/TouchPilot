@@ -327,6 +327,23 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void LateAnchorReturnRebasesWithoutAnIntermediatePauseFrame()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+            StartBottomAnchoredDrag(recognizer, 10, 11);
+
+            TouchpadInteractionFrameResult missing = recognizer.ProcessFrame(Frame(Contact(11, 0.55, 0.5)), 150);
+            TouchpadInteractionFrameResult resumed = recognizer.ProcessFrame(
+                Frame(Contact(11, 0.75, 0.65), Contact(12, 0.6, 0.96)), 400);
+            TouchpadInteractionFrameResult continued = recognizer.ProcessFrame(
+                Frame(Contact(11, 0.78, 0.67), Contact(12, 0.7, 0.92)), 430);
+
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(missing.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragResumed, Assert.Single(resumed.Events).EventType);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, Assert.Single(continued.Events).EventType);
+        }
+
+        [Fact]
         public void ClaimedDragSupportsMovingFingerPauseAndReclutch()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
