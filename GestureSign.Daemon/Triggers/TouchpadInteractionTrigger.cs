@@ -56,7 +56,8 @@ namespace GestureSign.Daemon.Triggers
                     FireEdgeGesture(interactionEvent.EdgeGesture);
                     break;
                 case TouchpadInteractionEventType.WindowDragStarted:
-                    _windowDragController.Begin(_sessionWindow, interactionEvent.NormalizedX, interactionEvent.NormalizedY);
+                    _windowDragController.Begin(_sessionWindow, interactionEvent.NormalizedX, interactionEvent.NormalizedY,
+                        AppConfig.TouchpadWindowDragImplementation);
                     break;
                 case TouchpadInteractionEventType.WindowDragMoved:
                     _windowDragController.Update(interactionEvent.NormalizedX, interactionEvent.NormalizedY, AppConfig.TouchpadWindowDragSensitivityPercent / 100d);

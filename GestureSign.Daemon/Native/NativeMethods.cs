@@ -74,10 +74,16 @@ namespace GestureSign.Daemon.Native
 
         internal const int WM_KEYDOWN = 0x0100;
         internal const int WM_SYSKEYDOWN = 0x0104;
+        internal const int WM_NCHITTEST = 0x0084;
         internal const int WM_INPUT = 0x00FF;
         internal const int WM_INPUT_DEVICE_CHANGE = 0x00FE;
+        internal const int HTCAPTION = 2;
+        internal const uint GA_ROOT = 2;
+        internal const int VK_LBUTTON = 0x01;
         internal const int VK_OEM_CLEAR = 0xFE;
         internal const int VK_LAST_KEY = VK_OEM_CLEAR; // this is a made up value used as a sentinal
+        internal const uint SMTO_BLOCK = 0x0001;
+        internal const uint SMTO_ABORTIFHUNG = 0x0002;
 
         internal const int WmClose = 0x0010;
 
@@ -199,6 +205,23 @@ namespace GestureSign.Daemon.Native
         [DllImport(User32Dll)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport(User32Dll)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport(User32Dll)]
+        public static extern short GetAsyncKeyState(int virtualKey);
+
+        [DllImport(User32Dll)]
+        public static extern IntPtr WindowFromPoint(Point point);
+
+        [DllImport(User32Dll)]
+        public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
+
+        [DllImport(User32Dll, SetLastError = true)]
+        public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint message, IntPtr wParam, IntPtr lParam,
+            uint flags, uint timeout, out IntPtr result);
 
         [DllImport(User32Dll)]
         public static extern bool UpdateWindow(IntPtr hwnd);

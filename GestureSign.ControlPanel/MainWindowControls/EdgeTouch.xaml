@@ -25,6 +25,22 @@
                                    OnLabel="{localization:LocalisedText Options.OnLabel}"
                                    OffLabel="{localization:LocalisedText Options.OffLabel}"
                                    Click="WindowDragSwitch_Click" />
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="210" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{localization:LocalisedText EdgeTouch.WindowDragImplementation}"
+                           FontSize="14"
+                           VerticalAlignment="Center" />
+                <ComboBox x:Name="WindowDragImplementationComboBox"
+                          Grid.Column="1"
+                          Width="280"
+                          HorizontalAlignment="Left"
+                          DisplayMemberPath="DisplayName"
+                          SelectedValuePath="Value"
+                          SelectionChanged="WindowDragImplementationComboBox_SelectionChanged" />
+            </Grid>
             <TextBlock Margin="0,15,0,0"
                        Text="{Binding ElementName=WindowDragSensitivitySlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.WindowDragSensitivity}}"
                        FontSize="14" />

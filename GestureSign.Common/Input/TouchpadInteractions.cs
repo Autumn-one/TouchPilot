@@ -27,6 +27,12 @@ namespace GestureSign.Common.Input
         BottomEdgeAnchor
     }
 
+    public enum TouchpadWindowDragImplementation
+    {
+        DirectSetWindowPos = 0,
+        SimulatedCaptionDrag
+    }
+
     public sealed class TouchpadInteractionOptions
     {
         public bool EdgeGesturesEnabled { get; set; }

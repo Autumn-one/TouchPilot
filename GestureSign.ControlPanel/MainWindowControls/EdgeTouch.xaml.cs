@@ -18,6 +18,12 @@ namespace GestureSign.ControlPanel.MainWindowControls
             public string DisplayName { get; set; }
         }
 
+        private sealed class WindowDragImplementationChoice
+        {
+            public TouchpadWindowDragImplementation Value { get; set; }
+            public string DisplayName { get; set; }
+        }
+
         private readonly Dictionary<ComboBox, FixedEdgeGesture> _gestureSelectors;
         private bool _loading;
         private bool _subscribed;
@@ -84,6 +90,20 @@ namespace GestureSign.ControlPanel.MainWindowControls
             {
                 EdgeTouchSwitch.IsChecked = AppConfig.TouchpadEdgeGesturesEnabled;
                 WindowDragSwitch.IsChecked = AppConfig.TouchpadWindowDragMode == TouchpadWindowDragMode.BottomEdgeAnchor;
+                WindowDragImplementationComboBox.ItemsSource = new[]
+                {
+                    new WindowDragImplementationChoice
+                    {
+                        Value = TouchpadWindowDragImplementation.DirectSetWindowPos,
+                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.DirectSetWindowPos")
+                    },
+                    new WindowDragImplementationChoice
+                    {
+                        Value = TouchpadWindowDragImplementation.SimulatedCaptionDrag,
+                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.SimulatedCaptionDrag")
+                    }
+                };
+                WindowDragImplementationComboBox.SelectedValue = AppConfig.TouchpadWindowDragImplementation;
                 WindowDragSensitivitySlider.Value = AppConfig.TouchpadWindowDragSensitivityPercent;
                 EdgeZoneSlider.Value = AppConfig.TouchpadEdgeZonePercent;
                 EdgeActivationSlider.Value = AppConfig.TouchpadEdgeActivationPercent;
@@ -153,6 +173,15 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 AppConfig.TouchpadWindowDragMode = WindowDragSwitch.IsChecked.GetValueOrDefault()
                     ? TouchpadWindowDragMode.BottomEdgeAnchor
                     : TouchpadWindowDragMode.Disabled;
+        }
+
+        private void WindowDragImplementationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading || WindowDragImplementationComboBox.SelectedValue == null)
+                return;
+
+            AppConfig.TouchpadWindowDragImplementation =
+                (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue;
         }
 
         private void FixedGestureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

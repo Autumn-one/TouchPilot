@@ -234,6 +234,9 @@ QQ交流群：576981420
     <Enabled>边缘触控</Enabled>
     <WindowDrag>窗口拖动</WindowDrag>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
+    <WindowDragImplementation>窗口移动方式</WindowDragImplementation>
+    <DirectSetWindowPos>直接移动窗口 (SetWindowPos)</DirectSetWindowPos>
+    <SimulatedCaptionDrag>模拟按住标题栏</SimulatedCaptionDrag>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
     <FixedGestures>固定边缘手势</FixedGestures>
     <LeftEdge>左边缘</LeftEdge>

@@ -321,6 +321,22 @@ namespace GestureSign.Common.Configuration
             }
         }
 
+        public static TouchpadWindowDragImplementation TouchpadWindowDragImplementation
+        {
+            get
+            {
+                return GetValue(nameof(TouchpadWindowDragImplementation), 0) ==
+                       (int)TouchpadWindowDragImplementation.SimulatedCaptionDrag
+                    ? TouchpadWindowDragImplementation.SimulatedCaptionDrag
+                    : TouchpadWindowDragImplementation.DirectSetWindowPos;
+            }
+            set
+            {
+                SetValue(nameof(TouchpadWindowDragImplementation),
+                    value == TouchpadWindowDragImplementation.SimulatedCaptionDrag ? 1 : 0);
+            }
+        }
+
         public static int TouchpadEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadEdgeZonePercent), 12); }

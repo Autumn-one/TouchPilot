@@ -230,6 +230,9 @@ Email:ccfyzh@gmail.com
     <Enabled>Edge touch</Enabled>
     <WindowDrag>Window dragging</WindowDrag>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
+    <WindowDragImplementation>Window movement method</WindowDragImplementation>
+    <DirectSetWindowPos>Direct window movement (SetWindowPos)</DirectSetWindowPos>
+    <SimulatedCaptionDrag>Simulated title-bar hold</SimulatedCaptionDrag>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>
     <FixedGestures>Fixed edge gestures</FixedGestures>
     <LeftEdge>Left edge</LeftEdge>
