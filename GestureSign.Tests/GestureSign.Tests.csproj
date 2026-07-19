@@ -15,5 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GestureSign.Common\GestureSign.Common.csproj" />
+    <ProjectReference Include="..\GestureSign.Daemon\GestureSign.Daemon.csproj" />
   </ItemGroup>
 </Project>
