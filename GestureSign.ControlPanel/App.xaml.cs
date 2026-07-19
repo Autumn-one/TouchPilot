@@ -5,6 +5,7 @@ using GestureSign.Common.Gestures;
 using GestureSign.Common.InterProcessCommunication;
 using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
+using GestureSign.ControlPanel.Common;
 using GestureSign.ControlPanel.Localization;
 using ManagedWinapi.Windows;
 using System;
@@ -192,6 +193,7 @@ namespace GestureSign.ControlPanel
         protected override void OnStartup(StartupEventArgs e)
         {
             SetupExceptionHandling();
+            MetroWindowDragCompat.Initialize();
             AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
             AppContext.SetSwitch("Switch.System.Windows.Input.Stylus.DisableStylusAndTouchSupport", true);
             base.OnStartup(e);
