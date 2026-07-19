@@ -15,7 +15,7 @@
                       FlowDirection="{StaticResource DefaultFlowDirection}"
                       Topmost="True"
                       ShowIconOnTitleBar="False"
-                      Icon="/GestureSign;component/Resources/normal.ico"
+                      Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
                       WindowStartupLocation="CenterScreen">
     <StackPanel>
         <usercontrols:GestureSelector x:Name="GestureSelector"

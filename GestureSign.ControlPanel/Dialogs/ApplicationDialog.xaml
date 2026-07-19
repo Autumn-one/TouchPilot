@@ -11,7 +11,7 @@
                     xmlns:converters="clr-namespace:GestureSign.ControlPanel.Converters"
                     xmlns:usercontrols="clr-namespace:GestureSign.ControlPanel.UserControls"
                     mc:Ignorable="d"
-                    Icon="/GestureSign;component/Resources/normal.ico"
+                    Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
                     SizeToContent="Height"
                     Width="600"
                     ShowIconOnTitleBar="False"
