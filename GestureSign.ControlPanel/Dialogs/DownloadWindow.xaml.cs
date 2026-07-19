@@ -25,11 +25,11 @@ namespace GestureSign.ControlPanel.Dialogs
     /// </summary>
     public partial class DownloadWindow : TouchWindow
     {
-        private object _thisLock = new object();
-        private bool _isDownloaded;
+        private CancellationTokenSource _downloadCancellationTokenSource;
+        private bool _isClosed;
         private string _tempDirectory;
 
-        private string[] _source = new string[] { "https://transposony.coding.net/p/GestureSignSettings/d/GestureSignSettings/git/archive/master",
+        private readonly string[] _source = new string[] { "https://transposony.coding.net/p/GestureSignSettings/d/GestureSignSettings/git/archive/master",
             "https://github.com/TransposonY/GestureSignSettings/archive/master.zip" };
 
         public DownloadWindow()
@@ -38,62 +38,91 @@ namespace GestureSign.ControlPanel.Dialogs
             _tempDirectory = Path.Combine(AppConfig.LocalApplicationDataPath, "Temp");
         }
 
-        private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
+        private async void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            var clientList = new List<HttpClient>();
-            var cancellationTokenSource = new CancellationTokenSource();
+            _isClosed = false;
+            using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            _downloadCancellationTokenSource = cancellationTokenSource;
+            var downloadTasks = _source
+                .Select(url => DownloadSettingFileAsync(url, cancellationTokenSource.Token))
+                .ToList();
+            Exception lastError = null;
 
-            Action<Task<byte[]>> checkData = (task) =>
+            try
             {
-                if (task.Exception != null)
+                while (downloadTasks.Count != 0)
                 {
-                    Console.WriteLine($"{task.Exception.InnerException.GetType().Name}: {task.Exception.InnerException.Message}");
-                    return;
-                }
+                    var completedTask = await Task.WhenAny(downloadTasks);
+                    downloadTasks.Remove(completedTask);
 
-                var file = task.Result;
-                if (file == null || file.Length == 0)
-                    return;
+                    try
+                    {
+                        var file = await completedTask;
+                        if (file == null || file.Length == 0)
+                            throw new InvalidDataException("The downloaded settings archive is empty.");
 
-                lock (_thisLock)
-                {
-                    if (_isDownloaded)
+                        await Task.Run(() => LoadSettingFile(file), cancellationTokenSource.Token);
+                        await cancellationTokenSource.CancelAsync();
+                        ObserveRemainingDownloads(downloadTasks);
                         return;
-                    _isDownloaded = true;
+                    }
+                    catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+                    {
+                        // The window was closed or the shared download timeout elapsed.
+                    }
+                    catch (Exception exception)
+                    {
+                        lastError = exception;
+                    }
                 }
 
-                LoadSettingFile(file);
-            };
-            var observeExceptions = new Action<Task>(t =>
-            {
-                Dispatcher.InvokeAsync(() => this.ShowModalMessageExternal(t.Exception.InnerException.GetType().Name, t.Exception.InnerException.Message), DispatcherPriority.Input);
-            });
+                if (_isClosed)
+                    return;
 
-            foreach (string url in _source)
-            {
-                var handler = new HttpClientHandler
-                {
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-                };
-                var client = new HttpClient(handler);
-                client.DefaultRequestHeaders.Accept.ParseAdd("*/*");
-                client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip, deflate");
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.3; Trident/7.0; .NET4.0E; .NET4.0C; rv:11.0) like Gecko");
-                clientList.Add(client);
-                var downloadTask = client.GetByteArrayAsync(url, cancellationTokenSource.Token);
-                downloadTask.ContinueWith(checkData).ContinueWith(observeExceptions, TaskContinuationOptions.OnlyOnFaulted);
+                if (cancellationTokenSource.IsCancellationRequested)
+                    lastError = new TimeoutException();
+
+                if (lastError != null)
+                    this.ShowModalMessageExternal(lastError.GetType().Name, lastError.Message);
             }
-            Task.Run(async () =>
+            finally
             {
-                await Task.Delay(10000);
-                Dispatcher.Invoke(() =>
-                {
-                    cancellationTokenSource.Cancel();
-                    foreach (var client in clientList)
-                        client.Dispose();
-                    cancellationTokenSource.Dispose();
-                });
-            });
+                if (ReferenceEquals(_downloadCancellationTokenSource, cancellationTokenSource))
+                    _downloadCancellationTokenSource = null;
+            }
+        }
+
+        private static async Task<byte[]> DownloadSettingFileAsync(string url, CancellationToken cancellationToken)
+        {
+            using var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+            using var client = new HttpClient(handler);
+            client.DefaultRequestHeaders.Accept.ParseAdd("*/*");
+            client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip, deflate");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.3; Trident/7.0; .NET4.0E; .NET4.0C; rv:11.0) like Gecko");
+            return await client.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
+        }
+
+        private static void ObserveRemainingDownloads(IEnumerable<Task<byte[]>> downloadTasks)
+        {
+            foreach (var downloadTask in downloadTasks)
+            {
+                _ = downloadTask.ContinueWith(
+                    completedTask => _ = completedTask.Exception,
+                    CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted,
+                    TaskScheduler.Default);
+            }
+        }
+
+        private async void MetroWindow_Closed(object sender, EventArgs e)
+        {
+            _isClosed = true;
+            var cancellationTokenSource = _downloadCancellationTokenSource;
+            if (cancellationTokenSource != null)
+                await cancellationTokenSource.CancelAsync();
         }
 
         private void LoadSettingFile(byte[] file)
@@ -132,6 +161,9 @@ namespace GestureSign.ControlPanel.Dialogs
 
             Dispatcher.InvokeAsync(() =>
             {
+                if (_isClosed)
+                    return;
+
                 ApplicationSelector.Initialize(newApps, gestures);
                 ProgressRing.Visibility = Visibility.Collapsed;
                 ApplicationSelector.Visibility = Visibility.Visible;

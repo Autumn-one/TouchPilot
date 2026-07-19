@@ -15,7 +15,8 @@
                     BorderThickness="1"
                     Height="380"
                     Width="600"
-                    Loaded="MetroWindow_Loaded">
+                    Loaded="MetroWindow_Loaded"
+                    Closed="MetroWindow_Closed">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
