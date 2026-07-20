@@ -1,248 +1,345 @@
-﻿<controls:MetroWindow x:Class="GestureSign.ControlPanel.Dialogs.ActionDialog"
+<controls:MetroWindow x:Class="GestureSign.ControlPanel.Dialogs.ActionDialog"
                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                      xmlns:local="clr-namespace:GestureSign.ControlPanel.Dialogs"
+                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                       xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+                      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
                       xmlns:usercontrols="clr-namespace:GestureSign.ControlPanel.UserControls"
                       xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
                       xmlns:viewModel="clr-namespace:GestureSign.ControlPanel.ViewModel"
                       xmlns:converters="clr-namespace:GestureSign.ControlPanel.Converters"
                       xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
                       mc:Ignorable="d"
+                      d:DesignHeight="620"
+                      d:DesignWidth="560"
                       Title="{localization:LocalisedText ActionDialog.EditActionTitle}"
+                      Style="{StaticResource V2.Dialog.Window}"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
-                      BorderBrush="{StaticResource MahApps.Brushes.Accent}"
+                      Width="560"
+                      SizeToContent="Height"
                       ResizeMode="NoResize"
                       WindowStartupLocation="CenterScreen"
-                      ShowIconOnTitleBar="False"
-                      SizeToContent="Height"
-                      BorderThickness="1"
-                      Height="300"
-                      Width="354"
                       Loaded="MetroWindow_Loaded">
     <controls:MetroWindow.Resources>
-        <ResourceDictionary>
-            <converters:GestureImageConverter x:Key="GestureImageConverter" />
-            <ObjectDataProvider x:Key="MouseActionDescription"
-                                ObjectType="{x:Type viewModel:MouseActionDescription}" />
-            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        </ResourceDictionary>
+        <converters:GestureImageConverter x:Key="GestureImageConverter" />
+        <ObjectDataProvider x:Key="MouseActionDescription"
+                            ObjectType="{x:Type viewModel:MouseActionDescription}" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="ActionDialog.DirectionItem"
+               TargetType="ListBoxItem"
+               BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Width"
+                    Value="54" />
+            <Setter Property="Height"
+                    Value="44" />
+            <Setter Property="Margin"
+                    Value="3" />
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Center" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="DirectionBorder"
+                                Background="{StaticResource V2.Brush.Surface}"
+                                BorderBrush="{StaticResource V2.Brush.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource V2.Corner.Small}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="DirectionBorder"
+                                        Property="Background"
+                                        Value="{StaticResource V2.Brush.AccentSoft}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected"
+                                     Value="True">
+                                <Setter TargetName="DirectionBorder"
+                                        Property="Background"
+                                        Value="{StaticResource V2.Brush.AccentSoft}" />
+                                <Setter TargetName="DirectionBorder"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource V2.Brush.Accent}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused"
+                                     Value="True">
+                                <Setter TargetName="DirectionBorder"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource V2.Brush.AccentHover}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionDialog.DirectionPath"
+               TargetType="Path">
+            <Setter Property="Data"
+                    Value="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
+            <Setter Property="Fill"
+                    Value="{StaticResource V2.Brush.Accent}" />
+            <Setter Property="Stretch"
+                    Value="Uniform" />
+            <Setter Property="Width"
+                    Value="22" />
+            <Setter Property="Height"
+                    Value="22" />
+        </Style>
     </controls:MetroWindow.Resources>
+
     <controls:MetroWindow.Flyouts>
         <controls:FlyoutsControl>
             <controls:Flyout x:Name="MessageFlyout"
-                             Theme="Accent"
+                             Theme="Light"
                              Position="Bottom"
                              CloseButtonVisibility="Collapsed"
                              IsPinned="False"
-                             Height="{Binding ElementName=MessageFlyoutText,Path=Height}">
+                             MinHeight="72"
+                             Background="{StaticResource V2.Brush.Surface}"
+                             Foreground="{StaticResource V2.Brush.Text}">
                 <TextBlock x:Name="MessageFlyoutText"
-                           FontSize="16"
-                           TextWrapping="Wrap"
+                           Margin="16,10"
                            VerticalAlignment="Center"
-                           Margin="0,10" />
+                           Style="{StaticResource V2.Text.Body}"
+                           TextWrapping="Wrap" />
             </controls:Flyout>
         </controls:FlyoutsControl>
     </controls:MetroWindow.Flyouts>
-    <StackPanel>
-        <TabControl>
-            <TabItem Header="{localization:LocalisedText Gesture.Header}"
-                     controls:HeaderedControlHelper.HeaderFontSize="18">
+
+    <Grid Margin="24,20,24,22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TabControl Style="{StaticResource V2.Settings.SegmentedTabControl}">
+            <TabItem Header="{localization:LocalisedText Gesture.Header}">
                 <StackPanel>
                     <usercontrols:GestureSelector x:Name="GestureSelector"
                                                   CurrentGesture="{Binding CurrentGesture, Mode=TwoWay, RelativeSource={RelativeSource AncestorType={x:Type controls:MetroWindow}, Mode=FindAncestor}}" />
-                    <controls:ToggleSwitch x:Name="ContinuousGestureSwitch"
-                                           Style="{StaticResource MahApps.Styles.ToggleSwitch}"
-                                           Margin="20,0,0,0"
-                                           Header="{localization:LocalisedText ActionDialog.Continuous}"
-                                           OffContent="{localization:LocalisedText Options.OffLabel}"
-                                           OnContent="{localization:LocalisedText Options.OnLabel}"
-                                           HorizontalAlignment="Left" />
-                    <TextBlock x:Name="ContinuousGestureText"
-                               Visibility="{Binding ElementName=ContinuousGestureSwitch,Path=IsOn,Converter={StaticResource BooleanToVisibilityConverter}}"
-                               HorizontalAlignment="Center"
-                               FontSize="14" />
-                    <Slider x:Name="ContactCountSlider"
-                            Visibility="{Binding ElementName=ContinuousGestureSwitch,Path=IsOn,Converter={StaticResource BooleanToVisibilityConverter}}"
-                            common:SliderTools.MoveToPointOnDrag="True"
-                            ValueChanged="ContactCountSlider_ValueChanged"
-                            Minimum="2"
-                            Maximum="10"
-                            IsMoveToPointEnabled="True"
-                            Margin="0,10,0,0"
-                            Width="310"
-                            SmallChange="1"
-                            IsSnapToTickEnabled="True" />
-                    <ListBox x:Name="GestureListBox"
-                             Visibility="{Binding ElementName=ContinuousGestureSwitch,Path=IsOn,Converter={StaticResource BooleanToVisibilityConverter}}"
-                             Margin="20,10,20,0"
-                             SelectedIndex="0"
-                             SelectionChanged="GestureListBox_SelectionChanged">
-                        <ListBox.Resources>
-                            <Style x:Key="DirectionPathStyle"
-                                   TargetType="Path">
-                                <Setter Property="Data"
-                                        Value="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
-                                <Setter Property="Fill"
-                                        Value="Black" />
-                                <Setter Property="Stretch"
-                                        Value="Uniform" />
-                                <Setter Property="Margin"
-                                        Value="20,10" />
-                                <Setter Property="Width"
-                                        Value="26" />
-                                <Setter Property="Height"
-                                        Value="26" />
-                            </Style>
-                        </ListBox.Resources>
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                        <Path Style="{StaticResource DirectionPathStyle}"
-                              RenderTransformOrigin="0.5,0.5">
-                            <Path.RenderTransform>
-                                <RotateTransform Angle="270" />
-                            </Path.RenderTransform>
-                        </Path>
-                        <Path Style="{StaticResource DirectionPathStyle}"
-                              RenderTransformOrigin="0.5,0.5">
-                            <Path.RenderTransform>
-                                <RotateTransform Angle="90" />
-                            </Path.RenderTransform>
-                        </Path>
-                        <Path Style="{StaticResource DirectionPathStyle}">
-                        </Path>
-                        <Path Style="{StaticResource DirectionPathStyle}"
-                              RenderTransformOrigin="0.5,0.5">
-                            <Path.RenderTransform>
-                                <RotateTransform Angle="180" />
-                            </Path.RenderTransform>
-                        </Path>
-                    </ListBox>
+
+                    <Border Margin="0,16,0,0"
+                            Style="{StaticResource V2.Settings.Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                                       Text="{localization:LocalisedText ActionDialog.Continuous}" />
+                            <controls:ToggleSwitch x:Name="ContinuousGestureSwitch"
+                                                   Grid.Column="1"
+                                                   Style="{StaticResource V2.Settings.ToggleSwitch}"
+                                                   OffContent="{localization:LocalisedText Options.OffLabel}"
+                                                   OnContent="{localization:LocalisedText Options.OnLabel}"
+                                                   AutomationProperties.Name="{localization:LocalisedText ActionDialog.Continuous}" />
+                        </Grid>
+                    </Border>
+
+                    <Border Margin="0,10,0,0"
+                            Style="{StaticResource V2.Dialog.FieldGroup}"
+                            Visibility="{Binding ElementName=ContinuousGestureSwitch, Path=IsOn, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock x:Name="ContinuousGestureText"
+                                       HorizontalAlignment="Center"
+                                       Style="{StaticResource V2.Dialog.Label}"
+                                       Foreground="{StaticResource V2.Brush.Accent}" />
+                            <Slider x:Name="ContactCountSlider"
+                                    Margin="0,8,0,0"
+                                    Style="{StaticResource V2.Settings.Slider}"
+                                    common:SliderTools.MoveToPointOnDrag="True"
+                                    Minimum="2"
+                                    Maximum="10"
+                                    SmallChange="1"
+                                    IsMoveToPointEnabled="True"
+                                    IsSnapToTickEnabled="True"
+                                    ValueChanged="ContactCountSlider_ValueChanged" />
+                            <ListBox x:Name="GestureListBox"
+                                     Margin="0,8,0,0"
+                                     HorizontalAlignment="Center"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     ItemContainerStyle="{StaticResource ActionDialog.DirectionItem}"
+                                     SelectedIndex="0"
+                                     SelectionChanged="GestureListBox_SelectionChanged">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <Path Style="{StaticResource ActionDialog.DirectionPath}"
+                                      RenderTransformOrigin="0.5,0.5">
+                                    <Path.RenderTransform>
+                                        <RotateTransform Angle="270" />
+                                    </Path.RenderTransform>
+                                </Path>
+                                <Path Style="{StaticResource ActionDialog.DirectionPath}"
+                                      RenderTransformOrigin="0.5,0.5">
+                                    <Path.RenderTransform>
+                                        <RotateTransform Angle="90" />
+                                    </Path.RenderTransform>
+                                </Path>
+                                <Path Style="{StaticResource ActionDialog.DirectionPath}" />
+                                <Path Style="{StaticResource ActionDialog.DirectionPath}"
+                                      RenderTransformOrigin="0.5,0.5">
+                                    <Path.RenderTransform>
+                                        <RotateTransform Angle="180" />
+                                    </Path.RenderTransform>
+                                </Path>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </TabItem>
-            <TabItem Header="{localization:LocalisedText ActionDialog.Advanced}"
-                     controls:HeaderedControlHelper.HeaderFontSize="18">
+
+            <TabItem Header="{localization:LocalisedText ActionDialog.Advanced}">
                 <StackPanel>
                     <TextBlock x:Name="KeyboardHotKeyTextBlock"
-                               Text="{localization:LocalisedText ActionDialog.KeyboardHotKey}"
-                               FontSize="14"
-                               FontWeight="Bold"
-                               Margin="20,0,0,0"
-                               HorizontalAlignment="Left" />
-                    <controls:HotKeyBox x:Name="HotKeyTextBox"
-                                        AreModifierKeysRequired="True"
-                                        controls:TextBoxHelper.Watermark="{localization:LocalisedText ActionDialog.HotKeyWatermark}"
-                                        FontSize="14"
-                                        Margin="20,5,100,0">
-                    </controls:HotKeyBox>
-                    <Button x:Name="ResetHotKeyButton"
-                            Content="{localization:LocalisedText Common.Reset}"
-                            FontSize="14"
-                            MinWidth="60"
-                            Height="27"
-                            HorizontalAlignment="Right"
-                            BorderBrush="{StaticResource MahApps.Brushes.Highlight}"
-                            Click="ResetHotKeyButton_Click"
-                            Focusable="False"
-                            Margin="0,-26,14,0" />
-                    <TextBlock x:Name="MouseHotKeyTextBlock"
-                               Text="{localization:LocalisedText ActionDialog.MouseHotKey}"
-                               FontSize="14"
-                               DockPanel.Dock="Top"
-                               FontWeight="Bold"
-                               Margin="20,10,0,0"
-                               HorizontalAlignment="Left" />
-                    <TextBlock x:Name="DrawingButtonTextBlock"
-                               FontSize="14"
-                               Margin="20,5,0,0"
-                               HorizontalAlignment="Left" />
-                    <ComboBox x:Name="MouseActionComboBox"
-                              ItemsSource="{Binding Source={StaticResource MouseActionDescription},Path=DescriptionDict}"
-                              DisplayMemberPath="Value"
-                              SelectedValuePath="Key"
-                              FontSize="14"
-                              MaxWidth="150"
-                              Margin="0,-21,20,0"
-                              HorizontalAlignment="Right" />
-                    <TextBlock Text="{localization:LocalisedText ActionDialog.TriggerCondition}"
-                               FontSize="14"
-                               Margin="20,0,0,0"
-                               HorizontalAlignment="Left"
-                               FontWeight="Bold" />
+                               Style="{StaticResource V2.Dialog.Label}"
+                               Text="{localization:LocalisedText ActionDialog.KeyboardHotKey}" />
+                    <Grid Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="44" />
+                        </Grid.ColumnDefinitions>
+                        <controls:HotKeyBox x:Name="HotKeyTextBox"
+                                            Height="36"
+                                            Padding="10,5"
+                                            VerticalContentAlignment="Center"
+                                            AreModifierKeysRequired="True"
+                                            Background="{StaticResource V2.Brush.Surface}"
+                                            BorderBrush="{StaticResource V2.Brush.Border}"
+                                            Foreground="{StaticResource V2.Brush.Text}"
+                                            FontFamily="{StaticResource V2.FontFamily}"
+                                            FontSize="14"
+                                            controls:TextBoxHelper.Watermark="{localization:LocalisedText ActionDialog.HotKeyWatermark}" />
+                        <Button x:Name="ResetHotKeyButton"
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Style="{StaticResource V2.Button.Icon}"
+                                ToolTip="{localization:LocalisedText Common.Reset}"
+                                AutomationProperties.Name="{localization:LocalisedText Common.Reset}"
+                                Click="ResetHotKeyButton_Click"
+                                Focusable="False">
+                            <iconPacks:PackIconLucide Style="{StaticResource V2.Icon}"
+                                                      Kind="RotateCcw" />
+                        </Button>
+                    </Grid>
+
+                    <Border Margin="0,14,0,0"
+                            Style="{StaticResource V2.Settings.Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="220" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="MouseHotKeyTextBlock"
+                                           Style="{StaticResource V2.Dialog.Label}"
+                                           Text="{localization:LocalisedText ActionDialog.MouseHotKey}" />
+                                <TextBlock x:Name="DrawingButtonTextBlock"
+                                           Margin="0,3,12,0"
+                                           Style="{StaticResource V2.Text.Caption}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ComboBox x:Name="MouseActionComboBox"
+                                      Grid.Column="1"
+                                      Style="{StaticResource V2.Settings.ComboBox}"
+                                      ItemsSource="{Binding Source={StaticResource MouseActionDescription}, Path=DescriptionDict}"
+                                      DisplayMemberPath="Value"
+                                      SelectedValuePath="Key" />
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Margin="0,14,0,0"
+                               Style="{StaticResource V2.Dialog.Label}"
+                               Text="{localization:LocalisedText ActionDialog.TriggerCondition}" />
                     <TextBox x:Name="ConditionTextBox"
-                             FontSize="14"
-                             Margin="20,5,20,0"
+                             Margin="0,6,0,0"
+                             Style="{StaticResource V2.Dialog.TextBox}"
                              controls:TextBoxHelper.Watermark="{localization:LocalisedText ActionDialog.Default}"
                              PreviewMouseUp="ConditionTextBox_PreviewMouseUp" />
-                    <TextBlock Text="{localization:LocalisedText ActionDialog.DeviceLimit}"
-                               FontSize="14"
-                               Margin="20,10,0,0"
-                               HorizontalAlignment="Left"
-                               FontWeight="Bold" />
-                    <CheckBox x:Name="MouseCheckBox"
-                              IsChecked="True"
-                              Margin="20,10,0,0"
-                              FontSize="14"
-                              HorizontalAlignment="Left"
-                              Content="{localization:LocalisedText ActionDialog.Mouse}" />
-                    <CheckBox x:Name="TouchScreenCheckBox"
-                              IsChecked="True"
-                              Margin="20,10,0,0"
-                              FontSize="14"
-                              HorizontalAlignment="Left"
-                              Content="{localization:LocalisedText ActionDialog.TouchScreen}" />
-                    <CheckBox x:Name="TouchPadCheckBox"
-                              IsChecked="True"
-                              Margin="20,10,0,0"
-                              FontSize="14"
-                              HorizontalAlignment="Left"
-                              Content="{localization:LocalisedText ActionDialog.TouchPad}" />
-                    <CheckBox x:Name="PenCheckBox"
-                              IsChecked="True"
-                              Margin="20,10,0,0"
-                              FontSize="14"
-                              HorizontalAlignment="Left"
-                              Content="{localization:LocalisedText ActionDialog.Pen}" />
+
+                    <Border Margin="0,14,0,0"
+                            Style="{StaticResource V2.Dialog.FieldGroup}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                                       Text="{localization:LocalisedText ActionDialog.DeviceLimit}" />
+                            <WrapPanel Margin="0,10,0,0">
+                                <CheckBox x:Name="MouseCheckBox"
+                                          Margin="0,0,18,8"
+                                          Style="{StaticResource V2.Settings.CheckBox}"
+                                          IsChecked="True"
+                                          Content="{localization:LocalisedText ActionDialog.Mouse}" />
+                                <CheckBox x:Name="TouchScreenCheckBox"
+                                          Margin="0,0,18,8"
+                                          Style="{StaticResource V2.Settings.CheckBox}"
+                                          IsChecked="True"
+                                          Content="{localization:LocalisedText ActionDialog.TouchScreen}" />
+                                <CheckBox x:Name="TouchPadCheckBox"
+                                          Margin="0,0,18,8"
+                                          Style="{StaticResource V2.Settings.CheckBox}"
+                                          IsChecked="True"
+                                          Content="{localization:LocalisedText ActionDialog.TouchPad}" />
+                                <CheckBox x:Name="PenCheckBox"
+                                          Margin="0,0,0,8"
+                                          Style="{StaticResource V2.Settings.CheckBox}"
+                                          IsChecked="True"
+                                          Content="{localization:LocalisedText ActionDialog.Pen}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
                     <CheckBox x:Name="ActivateWindowCheckBox"
-                              Margin="20,20,0,0"
-                              FontSize="14"
-                              HorizontalAlignment="Left"
+                              Margin="0,14,0,0"
+                              Style="{StaticResource V2.Settings.CheckBox}"
                               Content="{localization:LocalisedText ActionDialog.ActivateWindow}" />
                 </StackPanel>
             </TabItem>
         </TabControl>
-        <TextBlock TextWrapping="Wrap"
-                   Text="{localization:LocalisedText ActionDialog.ActionName}"
-                   FontWeight="Bold"
-                   FontSize="14"
-                   HorizontalAlignment="Left"
-                   Margin="20,20,0,0" />
-        <TextBox x:Name="ActionNameTextBox"
-                 controls:TextBoxHelper.Watermark="{localization:LocalisedText ActionDialog.ActionNameWatermark}"
-                 FontSize="14"
-                 MaxLines="3"
-                 MaxLength="80"
-                 Margin="20,5,20,10" />
-        <Grid Height="35">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="1*" />
-            </Grid.ColumnDefinitions>
-            <Button x:Name="CancelButton"
-                    Content="{localization:LocalisedText Common.Cancel}"
-                    IsCancel="True"
-                    FontSize="14" />
-            <Button x:Name="OkButton"
-                    Content="{localization:LocalisedText Common.OK}"
-                    Click="OkButton_Click"
-                    FontSize="14"
-                    IsDefault="True"
-                    Grid.Column="1" />
-        </Grid>
-    </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,18,0,0"
+                Padding="0,16,0,0"
+                BorderBrush="{StaticResource V2.Brush.Divider}"
+                BorderThickness="0,1,0,0">
+            <StackPanel>
+                <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                           Text="{localization:LocalisedText ActionDialog.ActionName}" />
+                <TextBox x:Name="ActionNameTextBox"
+                         Margin="0,6,0,0"
+                         Style="{StaticResource V2.Dialog.TextBox}"
+                         MaxLines="3"
+                         MaxLength="80"
+                         controls:TextBoxHelper.Watermark="{localization:LocalisedText ActionDialog.ActionNameWatermark}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource V2.Dialog.Footer}">
+            <StackPanel HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                <Button x:Name="CancelButton"
+                        Width="96"
+                        Style="{StaticResource V2.Button.Secondary}"
+                        Content="{localization:LocalisedText Common.Cancel}"
+                        IsCancel="True" />
+                <Button x:Name="OkButton"
+                        Width="96"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource V2.Button.Primary}"
+                        Content="{localization:LocalisedText Common.OK}"
+                        IsDefault="True"
+                        Click="OkButton_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </controls:MetroWindow>

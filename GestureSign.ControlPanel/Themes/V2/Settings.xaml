@@ -228,6 +228,18 @@
            BasedOn="{StaticResource {x:Type Slider}}">
         <Setter Property="Height" Value="28" />
         <Setter Property="IsMoveToPointEnabled" Value="True" />
+        <Setter Property="controls:SliderHelper.ThumbFillBrush" Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="controls:SliderHelper.ThumbFillHoverBrush" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:SliderHelper.ThumbFillPressedBrush" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:SliderHelper.ThumbFillDisabledBrush" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="controls:SliderHelper.TrackFillBrush" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="controls:SliderHelper.TrackFillHoverBrush" Value="{StaticResource V2.Brush.TextMuted}" />
+        <Setter Property="controls:SliderHelper.TrackFillPressedBrush" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="controls:SliderHelper.TrackFillDisabledBrush" Value="{StaticResource V2.Brush.Divider}" />
+        <Setter Property="controls:SliderHelper.TrackValueFillBrush" Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="controls:SliderHelper.TrackValueFillHoverBrush" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:SliderHelper.TrackValueFillPressedBrush" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:SliderHelper.TrackValueFillDisabledBrush" Value="{StaticResource V2.Brush.Border}" />
     </Style>
 
     <Style x:Key="V2.Settings.CheckBox"
@@ -237,5 +249,19 @@
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Foreground" Value="{StaticResource V2.Brush.Text}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="controls:CheckBoxHelper.CheckBackgroundStrokeChecked" Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="controls:CheckBoxHelper.CheckBackgroundStrokeCheckedMouseOver" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:CheckBoxHelper.CheckBackgroundStrokeCheckedPressed" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:CheckBoxHelper.CheckBackgroundStrokeUnchecked" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="controls:CheckBoxHelper.CheckBackgroundStrokeUncheckedMouseOver" Value="{StaticResource V2.Brush.TextMuted}" />
+        <Setter Property="controls:CheckBoxHelper.CheckBackgroundStrokeUncheckedPressed" Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundChecked" Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundCheckedMouseOver" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundCheckedPressed" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundCheckedDisabled" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundIndeterminate" Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundIndeterminateMouseOver" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundIndeterminatePressed" Value="{StaticResource V2.Brush.AccentHover}" />
+        <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundIndeterminateDisabled" Value="{StaticResource V2.Brush.Border}" />
     </Style>
 </ResourceDictionary>

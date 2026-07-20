@@ -47,6 +47,7 @@
                 <ResourceDictionary Source="Themes/V2/Controls.xaml" />
                 <ResourceDictionary Source="Themes/V2/Shell.xaml" />
                 <ResourceDictionary Source="Themes/V2/Settings.xaml" />
+                <ResourceDictionary Source="Themes/V2/Dialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
