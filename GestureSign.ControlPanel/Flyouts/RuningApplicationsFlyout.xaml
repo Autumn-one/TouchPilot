@@ -1,4 +1,4 @@
-﻿<controls:Flyout x:Class="GestureSign.ControlPanel.Flyouts.RuningApplicationsFlyout"
+<controls:Flyout x:Class="GestureSign.ControlPanel.Flyouts.RuningApplicationsFlyout"
                  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -6,44 +6,111 @@
                  xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
                  xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
                  mc:Ignorable="d"
-                 d:DesignHeight="400"
-                 d:DesignWidth="280"
-                 Width="300"
-                 Theme="Adapt"
+                 d:DesignHeight="480"
+                 d:DesignWidth="360"
+                 Width="360"
+                 Height="480"
+                 Theme="Light"
                  Header="{localization:LocalisedText RuningApplicationsFlyout.Title}"
                  Position="Left"
-                 IsPinned="False">
+                 IsPinned="False"
+                 Background="{StaticResource V2.Brush.Surface}"
+                 Foreground="{StaticResource V2.Brush.Text}">
+    <controls:Flyout.Resources>
+        <Style x:Key="RunningApplications.Item"
+               TargetType="ListViewItem"
+               BasedOn="{StaticResource {x:Type ListViewItem}}">
+            <Setter Property="MinHeight"
+                    Value="60" />
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Stretch" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+            <Setter Property="AutomationProperties.Name"
+                    Value="{Binding WindowTitle}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="ItemBorder"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource V2.Brush.Divider}"
+                                BorderThickness="0,0,0,1">
+                            <Grid>
+                                <Border x:Name="SelectionIndicator"
+                                        Width="3"
+                                        HorizontalAlignment="Left"
+                                        Background="{StaticResource V2.Brush.Accent}"
+                                        Visibility="Collapsed" />
+                                <ContentPresenter Margin="12,8"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="{StaticResource V2.Brush.SurfaceSubtle}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected"
+                                     Value="True">
+                                <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="{StaticResource V2.Brush.AccentSoft}" />
+                                <Setter TargetName="SelectionIndicator"
+                                        Property="Visibility"
+                                        Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused"
+                                     Value="True">
+                                <Setter TargetName="ItemBorder"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource V2.Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </controls:Flyout.Resources>
+
     <ListView x:Name="lstRunningApplications"
+              Margin="0,0,0,10"
+              ItemContainerStyle="{StaticResource RunningApplications.Item}"
+              Background="{StaticResource V2.Brush.Surface}"
+              BorderThickness="0"
               ScrollViewer.PanningMode="VerticalOnly"
               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-              Margin="5,0,5,10"
-              BorderThickness="0"
+              ScrollViewer.VerticalScrollBarVisibility="Auto"
               SelectionChanged="lstRunningApplications_SelectionChanged">
-        <ListView.View>
-            <GridView>
-                <GridViewColumn Header="{localization:LocalisedText ActionDialog.Icon}"
-                                Width="55">
-                    <GridViewColumn.CellTemplate>
-                        <DataTemplate>
-                            <Image Source="{Binding Path=ApplicationIcon}"
-                                   Height="35" />
-                        </DataTemplate>
-                    </GridViewColumn.CellTemplate>
-                </GridViewColumn>
-                <GridViewColumn Header="{localization:LocalisedText ActionDialog.ApplicationFileNameAndTitle}"
-                                Width="300">
-                    <GridViewColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock  Text="{Binding Path=WindowFilename}"
-                                            Margin="0,5,0,2" />
-                                <TextBlock  Text="{Binding Path=WindowTitle}"
-                                            Foreground="{StaticResource MahApps.Brushes.Highlight}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </GridViewColumn.CellTemplate>
-                </GridViewColumn>
-            </GridView>
-        </ListView.View>
+        <ListView.ItemTemplate>
+            <DataTemplate>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="42" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Image Width="32"
+                           Height="32"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           Source="{Binding ApplicationIcon}" />
+                    <StackPanel Grid.Column="1"
+                                VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource V2.Text.Body}"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding WindowFilename}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding WindowFilename}" />
+                        <TextBlock Margin="0,3,0,0"
+                                   Style="{StaticResource V2.Text.Caption}"
+                                   Text="{Binding WindowTitle}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding WindowTitle}" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </ListView.ItemTemplate>
     </ListView>
 </controls:Flyout>
