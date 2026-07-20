@@ -66,19 +66,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
 
                 var languageList = LocalizationProvider.Instance.GetLanguageList("ControlPanel");
                 LanguageComboBox.ItemsSource = languageList;
-
-                string cultureName = AppConfig.CultureName;
-                if (String.IsNullOrEmpty(cultureName) && languageList != null)
-                {
-                    CultureInfo currentCulture = CultureInfo.CurrentUICulture;
-                    if (languageList.ContainsKey(currentCulture.Name))
-                        cultureName = currentCulture.Name;
-                    else if (languageList.ContainsKey(currentCulture.TwoLetterISOLanguageName))
-                        cultureName = currentCulture.TwoLetterISOLanguageName;
-                    else if (languageList.ContainsKey("en"))
-                        cultureName = "en";
-                }
-                LanguageComboBox.SelectedValue = cultureName;
+                LanguageComboBox.SelectedValue = ResolveLanguageName(languageList, AppConfig.CultureName, CultureInfo.CurrentUICulture);
                 if (AppConfig.InitialTimeout > 0)
                 {
                     InitialTimeoutSwitch.IsOn = true;
@@ -106,6 +94,78 @@ namespace GestureSign.ControlPanel.MainWindowControls
                     LocalizationProvider.Instance.GetTextValue("Options.Messages.LoadSettingErrorTitle"), MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        private static string ResolveLanguageName(IDictionary<string, string> languageList, string cultureName, CultureInfo fallbackCulture)
+        {
+            if (languageList == null || languageList.Count == 0)
+                return null;
+
+            string resolvedName = FindLanguageName(languageList, cultureName);
+            if (resolvedName != null)
+                return resolvedName;
+
+            resolvedName = FindLanguageName(languageList, fallbackCulture?.Name);
+            if (resolvedName != null)
+                return resolvedName;
+
+            string firstName = null;
+            foreach (string name in languageList.Keys)
+            {
+                firstName ??= name;
+                if (name.Equals("en", StringComparison.OrdinalIgnoreCase))
+                    return name;
+            }
+
+            return firstName;
+        }
+
+        private static string FindLanguageName(IDictionary<string, string> languageList, string cultureName)
+        {
+            if (String.IsNullOrWhiteSpace(cultureName))
+                return null;
+
+            foreach (string name in languageList.Keys)
+            {
+                if (name.Equals(cultureName, StringComparison.OrdinalIgnoreCase))
+                    return name;
+            }
+
+            CultureInfo requestedCulture;
+            try
+            {
+                requestedCulture = CultureInfo.CreateSpecificCulture(cultureName);
+            }
+            catch (CultureNotFoundException)
+            {
+                return null;
+            }
+
+            foreach (string name in languageList.Keys)
+            {
+                try
+                {
+                    if (CultureInfo.CreateSpecificCulture(name).Name.Equals(requestedCulture.Name, StringComparison.OrdinalIgnoreCase))
+                        return name;
+                }
+                catch (CultureNotFoundException)
+                {
+                }
+            }
+
+            foreach (string name in languageList.Keys)
+            {
+                try
+                {
+                    if (CultureInfo.CreateSpecificCulture(name).TwoLetterISOLanguageName.Equals(requestedCulture.TwoLetterISOLanguageName, StringComparison.OrdinalIgnoreCase))
+                        return name;
+                }
+                catch (CultureNotFoundException)
+                {
+                }
+            }
+
+            return null;
         }
 
         private void UserControl_Initialized(object sender, EventArgs e)
