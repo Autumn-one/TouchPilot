@@ -171,6 +171,7 @@
                                                    FontFamily="{StaticResource V2.FontFamily}"
                                                    FontSize="11"
                                                    Foreground="{StaticResource V2.Brush.SidebarMuted}"
+                                                   TextWrapping="Wrap"
                                                    Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" />
                                     </StackPanel>
                                 </Grid>
