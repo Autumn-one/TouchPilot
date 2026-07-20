@@ -10,6 +10,7 @@ using MahApps.Metro.Controls.Dialogs;
 using ManagedWinapi.Hooks;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Forms;
@@ -63,8 +64,21 @@ namespace GestureSign.ControlPanel.MainWindowControls
                     DrawingButtonComboBox.SelectedValue = AppConfig.DrawingButton;
                 }
 
-                LanguageComboBox.ItemsSource = LocalizationProvider.Instance.GetLanguageList("ControlPanel");
-                LanguageComboBox.SelectedValue = AppConfig.CultureName;
+                var languageList = LocalizationProvider.Instance.GetLanguageList("ControlPanel");
+                LanguageComboBox.ItemsSource = languageList;
+
+                string cultureName = AppConfig.CultureName;
+                if (String.IsNullOrEmpty(cultureName) && languageList != null)
+                {
+                    CultureInfo currentCulture = CultureInfo.CurrentUICulture;
+                    if (languageList.ContainsKey(currentCulture.Name))
+                        cultureName = currentCulture.Name;
+                    else if (languageList.ContainsKey(currentCulture.TwoLetterISOLanguageName))
+                        cultureName = currentCulture.TwoLetterISOLanguageName;
+                    else if (languageList.ContainsKey("en"))
+                        cultureName = "en";
+                }
+                LanguageComboBox.SelectedValue = cultureName;
                 if (AppConfig.InitialTimeout > 0)
                 {
                     InitialTimeoutSwitch.IsOn = true;
