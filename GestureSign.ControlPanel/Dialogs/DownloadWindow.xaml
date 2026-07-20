@@ -69,6 +69,7 @@
                         HorizontalAlignment="Right"
                         Style="{StaticResource V2.Button.Primary}"
                         Content="{localization:LocalisedText Common.Import}"
+                        IsEnabled="False"
                         Click="OkButton_Click" />
             </Grid>
         </Border>

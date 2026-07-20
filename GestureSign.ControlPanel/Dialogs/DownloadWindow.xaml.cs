@@ -167,6 +167,7 @@ namespace GestureSign.ControlPanel.Dialogs
                 ApplicationSelector.Initialize(newApps, gestures);
                 ProgressRing.Visibility = Visibility.Collapsed;
                 ApplicationSelector.Visibility = Visibility.Visible;
+                OkButton.IsEnabled = true;
             }
             , DispatcherPriority.Input);
 
