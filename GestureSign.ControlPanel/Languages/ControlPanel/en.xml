@@ -37,11 +37,11 @@ This may lead to function failure(e.g. Start application at Windows startup).
     <HomepageUrl>https://gesturesign.win</HomepageUrl>
     <Store>Microsoft Store</Store>
     <HelpPageUrl>https://gesturesign.win/#/guide</HelpPageUrl>
-    <Version>Version  </Version>
-    <ReleaseDate>ReleaseDate  </ReleaseDate>
-    <Information>Author:TransposonY
-Translator:TransposonY
-Email:ccfyzh@gmail.com
+    <Version>Version:  </Version>
+    <ReleaseDate>Release date:  </ReleaseDate>
+    <Information>Author: TransposonY
+Translator: TransposonY
+Email: ccfyzh@gmail.com
     </Information>
     <SendFeedback>Send Feedback</SendFeedback>
     <ShowReport>Show Report</ShowReport>
