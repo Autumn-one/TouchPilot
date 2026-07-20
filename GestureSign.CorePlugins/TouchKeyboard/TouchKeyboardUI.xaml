@@ -5,34 +5,37 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
-             d:DesignHeight="150"
-             d:DesignWidth="300">
+             d:DesignHeight="240"
+             d:DesignWidth="350"
+             MinWidth="330">
     <StackPanel>
-        <RadioButton x:Name="AutoRadioButton"
-                     Content="{localization:LocalisedText CorePlugins.TouchKeyboard.Auto}"
-                     HorizontalAlignment="Left"
-                     GroupName="0"
-                     FontSize="20" />
-        <RadioButton x:Name="ShowTouchKeyboardRB"
-                     Content="{localization:LocalisedText CorePlugins.TouchKeyboard.Show}"
-                     HorizontalAlignment="Left"
-                     Margin="0,10,0,0"
-                     GroupName="0"
-                     FontSize="20" />
-        <RadioButton x:Name="HideTouchKeyboardRB"
-                     Content="{localization:LocalisedText CorePlugins.TouchKeyboard.Hide}"
-                     HorizontalAlignment="Left"
-                     Margin="0,10,0,0"
-                     GroupName="0"
-                     FontSize="20" />
+        <Border Padding="2"
+                Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                BorderBrush="{StaticResource V2.Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource V2.Corner.Small}">
+            <StackPanel>
+                <RadioButton x:Name="AutoRadioButton"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.TouchKeyboard.Auto}"
+                             GroupName="0" />
+                <RadioButton x:Name="ShowTouchKeyboardRB"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.TouchKeyboard.Show}"
+                             GroupName="0" />
+                <RadioButton x:Name="HideTouchKeyboardRB"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.TouchKeyboard.Hide}"
+                             GroupName="0" />
+            </StackPanel>
+        </Border>
         <TextBlock Margin="0,10,0,0"
-                   TextWrapping="Wrap"
+                   Style="{StaticResource V2.Text.Caption}"
                    Text="{localization:LocalisedText CorePlugins.TouchKeyboard.Tip}"
-                   FontSize="14"
-                   Width="350" />
+                   TextWrapping="Wrap" />
         <CheckBox x:Name="AutoInvokeCheckBox"
                   Margin="0,10,0,0"
-                  FontSize="14"
+                  Style="{StaticResource V2.Settings.CheckBox}"
                   Content="{localization:LocalisedText CorePlugins.TouchKeyboard.DesktopModeAutoInvoke}"
                   Click="AutoInvokeCheckBox_Click"
                   Loaded="AutoInvokeCheckBox_Loaded" />

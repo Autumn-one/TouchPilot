@@ -264,4 +264,102 @@
         <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundIndeterminatePressed" Value="{StaticResource V2.Brush.AccentHover}" />
         <Setter Property="controls:CheckBoxHelper.CheckGlyphForegroundIndeterminateDisabled" Value="{StaticResource V2.Brush.Border}" />
     </Style>
+
+    <Style x:Key="V2.Settings.RadioSegment"
+           TargetType="RadioButton">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Foreground" Value="{StaticResource V2.Brush.TextMuted}" />
+        <Setter Property="FontFamily" Value="{StaticResource V2.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="SegmentBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource V2.Corner.Small}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          ContentSource="Content"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="SegmentBorder" Property="Background" Value="{StaticResource V2.Brush.AccentSoft}" />
+                            <Setter Property="Foreground" Value="{StaticResource V2.Brush.Text}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="SegmentBorder" Property="Background" Value="{StaticResource V2.Brush.Accent}" />
+                            <Setter TargetName="SegmentBorder" Property="BorderBrush" Value="{StaticResource V2.Brush.Accent}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="SegmentBorder" Property="BorderBrush" Value="{StaticResource V2.Brush.AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="SegmentBorder" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="V2.Settings.ToggleButton"
+           TargetType="ToggleButton">
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Background" Value="{StaticResource V2.Brush.Surface}" />
+        <Setter Property="BorderBrush" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{StaticResource V2.Brush.TextMuted}" />
+        <Setter Property="FontFamily" Value="{StaticResource V2.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="ToggleBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource V2.Corner.Small}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          ContentSource="Content"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ToggleBorder" Property="Background" Value="{StaticResource V2.Brush.AccentSoft}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="ToggleBorder" Property="Background" Value="{StaticResource V2.Brush.Accent}" />
+                            <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="{StaticResource V2.Brush.Accent}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="{StaticResource V2.Brush.AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="ToggleBorder" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

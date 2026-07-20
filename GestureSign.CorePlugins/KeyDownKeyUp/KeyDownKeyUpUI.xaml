@@ -5,47 +5,57 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
-             d:DesignHeight="120"
-             d:DesignWidth="350">
+             d:DesignHeight="150"
+             d:DesignWidth="350"
+             MinWidth="330">
     <Grid PreviewKeyDown="KeysTextBox_PreviewKeyDown"
-          PreviewKeyUp="KeysTextBox_PreviewKeyUp"
-          Height="120">
-        <RadioButton x:Name="KeyDownRadioButton"
-                     Content="{localization:LocalisedText CorePlugins.KeyDownKeyUp.KeyDown}"
-                     FontSize="14"
-                     HorizontalAlignment="Left"
-                     VerticalAlignment="Top" />
-        <RadioButton x:Name="KeyUpRadioButton"
-                     Content="{localization:LocalisedText CorePlugins.KeyDownKeyUp.KeyUp}"
-                     FontSize="14"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Top" />
-        <TextBlock TextWrapping="Wrap"
-                   Text="{localization:LocalisedText CorePlugins.KeyDownKeyUp.Tip}"
-                   FontSize="14"
-                   Margin="0,42,0,0" />
-        <TextBox x:Name="KeysTextBox"
-                 InputMethod.IsInputMethodEnabled="False"
-                 HorizontalAlignment="Left"
-                 TextWrapping="Wrap"
-                 VerticalAlignment="Top"
-                 Width="260"
-                 FontSize="14"
-                 MaxLines="5"
-                 Margin="0,65,0,0">
-            <TextBox.ContextMenu>
-                <ContextMenu Visibility="Collapsed" />
-            </TextBox.ContextMenu>
-        </TextBox>
-        <Button x:Name="ResetButton"
-                Content="{localization:LocalisedText CorePlugins.KeyDownKeyUp.Reset}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                FontSize="14"
-                Width="65"
-                Height="26"
-                Click="ResetButton_Click"
-                Margin="0,65,0,0" />
-
+          PreviewKeyUp="KeysTextBox_PreviewKeyUp">
+        <StackPanel>
+            <Border Padding="2"
+                    Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                    BorderBrush="{StaticResource V2.Brush.Border}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource V2.Corner.Small}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <RadioButton x:Name="KeyDownRadioButton"
+                                 Style="{StaticResource V2.Settings.RadioSegment}"
+                                 Content="{localization:LocalisedText CorePlugins.KeyDownKeyUp.KeyDown}" />
+                    <RadioButton x:Name="KeyUpRadioButton"
+                                 Grid.Column="1"
+                                 Style="{StaticResource V2.Settings.RadioSegment}"
+                                 Content="{localization:LocalisedText CorePlugins.KeyDownKeyUp.KeyUp}" />
+                </Grid>
+            </Border>
+            <TextBlock Margin="0,8,0,0"
+                       Style="{StaticResource V2.Text.Caption}"
+                       Text="{localization:LocalisedText CorePlugins.KeyDownKeyUp.Tip}"
+                       TextWrapping="Wrap" />
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="88" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="KeysTextBox"
+                         Height="52"
+                         Style="{StaticResource V2.Dialog.TextBox}"
+                         InputMethod.IsInputMethodEnabled="False"
+                         MaxLines="5"
+                         TextWrapping="Wrap">
+                    <TextBox.ContextMenu>
+                        <ContextMenu Visibility="Collapsed" />
+                    </TextBox.ContextMenu>
+                </TextBox>
+                <Button x:Name="ResetButton"
+                        Grid.Column="2"
+                        Style="{StaticResource V2.Button.Secondary}"
+                        Content="{localization:LocalisedText CorePlugins.KeyDownKeyUp.Reset}"
+                        Click="ResetButton_Click" />
+            </Grid>
+        </StackPanel>
     </Grid>
 </UserControl>
