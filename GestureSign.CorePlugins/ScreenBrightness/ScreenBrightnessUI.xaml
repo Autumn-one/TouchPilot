@@ -6,35 +6,38 @@
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
              d:DesignHeight="70"
-             d:DesignWidth="350">
-    <Canvas Height="40">
+             d:DesignWidth="350"
+             MinWidth="330">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="82" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
         <ComboBox x:Name="cboMethod"
-                  HorizontalAlignment="Left"
-                  VerticalAlignment="Center"
-                  Width="210"
+                  MinWidth="0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   SelectedIndex="0"
-                  FontSize="14"
-                  Height="27">
+                  AutomationProperties.Name="{localization:LocalisedText CorePlugins.ScreenBrightness.Name}">
             <ComboBoxItem Content="{localization:LocalisedText CorePlugins.ScreenBrightness.IncreaseBrightness}" />
             <ComboBoxItem Content="{localization:LocalisedText CorePlugins.ScreenBrightness.DecreaseBrightness}" />
         </ComboBox>
 
         <ComboBox x:Name="NumPercent"
+                  Grid.Column="2"
+                  Width="82"
+                  MinWidth="0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   IsEditable="True"
                   InputMethod.IsInputMethodEnabled="False"
-                  HorizontalAlignment="Right"
-                  Width="71"
                   KeyDown="NumPercent_KeyDown"
-                  TextBoxBase.TextChanged="NumPercent_TextChanged"
-                  FontSize="14"
-                  Canvas.Left="226"
-                  Height="27" />
-        <TextBlock HorizontalAlignment="Left"
-                   TextWrapping="Wrap"
+                  TextBoxBase.TextChanged="NumPercent_TextChanged" />
+        <TextBlock Grid.Column="4"
+                   VerticalAlignment="Center"
+                   Style="{StaticResource V2.Text.Caption}"
                    Text="(1-100)"
-                   VerticalAlignment="Top"
-                   FontSize="14"
-                   Canvas.Left="302"
-                   Canvas.Top="5" />
-    </Canvas>
+                   TextWrapping="NoWrap" />
+    </Grid>
 </UserControl>

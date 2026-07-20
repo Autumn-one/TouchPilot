@@ -6,28 +6,37 @@
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
              d:DesignHeight="70"
-             d:DesignWidth="320">
+             d:DesignWidth="340"
+             MinWidth="320">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="82" />
+            <ColumnDefinition Width="6" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
         <ComboBox x:Name="cboMethod"
-                  HorizontalAlignment="Left"
-                  VerticalAlignment="Top"
-                  Width="230"
+                  MinWidth="0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   SelectionChanged="cboMethod_SelectionChanged"
-                  FontSize="14"
-                  Height="28">
+                  AutomationProperties.Name="{localization:LocalisedText CorePlugins.Volume.Name}">
             <ComboBoxItem Content="{localization:LocalisedText CorePlugins.Volume.Increase}" />
             <ComboBoxItem Content="{localization:LocalisedText CorePlugins.Volume.Decrease}" />
             <ComboBoxItem Content="{localization:LocalisedText CorePlugins.Volume.Mute}" />
         </ComboBox>
         <ComboBox x:Name="PercentComboBox"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Top"
-                  Width="81"
-                  FontSize="14"
+                  Grid.Column="2"
+                  Width="82"
+                  MinWidth="0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   TextBoxBase.TextChanged="PercentComboBox_OnTextChanged"
                   KeyDown="PercentComboBox_OnKeyDown"
                   InputMethod.IsInputMethodEnabled="False"
                   IsEditable="True" />
-
+        <TextBlock Grid.Column="4"
+                   VerticalAlignment="Center"
+                   Style="{StaticResource V2.Text.Caption}"
+                   Text="%" />
     </Grid>
 </UserControl>

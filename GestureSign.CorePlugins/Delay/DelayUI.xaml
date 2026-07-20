@@ -6,18 +6,21 @@
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
              d:DesignHeight="200"
-             d:DesignWidth="300">
+             d:DesignWidth="320"
+             MinWidth="300">
     <StackPanel>
         <TextBlock Text="{localization:LocalisedText CorePlugins.Delay.Timeout}"
-                   VerticalAlignment="Center" />
+                   Style="{StaticResource V2.Dialog.Label}" />
         <ComboBox x:Name="DelayComboBox"
+                  Width="110"
+                  MinWidth="0"
+                  Margin="0,6,0,0"
+                  HorizontalAlignment="Left"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   InputMethod.IsInputMethodEnabled="False"
                   KeyDown="DelayComboBox_KeyDown"
                   TextBoxBase.TextChanged="DelayComboBox_TextChanged"
-                  Width="70"
-                  IsEditable="True"
-                  HorizontalAlignment="Left"
-                  Margin="0,10,0,0">
+                  IsEditable="True">
             <ComboBoxItem>10</ComboBoxItem>
             <ComboBoxItem>30</ComboBoxItem>
             <ComboBoxItem>50</ComboBoxItem>
@@ -27,12 +30,13 @@
             <ComboBoxItem>1000</ComboBoxItem>
         </ComboBox>
         <TextBlock Text="{localization:LocalisedText CorePlugins.Delay.WaitUntil}"
-                   VerticalAlignment="Center"
-                   Margin="0,20,0,0" />
+                   Margin="0,16,0,0"
+                   Style="{StaticResource V2.Dialog.Label}" />
         <ComboBox x:Name="WaitTypeComboBox"
+                  MinWidth="0"
+                  Margin="0,6,0,0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   DisplayMemberPath="Value"
-                  SelectedValuePath="Key"
-                  VerticalAlignment="Center"
-                  Margin="0,10,0,0" />
+                  SelectedValuePath="Key" />
     </StackPanel>
 </UserControl>
