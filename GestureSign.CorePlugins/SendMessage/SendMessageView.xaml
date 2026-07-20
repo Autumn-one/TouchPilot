@@ -7,117 +7,151 @@
              xmlns:sendMessage="clr-namespace:GestureSign.CorePlugins.SendMessage"
              xmlns:hotKey="clr-namespace:GestureSign.CorePlugins.HotKey"
              mc:Ignorable="d"
-             d:DesignHeight="300"
-             d:DesignWidth="328">
-    <StackPanel>
-        <StackPanel.Resources>
-            <sendMessage:Bool2VisibilityConverter x:Key="Bool2VisibilityConverter" />
-            <ObjectDataProvider ObjectType="{x:Type sendMessage:Messages}"
-                                x:Key="Messages">
-            </ObjectDataProvider>
-        </StackPanel.Resources>
-        <TextBlock Text="{localization:LocalisedText CorePlugins.SendMessage.TargetWindow}"
-                   FontWeight="Bold" />
-        <RadioButton  x:Name="SpecificWindowRadioButton"
-                      Content="{localization:LocalisedText CorePlugins.SendMessage.SpecificWindow}"
-                      HorizontalAlignment="Left"
-                      Margin="10,5,0,0"
-                      GroupName="target" />
-        <RadioButton x:Name="CurrentWindowRadioButton"
-                     Content="{localization:LocalisedText CorePlugins.SendMessage.CurrentWindow}"
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Top"
-                     Margin="0,-18,10,0"
-                     GroupName="target"
-                     IsChecked="True" />
-        <Canvas Height="100"
-                Visibility="{Binding ElementName=SpecificWindowRadioButton,Path=IsChecked,Converter={StaticResource Bool2VisibilityConverter}}">
-            <TextBlock Text="{localization:LocalisedText CorePlugins.SendMessage.WindowClass}"
-                       Canvas.Left="10"
-                       Canvas.Top="15" />
+             d:DesignHeight="520"
+             d:DesignWidth="350"
+             MinWidth="330">
+    <UserControl.Resources>
+        <sendMessage:Bool2VisibilityConverter x:Key="Bool2VisibilityConverter" />
+        <ObjectDataProvider x:Key="Messages"
+                            ObjectType="{x:Type sendMessage:Messages}" />
+    </UserControl.Resources>
+    <ScrollViewer MaxHeight="340"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,0,6,0">
+        <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.SendMessage.TargetWindow}" />
+        <Border Margin="0,6,0,0"
+                Padding="2"
+                Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                BorderBrush="{StaticResource V2.Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource V2.Corner.Small}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <RadioButton x:Name="SpecificWindowRadioButton"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.SendMessage.SpecificWindow}"
+                             GroupName="target" />
+                <RadioButton x:Name="CurrentWindowRadioButton"
+                             Grid.Column="1"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.SendMessage.CurrentWindow}"
+                             GroupName="target"
+                             IsChecked="True" />
+            </Grid>
+        </Border>
+        <StackPanel Margin="0,12,0,0"
+                    Visibility="{Binding ElementName=SpecificWindowRadioButton, Path=IsChecked, Converter={StaticResource Bool2VisibilityConverter}}">
+            <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CorePlugins.SendMessage.WindowClass}" />
             <TextBox x:Name="ClassNameTextBox"
-                     Height="23"
-                     TextWrapping="Wrap"
-                     Width="213"
-                     Canvas.Left="105"
-                     Canvas.Top="10" />
-            <TextBlock Text="{localization:LocalisedText CorePlugins.SendMessage.WindowTitle}"
-                       Canvas.Left="10"
-                       Canvas.Top="46" />
+                     Margin="0,6,0,0"
+                     Style="{StaticResource V2.Dialog.TextBox}"
+                     TextWrapping="Wrap" />
+            <TextBlock Margin="0,12,0,0"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CorePlugins.SendMessage.WindowTitle}" />
             <TextBox x:Name="TitleTextBox"
-                     Height="23"
-                     TextWrapping="Wrap"
-                     Width="213"
-                     Canvas.Left="105"
-                     Canvas.Top="41" />
+                     Margin="0,6,0,0"
+                     Style="{StaticResource V2.Dialog.TextBox}"
+                     TextWrapping="Wrap" />
             <CheckBox x:Name="IsRegExCheckBox"
-                      Content="{localization:LocalisedText CorePlugins.SendMessage.RegEx}"
-                      Canvas.Left="10"
-                      Canvas.Top="72" />
-
-        </Canvas>
-        <TextBlock Text="{localization:LocalisedText CorePlugins.SendMessage.MessageContent}"
-                   Margin="0,5,0,0"
-                   FontWeight="Bold" />
-        <RadioButton  x:Name="HotKeyRadioButton"
-                      Content="{localization:LocalisedText CorePlugins.SendMessage.HotKey}"
-                      HorizontalAlignment="Left"
-                      Margin="10,5,0,0"
-                      GroupName="content"
-                      IsChecked="True" />
-        <RadioButton x:Name="CustomMessageRadioButton"
-                     Content="{localization:LocalisedText CorePlugins.SendMessage.Custom}"
-                     HorizontalAlignment="Right"
-                     Margin="0,-18,10,0"
-                     GroupName="content" />
-        <Canvas Visibility="{Binding ElementName=CustomMessageRadioButton,Path=IsChecked,Converter={StaticResource Bool2VisibilityConverter}}"
-                Height="144"
-                Margin="0,5,0,0">
-
-            <TextBlock Text="{localization:LocalisedText CorePlugins.SendMessage.Method}"
-                       FontWeight="Bold" />
-            <DockPanel Width="328"
-                       Canvas.Top="20">
-                <RadioButton  x:Name="PostMessageRadioButton"
-                              Content="{localization:LocalisedText CorePlugins.SendMessage.PostMessage}"
-                              GroupName="mode"
-                              HorizontalAlignment="Left"
-                              Margin="10,0,0,0"
-                              IsChecked="True" />
-                <RadioButton x:Name="SendMessageRadioButton"
-                             Content="{localization:LocalisedText CorePlugins.SendMessage.SendMessage}"
-                             GroupName="mode"
-                             DockPanel.Dock="Right"
-                             HorizontalAlignment="Right"
-                             Margin="0,0,10,0" />
-            </DockPanel>
-
-            <TextBlock Text="{localization:LocalisedText CorePlugins.SendMessage.MessageID}"
-                       Canvas.Top="52" />
+                      Margin="0,10,0,0"
+                      Style="{StaticResource V2.Settings.CheckBox}"
+                      Content="{localization:LocalisedText CorePlugins.SendMessage.RegEx}" />
+        </StackPanel>
+        <TextBlock Margin="0,16,0,0"
+                   Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.SendMessage.MessageContent}" />
+        <Border Margin="0,6,0,0"
+                Padding="2"
+                Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                BorderBrush="{StaticResource V2.Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource V2.Corner.Small}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <RadioButton x:Name="HotKeyRadioButton"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.SendMessage.HotKey}"
+                             GroupName="content"
+                             IsChecked="True" />
+                <RadioButton x:Name="CustomMessageRadioButton"
+                             Grid.Column="1"
+                             Style="{StaticResource V2.Settings.RadioSegment}"
+                             Content="{localization:LocalisedText CorePlugins.SendMessage.Custom}"
+                             GroupName="content" />
+            </Grid>
+        </Border>
+        <StackPanel Margin="0,12,0,0"
+                    Visibility="{Binding ElementName=CustomMessageRadioButton, Path=IsChecked, Converter={StaticResource Bool2VisibilityConverter}}">
+            <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CorePlugins.SendMessage.Method}" />
+            <Border Margin="0,6,0,0"
+                    Padding="2"
+                    Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                    BorderBrush="{StaticResource V2.Brush.Border}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource V2.Corner.Small}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <RadioButton x:Name="PostMessageRadioButton"
+                                 Style="{StaticResource V2.Settings.RadioSegment}"
+                                 Content="{localization:LocalisedText CorePlugins.SendMessage.PostMessage}"
+                                 GroupName="mode"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="SendMessageRadioButton"
+                                 Grid.Column="1"
+                                 Style="{StaticResource V2.Settings.RadioSegment}"
+                                 Content="{localization:LocalisedText CorePlugins.SendMessage.SendMessage}"
+                                 GroupName="mode" />
+                </Grid>
+            </Border>
+            <TextBlock Margin="0,12,0,0"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CorePlugins.SendMessage.MessageID}" />
             <ComboBox x:Name="MessageComboBox"
-                      ItemsSource="{Binding Source={StaticResource Messages},Path=MessagesDict}"
+                      Margin="0,6,0,0"
+                      Style="{StaticResource V2.Settings.ComboBox}"
+                      ItemsSource="{Binding Source={StaticResource Messages}, Path=MessagesDict}"
                       DisplayMemberPath="Key"
                       SelectedValuePath="Value"
-                      Canvas.Left="195"
-                      Canvas.Top="43"
-                      Width="123"
                       IsEditable="True" />
-            <TextBlock Text="wParam"
-                       Canvas.Top="79"
-                       Canvas.Left="2" />
-            <TextBox x:Name="WParamTextBox"
-                     Canvas.Left="195"
-                     Canvas.Top="74"
-                     Width="123" />
-            <TextBlock  Text="lParam"
-                        Canvas.Left="2"
-                        Canvas.Top="110" />
-            <TextBox x:Name="LParamTextBox"
-                     Canvas.Left="195"
-                     Canvas.Top="105"
-                     Width="123" />
-        </Canvas>
-        <hotKey:HotKey Visibility="{Binding ElementName=HotKeyRadioButton,Path=IsChecked,Converter={StaticResource Bool2VisibilityConverter}}"
-                       x:Name="HotKeyControl" />
-    </StackPanel>
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                               Text="wParam" />
+                    <TextBox x:Name="WParamTextBox"
+                             Margin="0,6,0,0"
+                             Style="{StaticResource V2.Dialog.TextBox}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                               Text="lParam" />
+                    <TextBox x:Name="LParamTextBox"
+                             Margin="0,6,0,0"
+                             Style="{StaticResource V2.Dialog.TextBox}" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+            <hotKey:HotKey x:Name="HotKeyControl"
+                           Margin="0,12,0,0"
+                           Visibility="{Binding ElementName=HotKeyRadioButton, Path=IsChecked, Converter={StaticResource Bool2VisibilityConverter}}" />
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
