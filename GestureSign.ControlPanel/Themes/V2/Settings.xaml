@@ -106,6 +106,123 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 
+    <Style x:Key="V2.Settings.SegmentedTabItem"
+           TargetType="TabItem">
+        <Setter Property="MinWidth"
+                Value="118" />
+        <Setter Property="Height"
+                Value="36" />
+        <Setter Property="Margin"
+                Value="1" />
+        <Setter Property="Padding"
+                Value="14,0" />
+        <Setter Property="FontFamily"
+                Value="{StaticResource V2.FontFamily}" />
+        <Setter Property="FontSize"
+                Value="13" />
+        <Setter Property="FontWeight"
+                Value="SemiBold" />
+        <Setter Property="Foreground"
+                Value="{StaticResource V2.Brush.TextMuted}" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Stretch" />
+        <Setter Property="VerticalContentAlignment"
+                Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="TabBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="3">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          ContentSource="Header"
+                                          RecognizesAccessKey="True"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver"
+                                 Value="True">
+                            <Setter TargetName="TabBorder"
+                                    Property="Background"
+                                    Value="{StaticResource V2.Brush.AccentSoft}" />
+                            <Setter Property="Foreground"
+                                    Value="{StaticResource V2.Brush.Text}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected"
+                                 Value="True">
+                            <Setter TargetName="TabBorder"
+                                    Property="Background"
+                                    Value="{StaticResource V2.Brush.Accent}" />
+                            <Setter TargetName="TabBorder"
+                                    Property="BorderBrush"
+                                    Value="{StaticResource V2.Brush.Accent}" />
+                            <Setter Property="Foreground"
+                                    Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused"
+                                 Value="True">
+                            <Setter TargetName="TabBorder"
+                                    Property="BorderBrush"
+                                    Value="{StaticResource V2.Brush.AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled"
+                                 Value="False">
+                            <Setter TargetName="TabBorder"
+                                    Property="Opacity"
+                                    Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="V2.Settings.SegmentedTabControl"
+           TargetType="TabControl">
+        <Setter Property="Background"
+                Value="Transparent" />
+        <Setter Property="BorderThickness"
+                Value="0" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Stretch" />
+        <Setter Property="VerticalContentAlignment"
+                Value="Top" />
+        <Setter Property="ItemContainerStyle"
+                Value="{StaticResource V2.Settings.SegmentedTabItem}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid Background="{TemplateBinding Background}"
+                          KeyboardNavigation.TabNavigation="Local">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border HorizontalAlignment="Left"
+                                Padding="3"
+                                Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                                BorderBrush="{StaticResource V2.Brush.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource V2.Corner.Small}">
+                            <TabPanel IsItemsHost="True" />
+                        </Border>
+                        <ContentPresenter x:Name="PART_SelectedContentHost"
+                                          Grid.Row="1"
+                                          Margin="0,14,0,0"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          ContentSource="SelectedContent"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="V2.Settings.Slider"
            TargetType="Slider"
            BasedOn="{StaticResource {x:Type Slider}}">
