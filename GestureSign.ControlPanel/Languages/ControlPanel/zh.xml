@@ -261,6 +261,13 @@ QQ交流群：576981420
   </EdgeTouch>
   <Options>
     <Header>选项</Header>
+    <Sections>
+      <Interface>界面</Interface>
+      <Input>输入设备</Input>
+      <Recognition>识别</Recognition>
+      <System>系统</System>
+      <Data>数据</Data>
+    </Sections>
     <Language>语言（重启生效）</Language>
     <Opacity>不透明度 </Opacity>
     <VisualFeedbackWidth>轨迹宽度 {0:0} px</VisualFeedbackWidth>

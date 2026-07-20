@@ -1,0 +1,124 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro">
+    <Style x:Key="V2.Settings.SectionTitle"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource V2.Text.SectionTitle}">
+        <Setter Property="Margin"
+                Value="0,4,0,6" />
+    </Style>
+
+    <Style x:Key="V2.Settings.Label"
+           TargetType="TextBlock"
+           BasedOn="{StaticResource V2.Text.Body}">
+        <Setter Property="VerticalAlignment"
+                Value="Center" />
+    </Style>
+
+    <Style x:Key="V2.Settings.Row"
+           TargetType="Border">
+        <Setter Property="MinHeight"
+                Value="58" />
+        <Setter Property="Padding"
+                Value="0,12" />
+        <Setter Property="BorderBrush"
+                Value="{StaticResource V2.Brush.Divider}" />
+        <Setter Property="BorderThickness"
+                Value="0,0,0,1" />
+    </Style>
+
+    <Style x:Key="V2.Settings.Subsection"
+           TargetType="Border">
+        <Setter Property="Margin"
+                Value="0,12,0,2" />
+        <Setter Property="Padding"
+                Value="16,14" />
+        <Setter Property="Background"
+                Value="{StaticResource V2.Brush.SurfaceSubtle}" />
+        <Setter Property="BorderBrush"
+                Value="{StaticResource V2.Brush.Accent}" />
+        <Setter Property="BorderThickness"
+                Value="3,0,0,0" />
+    </Style>
+
+    <Style x:Key="V2.Settings.ToggleSwitch"
+           TargetType="controls:ToggleSwitch"
+           BasedOn="{StaticResource MahApps.Styles.ToggleSwitch}">
+        <Setter Property="MinWidth"
+                Value="84" />
+        <Setter Property="FontFamily"
+                Value="{StaticResource V2.FontFamily}" />
+        <Setter Property="FontSize"
+                Value="13" />
+        <Setter Property="FontWeight"
+                Value="SemiBold" />
+        <Setter Property="Foreground"
+                Value="{StaticResource V2.Brush.TextMuted}" />
+        <Setter Property="ContentDirection"
+                Value="RightToLeft" />
+        <Setter Property="ContentPadding"
+                Value="8,0,0,0" />
+        <Setter Property="HorizontalAlignment"
+                Value="Right" />
+        <Style.Resources>
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.ContainerBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.ContainerBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.ContainerBackgroundPressed" Color="Transparent" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.ContainerBackgroundDisabled" Color="Transparent" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOn" Color="{StaticResource V2.Color.Accent}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOnPointerOver" Color="{StaticResource V2.Color.AccentHover}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOnPressed" Color="{StaticResource V2.Color.AccentHover}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOnDisabled" Color="#AFC8C1" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOn" Color="{StaticResource V2.Color.Accent}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOnPointerOver" Color="{StaticResource V2.Color.AccentHover}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOnPressed" Color="{StaticResource V2.Color.AccentHover}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOnDisabled" Color="#AFC8C1" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOn" Color="White" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOnPointerOver" Color="White" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOnPressed" Color="White" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOnDisabled" Color="#F3F6F5" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOff" Color="{StaticResource V2.Color.Surface}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOffPointerOver" Color="{StaticResource V2.Color.SurfaceSubtle}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOffPressed" Color="{StaticResource V2.Color.SurfaceSubtle}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.FillOffDisabled" Color="#EFF2F1" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOff" Color="#81908B" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOffPointerOver" Color="{StaticResource V2.Color.TextMuted}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOffPressed" Color="{StaticResource V2.Color.TextMuted}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.StrokeOffDisabled" Color="#C8D0CD" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOff" Color="{StaticResource V2.Color.TextMuted}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOffPointerOver" Color="{StaticResource V2.Color.Text}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOffPressed" Color="{StaticResource V2.Color.Text}" />
+            <SolidColorBrush x:Key="MahApps.Brushes.ToggleSwitch.KnobFillOffDisabled" Color="#AEB8B4" />
+        </Style.Resources>
+    </Style>
+
+    <Style x:Key="V2.Settings.ComboBox"
+           TargetType="ComboBox"
+           BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="MinWidth" Value="220" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="Background" Value="{StaticResource V2.Brush.Surface}" />
+        <Setter Property="BorderBrush" Value="{StaticResource V2.Brush.Border}" />
+        <Setter Property="Foreground" Value="{StaticResource V2.Brush.Text}" />
+        <Setter Property="FontFamily" Value="{StaticResource V2.FontFamily}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="V2.Settings.Slider"
+           TargetType="Slider"
+           BasedOn="{StaticResource {x:Type Slider}}">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="IsMoveToPointEnabled" Value="True" />
+    </Style>
+
+    <Style x:Key="V2.Settings.CheckBox"
+           TargetType="CheckBox"
+           BasedOn="{StaticResource {x:Type CheckBox}}">
+        <Setter Property="FontFamily" Value="{StaticResource V2.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource V2.Brush.Text}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+</ResourceDictionary>
