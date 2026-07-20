@@ -6,6 +6,8 @@
     <Color x:Key="V2.Color.SurfaceSubtle">#EDF2F0</Color>
     <Color x:Key="V2.Color.Sidebar">#18211F</Color>
     <Color x:Key="V2.Color.SidebarMuted">#AEBAB6</Color>
+    <Color x:Key="V2.Color.SidebarHover">#24302D</Color>
+    <Color x:Key="V2.Color.SidebarSelection">#2A3834</Color>
     <Color x:Key="V2.Color.Text">#17201E</Color>
     <Color x:Key="V2.Color.TextMuted">#65716D</Color>
     <Color x:Key="V2.Color.Border">#D4DDDA</Color>
@@ -26,6 +28,10 @@
                      Color="{StaticResource V2.Color.Sidebar}" />
     <SolidColorBrush x:Key="V2.Brush.SidebarMuted"
                      Color="{StaticResource V2.Color.SidebarMuted}" />
+    <SolidColorBrush x:Key="V2.Brush.SidebarHover"
+                     Color="{StaticResource V2.Color.SidebarHover}" />
+    <SolidColorBrush x:Key="V2.Brush.SidebarSelection"
+                     Color="{StaticResource V2.Color.SidebarSelection}" />
     <SolidColorBrush x:Key="V2.Brush.Text"
                      Color="{StaticResource V2.Color.Text}" />
     <SolidColorBrush x:Key="V2.Brush.TextMuted"
@@ -56,6 +62,7 @@
     <system:Double x:Key="V2.Size.ControlHeight">36</system:Double>
     <system:Double x:Key="V2.Size.IconButton">36</system:Double>
     <system:Double x:Key="V2.Size.Sidebar">204</system:Double>
+    <GridLength x:Key="V2.Size.SidebarGridLength">204</GridLength>
 
     <Thickness x:Key="V2.Spacing.Page">32,28,32,32</Thickness>
     <Thickness x:Key="V2.Spacing.Section">0,24,0,0</Thickness>

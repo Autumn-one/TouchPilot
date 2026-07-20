@@ -31,6 +31,7 @@
     <Import>导入...</Import>
     <Export>导出...</Export>
     <Reset>重置</Reset>
+    <Help>帮助</Help>
   </Common>
   <About>
     <Header>关于</Header>

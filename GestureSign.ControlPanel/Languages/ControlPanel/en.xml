@@ -29,6 +29,7 @@ This may lead to function failure(e.g. Start application at Windows startup).
     <Import>Import...</Import>
     <Export>Export...</Export>
     <Reset>Reset</Reset>
+    <Help>Help</Help>
   </Common>
   <About>
     <Header>About</Header>
