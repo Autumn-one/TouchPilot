@@ -42,6 +42,9 @@
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
                 <ResourceDictionary Source="UserControls/RadioButtonStyle.xaml" />
+                <ResourceDictionary Source="Themes/V2/Tokens.xaml" />
+                <ResourceDictionary Source="Themes/V2/Typography.xaml" />
+                <ResourceDictionary Source="Themes/V2/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

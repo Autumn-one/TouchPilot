@@ -1,0 +1,65 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <Color x:Key="V2.Color.Canvas">#F4F7F6</Color>
+    <Color x:Key="V2.Color.Surface">#FFFFFF</Color>
+    <Color x:Key="V2.Color.SurfaceSubtle">#EDF2F0</Color>
+    <Color x:Key="V2.Color.Sidebar">#18211F</Color>
+    <Color x:Key="V2.Color.SidebarMuted">#AEBAB6</Color>
+    <Color x:Key="V2.Color.Text">#17201E</Color>
+    <Color x:Key="V2.Color.TextMuted">#65716D</Color>
+    <Color x:Key="V2.Color.Border">#D4DDDA</Color>
+    <Color x:Key="V2.Color.Divider">#E5EBE9</Color>
+    <Color x:Key="V2.Color.Accent">#087D67</Color>
+    <Color x:Key="V2.Color.AccentHover">#066A58</Color>
+    <Color x:Key="V2.Color.AccentSoft">#DDF2EC</Color>
+    <Color x:Key="V2.Color.Warning">#B66A16</Color>
+    <Color x:Key="V2.Color.Danger">#C43D4D</Color>
+
+    <SolidColorBrush x:Key="V2.Brush.Canvas"
+                     Color="{StaticResource V2.Color.Canvas}" />
+    <SolidColorBrush x:Key="V2.Brush.Surface"
+                     Color="{StaticResource V2.Color.Surface}" />
+    <SolidColorBrush x:Key="V2.Brush.SurfaceSubtle"
+                     Color="{StaticResource V2.Color.SurfaceSubtle}" />
+    <SolidColorBrush x:Key="V2.Brush.Sidebar"
+                     Color="{StaticResource V2.Color.Sidebar}" />
+    <SolidColorBrush x:Key="V2.Brush.SidebarMuted"
+                     Color="{StaticResource V2.Color.SidebarMuted}" />
+    <SolidColorBrush x:Key="V2.Brush.Text"
+                     Color="{StaticResource V2.Color.Text}" />
+    <SolidColorBrush x:Key="V2.Brush.TextMuted"
+                     Color="{StaticResource V2.Color.TextMuted}" />
+    <SolidColorBrush x:Key="V2.Brush.Border"
+                     Color="{StaticResource V2.Color.Border}" />
+    <SolidColorBrush x:Key="V2.Brush.Divider"
+                     Color="{StaticResource V2.Color.Divider}" />
+    <SolidColorBrush x:Key="V2.Brush.Accent"
+                     Color="{StaticResource V2.Color.Accent}" />
+    <SolidColorBrush x:Key="V2.Brush.AccentHover"
+                     Color="{StaticResource V2.Color.AccentHover}" />
+    <SolidColorBrush x:Key="V2.Brush.AccentSoft"
+                     Color="{StaticResource V2.Color.AccentSoft}" />
+    <SolidColorBrush x:Key="V2.Brush.Warning"
+                     Color="{StaticResource V2.Color.Warning}" />
+    <SolidColorBrush x:Key="V2.Brush.Danger"
+                     Color="{StaticResource V2.Color.Danger}" />
+
+    <FontFamily x:Key="V2.FontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="V2.FontFamily.Display">Segoe UI Variable Display, Segoe UI</FontFamily>
+
+    <system:Double x:Key="V2.FontSize.Caption">12</system:Double>
+    <system:Double x:Key="V2.FontSize.Body">14</system:Double>
+    <system:Double x:Key="V2.FontSize.Section">18</system:Double>
+    <system:Double x:Key="V2.FontSize.PageTitle">28</system:Double>
+
+    <system:Double x:Key="V2.Size.ControlHeight">36</system:Double>
+    <system:Double x:Key="V2.Size.IconButton">36</system:Double>
+    <system:Double x:Key="V2.Size.Sidebar">204</system:Double>
+
+    <Thickness x:Key="V2.Spacing.Page">32,28,32,32</Thickness>
+    <Thickness x:Key="V2.Spacing.Section">0,24,0,0</Thickness>
+    <Thickness x:Key="V2.Spacing.Control">12,7</Thickness>
+    <CornerRadius x:Key="V2.Corner.Small">4</CornerRadius>
+    <CornerRadius x:Key="V2.Corner.Medium">6</CornerRadius>
+</ResourceDictionary>

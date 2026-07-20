@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="MahApps.Metro" Version="2.4.11" />
+    <PackageReference Include="MahApps.Metro.IconPacks.Lucide" Version="6.2.1" />
     <PackageReference Include="SharpRaven" Version="2.2.0" />
     <PackageReference Include="System.Management" Version="10.0.10" />
   </ItemGroup>
