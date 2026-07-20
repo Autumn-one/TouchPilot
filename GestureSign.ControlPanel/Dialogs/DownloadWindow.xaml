@@ -1,46 +1,76 @@
-﻿<common:TouchWindow x:Class="GestureSign.ControlPanel.Dialogs.DownloadWindow"
+<common:TouchWindow x:Class="GestureSign.ControlPanel.Dialogs.DownloadWindow"
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
-                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
                     xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
                     xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
                     xmlns:usercontrols="clr-namespace:GestureSign.ControlPanel.UserControls"
+                    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
                     mc:Ignorable="d"
                     Title="{localization:LocalisedText Common.Import}"
+                    Style="{StaticResource V2.Dialog.Window}"
                     FlowDirection="{StaticResource DefaultFlowDirection}"
-                    BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                     WindowStartupLocation="CenterScreen"
-                    BorderThickness="1"
-                    Height="380"
-                    Width="600"
+                    Width="760"
+                    Height="520"
+                    MinWidth="660"
+                    MinHeight="440"
+                    Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
                     Loaded="MetroWindow_Loaded"
                     Closed="MetroWindow_Closed">
-    <Grid>
+    <Grid Margin="24,20,24,22">
         <Grid.RowDefinitions>
-            <RowDefinition />
-            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <usercontrols:ApplicationSelector x:Name="ApplicationSelector"
-                                          Grid.Row="0"
-                                          Visibility="Collapsed" />
-        <controls:ProgressRing x:Name="ProgressRing" />
-        <Button x:Name="FromFileButton"
-                Content="{localization:LocalisedText ExportImportDialog.FromFile}"
-                Click="FromFileButton_Click"
-                VerticalAlignment="Bottom"
-                Grid.Row="1"
-                Margin="10"
-                MinWidth="90"
-                HorizontalAlignment="Left" />
-        <Button x:Name="OkButton"
-                Content="{localization:LocalisedText Common.Import}"
-                Click="OkButton_Click"
-                VerticalAlignment="Bottom"
-                Grid.Row="1"
-                Margin="0,10,10,10"
-                MinWidth="90"
-                HorizontalAlignment="Right" />
+
+        <Border Background="{StaticResource V2.Brush.Surface}"
+                BorderBrush="{StaticResource V2.Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource V2.Corner.Small}"
+                ClipToBounds="True">
+            <Grid>
+                <usercontrols:ApplicationSelector x:Name="ApplicationSelector"
+                                                  Visibility="Collapsed" />
+                <controls:ProgressRing x:Name="ProgressRing"
+                                       Width="52"
+                                       Height="52"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource V2.Brush.Accent}"
+                                       IsActive="True" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Style="{StaticResource V2.Dialog.Footer}">
+            <Grid>
+                <Button x:Name="FromFileButton"
+                        MinWidth="132"
+                        HorizontalAlignment="Left"
+                        Style="{StaticResource V2.Button.Secondary}"
+                        ToolTip="{localization:LocalisedText ExportImportDialog.FromFile}"
+                        AutomationProperties.Name="{localization:LocalisedText ExportImportDialog.FromFile}"
+                        Click="FromFileButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconLucide Width="17"
+                                                  Height="17"
+                                                  Margin="0,0,8,0"
+                                                  VerticalAlignment="Center"
+                                                  Kind="FolderOpen" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{localization:LocalisedText ExportImportDialog.FromFile}" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="OkButton"
+                        MinWidth="104"
+                        HorizontalAlignment="Right"
+                        Style="{StaticResource V2.Button.Primary}"
+                        Content="{localization:LocalisedText Common.Import}"
+                        Click="OkButton_Click" />
+            </Grid>
+        </Border>
     </Grid>
 </common:TouchWindow>
