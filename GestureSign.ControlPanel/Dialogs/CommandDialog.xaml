@@ -1,24 +1,24 @@
-﻿<controls:MetroWindow xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<controls:MetroWindow x:Class="GestureSign.ControlPanel.Dialogs.CommandDialog"
+                      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                       xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
                       xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
-                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                       xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
                       mc:Ignorable="d"
-                      x:Class="GestureSign.ControlPanel.Dialogs.CommandDialog"
+                      d:DesignHeight="520"
+                      d:DesignWidth="430"
                       Title="{localization:LocalisedText CommandDialog.EditCommandTitle}"
-                      Width="390"
+                      Style="{StaticResource V2.Dialog.Window}"
+                      Width="430"
                       WindowStyle="ToolWindow"
-                      Loaded="MetroWindow_Loaded"
                       SizeToContent="Height"
                       Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
-                      BorderThickness="1"
-                      ShowIconOnTitleBar="False"
                       WindowStartupLocation="CenterScreen"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
-                      BorderBrush="{StaticResource MahApps.Brushes.Accent}"
-                      ResizeMode="CanMinimize">
+                      ResizeMode="CanMinimize"
+                      Loaded="MetroWindow_Loaded">
     <controls:MetroWindow.Resources>
         <Style TargetType="ScrollViewer"
                BasedOn="{StaticResource {x:Type ScrollViewer}}">
@@ -26,80 +26,114 @@
                     Value="True" />
         </Style>
     </controls:MetroWindow.Resources>
+
     <controls:MetroWindow.Flyouts>
         <controls:FlyoutsControl>
             <controls:Flyout x:Name="MessageFlyout"
-                             Theme="Accent"
+                             Theme="Light"
                              Position="Bottom"
                              CloseButtonVisibility="Collapsed"
                              IsPinned="False"
-                             Height="{Binding ElementName=MessageFlyoutText,Path=Height}">
+                             MinHeight="72"
+                             Background="{StaticResource V2.Brush.Surface}"
+                             Foreground="{StaticResource V2.Brush.Text}">
                 <TextBlock x:Name="MessageFlyoutText"
-                           FontSize="16"
-                           TextWrapping="Wrap"
+                           Margin="16,10"
                            VerticalAlignment="Center"
-                           Margin="0,10" />
+                           Style="{StaticResource V2.Text.Body}"
+                           TextWrapping="Wrap" />
             </controls:Flyout>
         </controls:FlyoutsControl>
     </controls:MetroWindow.Flyouts>
-    <StackPanel>
-        <TextBlock Text="{localization:LocalisedText CommandDialog.SelectCommand}"
-                   FontSize="14"
-                   Margin="20,10,0,0"
-                   HorizontalAlignment="Left"
-                   FontWeight="Bold" />
-        <ComboBox x:Name="cmbPlugins"
-                  Margin="20,5,20,0"
-                  SelectionChanged="cmbPlugins_SelectionChanged"
-                  MaxDropDownHeight="300">
-            <ComboBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <Path Width="24"
-                              Height="24"
-                              Fill="{StaticResource MahApps.Brushes.Highlight}"
-                              Data="{Binding Icon}"
-                              Stretch="Uniform"
-                              Margin="0,3" />
-                        <TextBlock Text="{Binding DisplayText}"
-                                   Margin="10,0,0,0"
-                                   FontSize="14"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </DataTemplate>
-            </ComboBox.ItemTemplate>
-        </ComboBox>
-        <ContentControl x:Name="SettingsContent"
-                        Margin="20,20,20,5" />
-        <TextBlock TextWrapping="Wrap"
-                   Text="{localization:LocalisedText CommandDialog.CommandName}"
-                   FontWeight="Bold"
-                   FontSize="14"
-                   HorizontalAlignment="Left"
-                   Margin="20,20,0,0" />
-        <TextBox x:Name="CommandNameTextBox"
-                 controls:TextBoxHelper.Watermark="{localization:LocalisedText CommandDialog.CommandNameWatermark}"
-                 FontSize="14"
-                 MaxLines="3"
-                 MaxLength="80"
-                 Margin="20,5,20,10" />
-        <Grid Height="35">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="1*" />
-            </Grid.ColumnDefinitions>
-            <Button x:Name="cmdCancel"
-                    Content="{localization:LocalisedText Common.Cancel}"
-                    FontSize="14"
-                    Grid.Column="0"
-                    IsCancel="True" />
-            <Button x:Name="cmdDone"
-                    Content="{localization:LocalisedText Common.Save}"
-                    Click="cmdDone_Click"
-                    IsDefault="True"
-                    FontSize="14"
-                    Grid.Column="1" />
-        </Grid>
-    </StackPanel>
-</controls:MetroWindow>
 
+    <Grid Margin="24,20,24,22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CommandDialog.SelectCommand}" />
+            <ComboBox x:Name="cmbPlugins"
+                      Margin="0,6,0,0"
+                      Style="{StaticResource V2.Settings.ComboBox}"
+                      MaxDropDownHeight="300"
+                      AutomationProperties.Name="{localization:LocalisedText CommandDialog.SelectCommand}"
+                      SelectionChanged="cmbPlugins_SelectionChanged">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid MinHeight="34">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="26" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Width="20"
+                                  Height="20"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Data="{Binding Icon}"
+                                  Fill="{StaticResource V2.Brush.Accent}"
+                                  Stretch="Uniform" />
+                            <TextBlock Grid.Column="1"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource V2.Text.Body}"
+                                       Text="{Binding DisplayText}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <Border Margin="0,16,0,0"
+                    Padding="14"
+                    Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                    BorderBrush="{StaticResource V2.Brush.Border}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource V2.Corner.Small}"
+                    Visibility="{Binding ElementName=SettingsContent, Path=Visibility}">
+                <ContentControl x:Name="SettingsContent"
+                                HorizontalContentAlignment="Center" />
+            </Border>
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,18,0,0"
+                Padding="0,16,0,0"
+                BorderBrush="{StaticResource V2.Brush.Divider}"
+                BorderThickness="0,1,0,0">
+            <StackPanel>
+                <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                           Text="{localization:LocalisedText CommandDialog.CommandName}" />
+                <TextBox x:Name="CommandNameTextBox"
+                         Margin="0,6,0,0"
+                         Style="{StaticResource V2.Dialog.TextBox}"
+                         MaxLines="3"
+                         MaxLength="80"
+                         AutomationProperties.Name="{localization:LocalisedText CommandDialog.CommandName}"
+                         controls:TextBoxHelper.Watermark="{localization:LocalisedText CommandDialog.CommandNameWatermark}" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource V2.Dialog.Footer}">
+            <StackPanel HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                <Button x:Name="cmdCancel"
+                        Width="96"
+                        Style="{StaticResource V2.Button.Secondary}"
+                        Content="{localization:LocalisedText Common.Cancel}"
+                        IsCancel="True" />
+                <Button x:Name="cmdDone"
+                        Width="96"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource V2.Button.Primary}"
+                        Content="{localization:LocalisedText Common.Save}"
+                        IsDefault="True"
+                        Click="cmdDone_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</controls:MetroWindow>
