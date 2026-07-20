@@ -69,53 +69,146 @@
                      Style="{StaticResource V2.Navigation.TabItem}"
                      Tag="{x:Static iconPacks:PackIconLucideKind.Info}">
                 <ScrollViewer PanningMode="VerticalFirst"
+                              HorizontalContentAlignment="Stretch"
                               VerticalScrollBarVisibility="Auto">
-                    <StackPanel MaxWidth="620"
-                                Margin="8"
-                                HorizontalAlignment="Left">
-                        <TextBlock Style="{StaticResource V2.Text.SectionTitle}"
-                                   Text="GestureSign" />
-                        <TextBlock Margin="0,12,0,0"
-                                   Style="{StaticResource V2.Text.Body}">
-                            <Hyperlink Click="Hyperlink_Click"
-                                       CommandParameter="{localization:LocalisedText About.HomepageUrl}">
-                                <Run Text="{localization:LocalisedText About.Homepage}" />
-                            </Hyperlink>
-                            <Run Text=" / " />
-                            <Hyperlink Click="Hyperlink_Click"
-                                       CommandParameter="ms-windows-store://pdp/?productid=9n45wqvk2qqw">
-                                <Run Text="{localization:LocalisedText About.Store}" />
-                            </Hyperlink>
-                        </TextBlock>
-                        <TextBlock Margin="0,10,0,0"
-                                   Style="{StaticResource V2.Text.Body}">
-                            <Hyperlink Click="SendFeedback_Click">
-                                <Run Text="{localization:LocalisedText About.SendFeedback}" />
-                            </Hyperlink>
-                        </TextBlock>
-                        <TextBox x:Name="AboutTextBox"
-                                 Margin="0,18,0,0"
-                                 Padding="0"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 FontFamily="{StaticResource V2.FontFamily}"
-                                 FontSize="14"
-                                 Foreground="{StaticResource V2.Brush.Text}"
-                                 IsReadOnly="True"
-                                 Text="{localization:LocalisedText About.Information}" />
-                        <Border Height="1"
-                                Margin="0,20,0,18"
+                    <Grid MaxWidth="760"
+                          Margin="8"
+                          HorizontalAlignment="Stretch">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="56"
+                                    Height="56"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{StaticResource V2.Brush.Accent}"
+                                    CornerRadius="{StaticResource V2.Corner.Medium}">
+                                <iconPacks:PackIconLucide Width="30"
+                                                          Height="30"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Foreground="White"
+                                                          Kind="MousePointer2" />
+                            </Border>
+                            <StackPanel Grid.Column="1"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource V2.Text.PageTitle}"
+                                           Text="GestureSign" />
+                                <TextBlock Margin="0,3,0,0"
+                                           Style="{StaticResource V2.Text.Caption}"
+                                           Text="{localization:LocalisedText About.HomepageUrl}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <WrapPanel Grid.Row="1"
+                                   Margin="0,22,0,0">
+                            <Button MinWidth="136"
+                                    Margin="0,0,8,8"
+                                    Style="{StaticResource V2.Button.Secondary}"
+                                    ToolTip="{localization:LocalisedText About.Homepage}"
+                                    AutomationProperties.Name="{localization:LocalisedText About.Homepage}"
+                                    Click="Hyperlink_Click"
+                                    CommandParameter="{localization:LocalisedText About.HomepageUrl}">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconLucide Width="17"
+                                                              Height="17"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center"
+                                                              Kind="Globe" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Text="{localization:LocalisedText About.Homepage}" />
+                                </StackPanel>
+                            </Button>
+                            <Button MinWidth="136"
+                                    Margin="0,0,8,8"
+                                    Style="{StaticResource V2.Button.Secondary}"
+                                    ToolTip="{localization:LocalisedText About.Store}"
+                                    AutomationProperties.Name="{localization:LocalisedText About.Store}"
+                                    Click="Hyperlink_Click"
+                                    CommandParameter="ms-windows-store://pdp/?productid=9n45wqvk2qqw">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconLucide Width="17"
+                                                              Height="17"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center"
+                                                              Kind="Store" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Text="{localization:LocalisedText About.Store}" />
+                                </StackPanel>
+                            </Button>
+                            <Button MinWidth="136"
+                                    Margin="0,0,0,8"
+                                    Style="{StaticResource V2.Button.Primary}"
+                                    ToolTip="{localization:LocalisedText About.SendFeedback}"
+                                    AutomationProperties.Name="{localization:LocalisedText About.SendFeedback}"
+                                    Click="SendFeedback_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconLucide Width="17"
+                                                              Height="17"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center"
+                                                              Kind="MessageSquareText" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Text="{localization:LocalisedText About.SendFeedback}" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+
+                        <Border Grid.Row="2"
+                                Margin="0,12,0,0"
+                                Style="{StaticResource V2.Dialog.FieldGroup}">
+                            <TextBox x:Name="AboutTextBox"
+                                     Padding="0"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontFamily="{StaticResource V2.FontFamily}"
+                                     FontSize="14"
+                                     Foreground="{StaticResource V2.Brush.Text}"
+                                     IsReadOnly="True"
+                                     Text="{localization:LocalisedText About.Information}"
+                                     TextWrapping="Wrap" />
+                        </Border>
+
+                        <Border Grid.Row="3"
+                                Height="1"
+                                Margin="0,22,0,18"
                                 Background="{StaticResource V2.Brush.Divider}" />
-                        <TextBox Width="520"
-                                 Padding="0"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 FontFamily="{StaticResource V2.FontFamily}"
-                                 FontSize="12"
-                                 Foreground="{StaticResource V2.Brush.TextMuted}"
-                                 IsReadOnly="True"
-                                 Text="Project Page&#xA;https://github.com/TransposonY/GestureSign&#xA;&#xA;Thanks to the following project:&#xA;http://highsign.codeplex.com/&#xA;License:http://highsign.codeplex.com/license&#xA;&#xA;MahApps.Metro&#xA;https://github.com/MahApps/MahApps.Metro&#xA;License:http://www.opensource.org/licenses/MS-PL&#xA;&#xA;WGestures&#xA;https://github.com/yingDev/WGestures&#xA;License:https://github.com/yingDev/WGestures/blob/master/LICENSE" />
-                    </StackPanel>
+
+                        <Grid Grid.Row="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <iconPacks:PackIconLucide Width="18"
+                                                      Height="18"
+                                                      Margin="0,2,0,0"
+                                                      HorizontalAlignment="Left"
+                                                      VerticalAlignment="Top"
+                                                      Foreground="{StaticResource V2.Brush.TextMuted}"
+                                                      Kind="Github" />
+                            <TextBox Grid.Column="1"
+                                     Padding="0"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     FontFamily="{StaticResource V2.FontFamily}"
+                                     FontSize="12"
+                                     Foreground="{StaticResource V2.Brush.TextMuted}"
+                                     IsReadOnly="True"
+                                     Text="Project Page&#xA;https://github.com/TransposonY/GestureSign&#xA;&#xA;Thanks to the following project:&#xA;http://highsign.codeplex.com/&#xA;License:http://highsign.codeplex.com/license&#xA;&#xA;MahApps.Metro&#xA;https://github.com/MahApps/MahApps.Metro&#xA;License:http://www.opensource.org/licenses/MS-PL&#xA;&#xA;WGestures&#xA;https://github.com/yingDev/WGestures&#xA;License:https://github.com/yingDev/WGestures/blob/master/LICENSE"
+                                     TextWrapping="Wrap" />
+                        </Grid>
+                    </Grid>
                 </ScrollViewer>
             </TabItem>
         </TabControl>
