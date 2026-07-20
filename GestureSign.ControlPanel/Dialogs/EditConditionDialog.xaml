@@ -1,94 +1,100 @@
-﻿<controls:MetroWindow x:Class="GestureSign.ControlPanel.Dialogs.EditConditionDialog"
+<controls:MetroWindow x:Class="GestureSign.ControlPanel.Dialogs.EditConditionDialog"
                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                      xmlns:local="clr-namespace:GestureSign.ControlPanel.Dialogs"
                       xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
                       xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
                       mc:Ignorable="d"
                       Title="{localization:LocalisedText EditConditionDialog.Title}"
-                      Width="350"
+                      Style="{StaticResource V2.Dialog.Window}"
+                      Width="500"
                       SizeToContent="Height"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
-                      BorderBrush="{StaticResource MahApps.Brushes.Accent}"
-                      BorderThickness="1"
                       ResizeMode="NoResize"
-                      WindowStartupLocation="CenterScreen">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="175" />
-            <ColumnDefinition Width="175" />
-        </Grid.ColumnDefinitions>
+                      WindowStartupLocation="CenterScreen"
+                      Icon="/GestureSign.ControlPanel;component/Resources/normal.ico">
+    <Grid Margin="24,20,24,22">
         <Grid.RowDefinitions>
-            <RowDefinition Height="64" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="35" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock x:Name="FingerIDTextBlock"
-                   HorizontalAlignment="Left"
-                   Margin="10,10,0,0"
-                   Text="{localization:LocalisedText EditConditionDialog.FingerID}"
-                   VerticalAlignment="Top"
-                   Height="15" />
-        <ComboBox x:Name="FingerIDComboBox"
-                  Grid.Row="0"
-                  Grid.Column="0"
-                  HorizontalAlignment="Left"
-                  Margin="10,30,0,0"
-                  VerticalAlignment="Top"
-                  FontSize="16"
-                  Loaded="FingerIDComboBox_Loaded"
-                  Width="60" />
-        <TextBlock x:Name="VariableTextBlock"
-                   HorizontalAlignment="Left"
-                   Margin="90,10,0,0"
-                   TextWrapping="Wrap"
-                   Text="{localization:LocalisedText EditConditionDialog.Variables}"
-                   VerticalAlignment="Top"
-                   Height="15"
-                   Grid.ColumnSpan="2" />
-        <ComboBox Grid.Row="0"
-                  Grid.Column="0"
-                  x:Name="VariableComboBox"
-                  HorizontalAlignment="Left"
-                  Margin="90,30,0,0"
-                  VerticalAlignment="Top"
-                  FontSize="16"
-                  Loaded="VariableComboBox_Loaded"
-                  Grid.ColumnSpan="2" />
-        <Button x:Name="InsertButton"
-                Content="{localization:LocalisedText EditConditionDialog.Insert}"
-                HorizontalAlignment="Right"
-                Margin="0,30,10,0"
-                VerticalAlignment="Top"
-                Click="InsertButton_Click"
-                Grid.Row="0"
-                Grid.Column="1"
-                Focusable="False" />
-        <TextBox x:Name="ConditionTextBox"
-                 controls:TextBoxHelper.Watermark="{localization:LocalisedText EditConditionDialog.Sample}"
-                 Loaded="ConditionTextBox_Loaded"
-                 TextWrapping="Wrap"
-                 MinHeight="52"
-                 MaxLines="6"
-                 Grid.Row="1"
-                 Grid.Column="0"
-                 Margin="10"
-                 FontSize="14"
-                 Grid.ColumnSpan="2" />
-        <Button x:Name="CancelButton"
-                Content="{localization:LocalisedText Common.Cancel}"
-                FontSize="14"
-                Grid.Row="2"
-                Grid.Column="0"
-                IsCancel="True" />
-        <Button x:Name="OkButton"
-                Content="{localization:LocalisedText Common.OK}"
-                Click="OkButton_Click"
-                IsDefault="True"
-                FontSize="14"
-                Grid.Row="2"
-                Grid.Column="1" />
+
+        <Border Style="{StaticResource V2.Dialog.FieldGroup}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="84" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="104" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock x:Name="FingerIDTextBlock"
+                           Style="{StaticResource V2.Dialog.Label}"
+                           Text="{localization:LocalisedText EditConditionDialog.FingerID}" />
+                <TextBlock x:Name="VariableTextBlock"
+                           Grid.Column="2"
+                           Style="{StaticResource V2.Dialog.Label}"
+                           Text="{localization:LocalisedText EditConditionDialog.Variables}" />
+
+                <ComboBox x:Name="FingerIDComboBox"
+                          Grid.Row="1"
+                          Margin="0,6,0,0"
+                          Style="{StaticResource V2.Settings.ComboBox}"
+                          Loaded="FingerIDComboBox_Loaded" />
+                <ComboBox x:Name="VariableComboBox"
+                          Grid.Row="1"
+                          Grid.Column="2"
+                          Margin="0,6,0,0"
+                          Style="{StaticResource V2.Settings.ComboBox}"
+                          Loaded="VariableComboBox_Loaded" />
+                <Button x:Name="InsertButton"
+                        Grid.Row="1"
+                        Grid.Column="4"
+                        Margin="0,6,0,0"
+                        Style="{StaticResource V2.Button.Secondary}"
+                        Content="{localization:LocalisedText EditConditionDialog.Insert}"
+                        Click="InsertButton_Click"
+                        Focusable="False" />
+
+                <TextBox x:Name="ConditionTextBox"
+                         Grid.Row="2"
+                         Grid.ColumnSpan="5"
+                         Height="112"
+                         Margin="0,16,0,0"
+                         Padding="10,8"
+                         Style="{StaticResource V2.Dialog.TextBox}"
+                         controls:TextBoxHelper.Watermark="{localization:LocalisedText EditConditionDialog.Sample}"
+                         Loaded="ConditionTextBox_Loaded"
+                         TextWrapping="Wrap"
+                         MaxLines="6"
+                         VerticalContentAlignment="Top" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Style="{StaticResource V2.Dialog.Footer}">
+            <StackPanel HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                <Button x:Name="CancelButton"
+                        Width="96"
+                        Style="{StaticResource V2.Button.Secondary}"
+                        Content="{localization:LocalisedText Common.Cancel}"
+                        IsCancel="True" />
+                <Button x:Name="OkButton"
+                        Width="96"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource V2.Button.Primary}"
+                        Content="{localization:LocalisedText Common.OK}"
+                        Click="OkButton_Click"
+                        IsDefault="True" />
+            </StackPanel>
+        </Border>
     </Grid>
 </controls:MetroWindow>
