@@ -117,7 +117,7 @@ namespace GestureSign.ControlPanel.UserControls
                     newUserAppList.Add(ali);
                 }
             }
-            var color = (Color)Application.Current.FindResource("MahApps.Colors.Highlight");
+            var color = (Color)Application.Current.FindResource("V2.Color.Accent");
             GestureMap = gestures.ToDictionary(g => g.Name, g => new GestureItem()
             {
                 Gesture = g,

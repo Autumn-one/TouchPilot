@@ -17,7 +17,7 @@ namespace GestureSign.ControlPanel.Converters
             int height;
             if (int.TryParse(parameter as string, out height))
             {
-                var color = (Color)Application.Current.FindResource("MahApps.Colors.Highlight");
+                var color = (Color)Application.Current.FindResource("V2.Color.Accent");
                 return GestureImage.CreateImage(pattern, new Size(height, height), color);
             };
             return null;

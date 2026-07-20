@@ -74,7 +74,7 @@ namespace GestureSign.ControlPanel.ViewModel
             // Get all available gestures from gesture manager
             var apps = ApplicationManager.Instance.Applications.Where(app => !(app is IgnoredApp)).ToList();
 
-            var color = (Color)Application.Current.FindResource("MahApps.Colors.Highlight");
+            var color = (Color)Application.Current.FindResource("V2.Color.Accent");
 
             foreach (var g in GestureManager.Instance.Gestures)
             {
