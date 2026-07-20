@@ -14,6 +14,7 @@ namespace GestureSign.Daemon.Triggers
     {
         private TouchpadInteractionRecognizer _recognizer;
         private readonly WindowDragController _windowDragController = new WindowDragController();
+        private readonly TouchpadWheelSuppressor _wheelSuppressor = new TouchpadWheelSuppressor();
         private Point _sessionStartPoint;
         private TouchpadWindowDragImplementation _sessionWindowDragImplementation;
 
@@ -26,6 +27,13 @@ namespace GestureSign.Daemon.Triggers
 
         private void PointCapture_TouchpadFrame(object sender, TouchpadFrameEventArgs e)
         {
+            bool normalMode = PointCapture.Instance.Mode == CaptureMode.Normal;
+            if (normalMode && AppConfig.TouchpadEdgeGesturesEnabled &&
+                e.Contacts.Count(contact => contact.IsActive) >= 2)
+            {
+                _wheelSuppressor.StartMonitoring();
+            }
+
             if (!_recognizer.SessionActive)
             {
                 _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
@@ -34,9 +42,10 @@ namespace GestureSign.Daemon.Triggers
             }
 
             TouchpadInteractionFrameResult result = _recognizer.ProcessFrame(e.Contacts, e.TimestampMilliseconds);
-            e.ClaimInput = result.ClaimInput && PointCapture.Instance.Mode == CaptureMode.Normal;
+            e.ClaimInput = result.ClaimInput && normalMode;
+            _wheelSuppressor.SuppressWheel = e.ClaimInput;
 
-            if (PointCapture.Instance.Mode == CaptureMode.Normal)
+            if (normalMode)
             {
                 foreach (TouchpadInteractionEvent interactionEvent in result.Events)
                     ProcessInteractionEvent(interactionEvent);
@@ -45,7 +54,10 @@ namespace GestureSign.Daemon.Triggers
             if (!result.SessionActive)
             {
                 _windowDragController.End();
+                _wheelSuppressor.StopMonitoring();
             }
+            else if (!normalMode)
+                _wheelSuppressor.StopMonitoring();
         }
 
         private void ProcessInteractionEvent(TouchpadInteractionEvent interactionEvent)
@@ -56,6 +68,8 @@ namespace GestureSign.Daemon.Triggers
                     FireEdgeGesture(interactionEvent.EdgeGesture);
                     break;
                 case TouchpadInteractionEventType.WindowDragStarted:
+                    if (!_wheelSuppressor.IsMonitoring && !_wheelSuppressor.StartMonitoring())
+                        break;
                     _windowDragController.Begin(GetWindowUnderCursor(), interactionEvent.NormalizedX, interactionEvent.NormalizedY,
                         _sessionWindowDragImplementation);
                     break;

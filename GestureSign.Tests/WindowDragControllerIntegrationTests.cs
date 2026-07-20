@@ -263,20 +263,17 @@ namespace GestureSign.Tests
                         Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)),
                         0, controller, window);
                     ProcessWindowDragFrame(recognizer,
-                        Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)),
-                        110, controller, window);
-                    ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)),
-                        120, controller, window);
+                        1, controller, window);
                     ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.3, 0.4), Contact(2, 0.53, 0.4)),
-                        150, controller, window);
+                        20, controller, window);
 
                     Assert.Equal(initialCursor, Cursor.Position);
                     Thread.Sleep(25);
                     ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.32, 0.4), Contact(2, 0.56, 0.4)),
-                        180, controller, window);
+                        50, controller, window);
                     PumpWindowMessages();
 
                     RECT movedRectangle = window.Rectangle;
@@ -288,13 +285,13 @@ namespace GestureSign.Tests
 
                     ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.32, 0.4), ReleasedContact(2, 0.56, 0.4)),
-                        200, controller, window);
+                        70, controller, window);
                     ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.32, 0.4), Contact(4, 0.6, 0.4)),
-                        220, controller, window);
+                        90, controller, window);
                     ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.36, 0.4), Contact(4, 0.64, 0.4)),
-                        350, controller, window);
+                        220, controller, window);
                     PumpWindowMessages();
 
                     RECT stoppedRectangle = window.Rectangle;

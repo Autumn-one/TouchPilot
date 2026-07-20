@@ -73,7 +73,6 @@ namespace GestureSign.Common.Input
         public int BottomAnchorHoldMilliseconds { get; set; } = 100;
         public int AnchorDropoutGraceMilliseconds { get; set; } = 80;
         public double WindowDragActivationDistance { get; set; } = 0.015;
-        public int ThreeFingerChordHoldMilliseconds { get; set; } = 100;
         public double ThreeFingerChordMovementTolerance { get; set; } = 0.03;
     }
 
@@ -181,7 +180,6 @@ namespace GestureSign.Common.Input
         private bool _threeFingerChordTracking;
         private bool _threeFingerChordInvalidated;
         private bool _threeFingerChordArmed;
-        private long _threeFingerChordStartTimestamp;
 
         private readonly List<int> _threeFingerContactIdentifiers = new List<int>(3);
         private bool _threeFingerTracking;
@@ -209,8 +207,6 @@ namespace GestureSign.Common.Input
                 throw new ArgumentOutOfRangeException(nameof(options.AnchorDropoutGraceMilliseconds));
             if (_options.WindowDragActivationDistance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.WindowDragActivationDistance));
-            if (_options.ThreeFingerChordHoldMilliseconds < 0)
-                throw new ArgumentOutOfRangeException(nameof(options.ThreeFingerChordHoldMilliseconds));
             if (_options.ThreeFingerChordMovementTolerance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.ThreeFingerChordMovementTolerance));
         }
@@ -400,7 +396,7 @@ namespace GestureSign.Common.Input
                 }
             }
 
-            UpdateThreeFingerChord(timestampMilliseconds);
+            UpdateThreeFingerChord();
             if (_threeFingerChordArmed)
             {
                 TryActivateThreeFingerChord(output);
@@ -429,7 +425,7 @@ namespace GestureSign.Common.Input
             }
         }
 
-        private void UpdateThreeFingerChord(long timestampMilliseconds)
+        private void UpdateThreeFingerChord()
         {
             if (_threeFingerChordArmed)
                 return;
@@ -440,7 +436,7 @@ namespace GestureSign.Common.Input
                 if (!_threeFingerChordTracking ||
                     !activeIdentifiers.SequenceEqual(_threeFingerChordContactIdentifiers))
                 {
-                    BeginThreeFingerChord(activeIdentifiers, timestampMilliseconds);
+                    BeginThreeFingerChord(activeIdentifiers);
                     return;
                 }
 
@@ -457,9 +453,7 @@ namespace GestureSign.Common.Input
                 .ToList();
             int releasedCount = _threeFingerChordContactIdentifiers.Count(identifier =>
                 _releasedContacts.ContainsKey(identifier));
-            bool heldLongEnough = timestampMilliseconds - _threeFingerChordStartTimestamp >=
-                                  _options.ThreeFingerChordHoldMilliseconds;
-            bool chordCompleted = !_threeFingerChordInvalidated && heldLongEnough &&
+            bool chordCompleted = !_threeFingerChordInvalidated &&
                                   _activeContacts.Count == 2 && remainingIdentifiers.Count == 2 &&
                                   releasedCount == 1 && !ThreeFingerChordMovedBeyondTolerance();
             if (chordCompleted)
@@ -468,7 +462,7 @@ namespace GestureSign.Common.Input
                 CancelThreeFingerChord();
         }
 
-        private void BeginThreeFingerChord(IReadOnlyList<int> contactIdentifiers, long timestampMilliseconds)
+        private void BeginThreeFingerChord(IReadOnlyList<int> contactIdentifiers)
         {
             _threeFingerChordContactIdentifiers.Clear();
             _threeFingerChordContactIdentifiers.AddRange(contactIdentifiers);
@@ -478,7 +472,6 @@ namespace GestureSign.Common.Input
             _threeFingerChordTracking = true;
             _threeFingerChordInvalidated = false;
             _threeFingerChordArmed = false;
-            _threeFingerChordStartTimestamp = timestampMilliseconds;
         }
 
         private bool ThreeFingerChordMovedBeyondTolerance()
@@ -561,7 +554,6 @@ namespace GestureSign.Common.Input
             _threeFingerChordTracking = false;
             _threeFingerChordInvalidated = false;
             _threeFingerChordArmed = false;
-            _threeFingerChordStartTimestamp = 0;
         }
 
         private void ProcessThreeFingerWindowDrag(List<TouchpadInteractionEvent> output)
@@ -771,6 +763,12 @@ namespace GestureSign.Common.Input
                 return;
             }
 
+            if (_activeContacts.Count < 2)
+            {
+                PauseActiveWindowDrag(output);
+                return;
+            }
+
             TouchpadContact anchor;
             bool anchorAllowsMovement;
             bool anchorRequiresRebase;
@@ -811,11 +809,19 @@ namespace GestureSign.Common.Input
                 return;
             }
 
-            if (!_windowDragMotionPaused)
-            {
-                _windowDragMotionPaused = true;
-                output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragPaused, anchor));
-            }
+            PauseActiveWindowDrag(output, anchor);
+        }
+
+        private void PauseActiveWindowDrag(List<TouchpadInteractionEvent> output,
+            TouchpadContact contact = default(TouchpadContact))
+        {
+            if (_windowDragMotionPaused)
+                return;
+
+            if (contact.ContactIdentifier == 0 && _activeContacts.Count != 0)
+                contact = _activeContacts.Values.First();
+            _windowDragMotionPaused = true;
+            output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragPaused, contact));
         }
 
         private bool TrackedBottomDragContactWasReleased()
