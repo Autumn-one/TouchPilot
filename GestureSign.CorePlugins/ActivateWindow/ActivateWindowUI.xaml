@@ -5,54 +5,46 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
-             d:DesignHeight="170"
-             d:DesignWidth="350">
-    <Canvas Height="170">
-        <TextBlock HorizontalAlignment="Left"
-                   TextWrapping="Wrap"
-                   Text="{localization:LocalisedText CorePlugins.ActivateWindow.ClassName}"
-                   VerticalAlignment="Top" />
+             d:DesignHeight="260"
+             d:DesignWidth="350"
+             MinWidth="330">
+    <StackPanel>
+        <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.ActivateWindow.ClassName}" />
         <TextBox x:Name="ClassNameTextBox"
-                 Height="23"
-                 TextWrapping="Wrap"
-                 VerticalAlignment="Top"
-                 Canvas.Top="20"
-                 Width="350" />
-        <TextBlock HorizontalAlignment="Left"
-                   TextWrapping="Wrap"
-                   Text="{localization:LocalisedText CorePlugins.ActivateWindow.WindowTitle}"
-                   VerticalAlignment="Top"
-                   Canvas.Top="51" />
+                 Margin="0,6,0,0"
+                 Style="{StaticResource V2.Dialog.TextBox}"
+                 TextWrapping="Wrap" />
+        <TextBlock Margin="0,12,0,0"
+                   Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.ActivateWindow.WindowTitle}" />
         <TextBox x:Name="CaptionTextBox"
-                 Height="23"
-                 TextWrapping="Wrap"
-                 VerticalAlignment="Top"
-                 Canvas.Top="71"
-                 Width="350" />
+                 Margin="0,6,0,0"
+                 Style="{StaticResource V2.Dialog.TextBox}"
+                 TextWrapping="Wrap" />
         <CheckBox x:Name="IsRegExCheckBox"
-                  Content="{localization:LocalisedText CorePlugins.ActivateWindow.UsingRegularExpression}"
-                  HorizontalAlignment="Left"
-                  Canvas.Top="104" />
-        <StackPanel Orientation="Horizontal"
-                    Canvas.Top="132"
-                    Width="350">
-            <TextBlock HorizontalAlignment="Left"
-                       TextWrapping="Wrap"
-                       Text="{localization:LocalisedText CorePlugins.ActivateWindow.Timeout}"
-                       VerticalAlignment="Center" />
+                  Margin="0,10,0,0"
+                  Style="{StaticResource V2.Settings.CheckBox}"
+                  Content="{localization:LocalisedText CorePlugins.ActivateWindow.UsingRegularExpression}" />
+        <TextBlock Margin="0,12,0,0"
+                   Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.ActivateWindow.Timeout}" />
+        <Grid Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="96" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <TextBox x:Name="TimeoutTextBox"
+                     Style="{StaticResource V2.Dialog.TextBox}"
                      InputMethod.IsInputMethodEnabled="False"
                      KeyDown="TimeoutTextBox_KeyDown"
                      TextChanged="TimeoutTextBox_TextChanged"
-                     Height="23"
-                     TextWrapping="Wrap"
-                     HorizontalAlignment="Left"
-                     Width="80"
-                     Margin="10,0,5,0" />
-            <TextBlock HorizontalAlignment="Left"
-                       TextWrapping="Wrap"
-                       Text="{localization:LocalisedText CorePlugins.ActivateWindow.Millisecond}"
-                       VerticalAlignment="Center" />
-        </StackPanel>
-    </Canvas>
+                     TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource V2.Text.Caption}"
+                       Text="{localization:LocalisedText CorePlugins.ActivateWindow.Millisecond}" />
+        </Grid>
+    </StackPanel>
 </UserControl>
