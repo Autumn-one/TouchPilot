@@ -6,22 +6,33 @@
              mc:Ignorable="d"
              d:DesignHeight="36"
              d:DesignWidth="36">
-    <Grid>
-        <Ellipse Fill="Transparent"
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <Setter Property="Opacity" Value="1" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.4" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+    <Grid Width="36"
+          Height="36">
+        <Ellipse Width="36"
+                 Height="36"
+                 Fill="{StaticResource V2.Brush.AccentSoft}"
+                 Stroke="{StaticResource V2.Brush.Accent}"
+                 StrokeThickness="1.5"
                  MouseDown="Crosshair_MouseDown"
                  MouseMove="Crosshair_MouseMove"
-                 MouseUp="Crosshair_MouseUp"
-                 Stroke="Black"
-                 StrokeThickness="2"
-                 Width="36"
-                 Height="36" />
+                 MouseUp="Crosshair_MouseUp" />
         <Path x:Name="Dragger"
+              Width="24"
+              Height="24"
               IsHitTestVisible="False"
-              Width="36"
-              Height="36"
-              Stretch="Fill"
-              Stroke="Black"
-              StrokeThickness="2"
-              Data="M10 10h10M15 5v10" />
+              Data="M4,12 H20 M12,4 V20 M12,8 A4,4 0 1 1 11.99,8"
+              Stretch="Uniform"
+              Stroke="{StaticResource V2.Brush.Accent}"
+              StrokeThickness="1.5" />
     </Grid>
 </UserControl>

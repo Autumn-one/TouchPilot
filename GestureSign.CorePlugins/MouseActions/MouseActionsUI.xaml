@@ -6,144 +6,137 @@
              xmlns:local="clr-namespace:GestureSign.CorePlugins.MouseActions"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
-             d:DesignHeight="340"
-             d:DesignWidth="320">
+             d:DesignHeight="420"
+             d:DesignWidth="350"
+             MinWidth="330">
+    <UserControl.Resources>
+        <ObjectDataProvider x:Key="ActionDescription"
+                            ObjectType="{x:Type local:MouseActionDescription}" />
+        <ObjectDataProvider x:Key="PositionDescription"
+                            ObjectType="{x:Type local:ClickPositionDescription}" />
+    </UserControl.Resources>
     <StackPanel>
-        <StackPanel.Resources>
-            <ObjectDataProvider ObjectType="{x:Type local:MouseActionDescription}"
-                                x:Key="ActionDescription">
-            </ObjectDataProvider>
-            <ObjectDataProvider ObjectType="{x:Type local:ClickPositionDescription}"
-                                x:Key="PositionDescription">
-            </ObjectDataProvider>
-        </StackPanel.Resources>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock TextWrapping="Wrap"
-                       Text="{localization:LocalisedText CorePlugins.MouseActions.SelectAction}"
-                       FontSize="14"
-                       HorizontalAlignment="Left"
-                       VerticalAlignment="Top" />
-            <ComboBox x:Name="ActionComboBox"
-                      ItemsSource="{Binding Source={StaticResource ActionDescription},Path=DescriptionDict}"
+        <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.MouseActions.SelectAction}" />
+        <ComboBox x:Name="ActionComboBox"
+                  Margin="0,6,0,0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
+                  ItemsSource="{Binding Source={StaticResource ActionDescription}, Path=DescriptionDict}"
+                  DisplayMemberPath="Value"
+                  SelectedValuePath="Key"
+                  SelectionChanged="ActionComboBox_SelectionChanged" />
+        <StackPanel x:Name="ButtonPanel"
+                    Margin="0,12,0,0">
+            <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CorePlugins.MouseActions.Button}" />
+            <ComboBox x:Name="MouseButtonComboBox"
+                      Margin="0,6,0,0"
+                      Style="{StaticResource V2.Settings.ComboBox}"
+                      ItemsSource="{Binding Source={StaticResource ActionDescription}, Path=ButtonDescription}"
                       DisplayMemberPath="Value"
-                      SelectedValuePath="Key"
-                      FontSize="14"
-                      SelectionChanged="ActionComboBox_SelectionChanged"
-                      Margin="0,23,0,0"
-                      VerticalAlignment="Top" />
-            <StackPanel x:Name="ButtonPanel"
-                        Grid.Column="1"
-                        Width="160">
-                <TextBlock TextWrapping="Wrap"
-                           Text="{localization:LocalisedText CorePlugins.MouseActions.Button}"
-                           FontSize="14"
-                           HorizontalAlignment="Left"
-                           Margin="10,0,0,0" />
-                <ComboBox x:Name="MouseButtonComboBox"
-                          ItemsSource="{Binding Source={StaticResource ActionDescription},Path=ButtonDescription}"
-                          DisplayMemberPath="Value"
-                          SelectedValuePath="Key"
-                          FontSize="14"
-                          Margin="5,5,0,0" />
-            </StackPanel>
-        </Grid>
-
+                      SelectedValuePath="Key" />
+        </StackPanel>
         <TextBlock x:Name="ClickPositionText"
+                   Margin="0,12,0,0"
+                   Style="{StaticResource V2.Dialog.Label}"
                    Visibility="{Binding ElementName=ButtonPanel,Path=Visibility}"
-                   TextWrapping="Wrap"
-                   Text="{localization:LocalisedText CorePlugins.MouseActions.ClickPosition}"
-                   FontSize="14"
-                   Margin="0,5,0,0" />
-        <TextBlock x:Name="ReferencePositionText"
-                   Text="{localization:LocalisedText CorePlugins.MouseActions.ReferencePosition}"
-                   FontSize="14"
-                   Margin="0,5,0,0" />
+                   Text="{localization:LocalisedText CorePlugins.MouseActions.ClickPosition}" />
         <ComboBox x:Name="PositionComboBox"
+                  Margin="0,6,0,0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   Visibility="{Binding ElementName=ButtonPanel,Path=Visibility}"
                   SelectionChanged="PositionComboBox_SelectionChanged"
-                  ItemsSource="{Binding Source={StaticResource PositionDescription},Path=DescriptionDict}"
+                  ItemsSource="{Binding Source={StaticResource PositionDescription}, Path=DescriptionDict}"
                   DisplayMemberPath="Value"
-                  SelectedValuePath="Key"
-                  FontSize="14"
-                  Margin="0,5,0,0" />
+                  SelectedValuePath="Key" />
+        <TextBlock x:Name="ReferencePositionText"
+                   Margin="0,12,0,0"
+                   Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.MouseActions.ReferencePosition}"
+                   TextWrapping="Wrap" />
         <ComboBox x:Name="RelativePositionComboBox"
+                  Margin="0,6,0,0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   Visibility="{Binding ElementName=ReferencePositionText,Path=Visibility}"
-                  ItemsSource="{Binding Source={StaticResource PositionDescription},Path=RelativePositionDict}"
+                  ItemsSource="{Binding Source={StaticResource PositionDescription}, Path=RelativePositionDict}"
                   DisplayMemberPath="Value"
-                  SelectedValuePath="Key"
-                  FontSize="14"
-                  Margin="0,5,0,0" />
-
-        <Canvas x:Name="MoveMouseCanvas"
-                Height="55">
-            <TextBlock TextWrapping="Wrap"
-                       Text="X"
-                       Canvas.Top="14"
-                       FontSize="14" />
-            <TextBlock TextWrapping="Wrap"
-                       Text="Y"
-                       Canvas.Left="135"
-                       Canvas.Top="14"
-                       FontSize="14" />
+                  SelectedValuePath="Key" />
+        <Grid x:Name="MoveMouseCanvas"
+              Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="74" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="74" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="36" />
+            </Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="X" />
             <TextBox x:Name="XTextBox"
+                     Grid.Column="2"
+                     Style="{StaticResource V2.Dialog.TextBox}"
                      KeyDown="TextBox_KeyDown"
                      TextChanged="TextBox_TextChanged"
-                     Height="23"
-                     Canvas.Left="25"
-                     TextWrapping="Wrap"
-                     Canvas.Top="10"
-                     Width="60"
-                     FontSize="14" />
+                     TextWrapping="Wrap" />
+            <TextBlock Grid.Column="4"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="Y" />
             <TextBox x:Name="YTextBox"
+                     Grid.Column="6"
+                     Style="{StaticResource V2.Dialog.TextBox}"
                      KeyDown="TextBox_KeyDown"
                      TextChanged="TextBox_TextChanged"
-                     Height="23"
-                     Canvas.Left="160"
-                     TextWrapping="Wrap"
-                     Canvas.Top="10"
-                     Width="60"
-                     FontSize="14" />
+                     TextWrapping="Wrap" />
             <local:Crosshair x:Name="Crosshair"
-                             Height="36"
+                             Grid.Column="8"
                              Width="36"
-                             CrosshairDragging="Crosshair_CrosshairDragging"
-                             Canvas.Left="260"
-                             Canvas.Top="10" />
-        </Canvas>
+                             Height="36"
+                             CrosshairDragging="Crosshair_CrosshairDragging" />
+        </Grid>
         <StackPanel x:Name="ScrollPanel"
-                    Margin="0,20,0,0">
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Center">
-                <RadioButton x:Name="PositiveRadioButton"
-                             GroupName="direction"
-                             IsChecked="True" />
-                <RadioButton x:Name="NegativeRadioButton"
-                             GroupName="direction"
-                             Margin="50,0,0,0" />
-            </StackPanel>
-            <TextBlock TextWrapping="Wrap"
-                       Text="{localization:LocalisedText CorePlugins.MouseActions.ScrollAmountTip}"
-                       FontSize="14"
-                       Margin="0,10,0,0"
-                       HorizontalAlignment="Center" />
+                    Margin="0,12,0,0">
+            <Border Padding="2"
+                    Background="{StaticResource V2.Brush.SurfaceSubtle}"
+                    BorderBrush="{StaticResource V2.Brush.Border}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource V2.Corner.Small}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <RadioButton x:Name="PositiveRadioButton"
+                                 Style="{StaticResource V2.Settings.RadioSegment}"
+                                 GroupName="direction"
+                                 IsChecked="True" />
+                    <RadioButton x:Name="NegativeRadioButton"
+                                 Grid.Column="1"
+                                 Style="{StaticResource V2.Settings.RadioSegment}"
+                                 GroupName="direction" />
+                </Grid>
+            </Border>
+            <TextBlock Margin="0,12,0,0"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="{localization:LocalisedText CorePlugins.MouseActions.ScrollAmountTip}" />
             <ComboBox x:Name="ScrollAmountComboBox"
+                      Width="120"
+                      Margin="0,6,0,0"
+                      HorizontalAlignment="Left"
+                      Style="{StaticResource V2.Settings.ComboBox}"
                       KeyDown="TextBox_KeyDown"
                       TextBoxBase.TextChanged="TextBox_TextChanged"
                       InputMethod.IsInputMethodEnabled="False"
-                      IsEditable="True"
-                      FontSize="14"
-                      HorizontalAlignment="Center"
-                      Margin="0,5,0,0"
-                      MinWidth="100">
+                      IsEditable="True">
                 <ComboBoxItem Content="1" />
                 <ComboBoxItem Content="2" />
                 <ComboBoxItem Content="3" />
             </ComboBox>
         </StackPanel>
-
     </StackPanel>
 </UserControl>
