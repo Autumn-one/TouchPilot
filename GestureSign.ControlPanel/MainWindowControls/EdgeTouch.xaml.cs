@@ -96,8 +96,8 @@ namespace GestureSign.ControlPanel.MainWindowControls
             _loading = true;
             try
             {
-                EdgeTouchSwitch.IsChecked = AppConfig.TouchpadEdgeGesturesEnabled;
-                WindowDragSwitch.IsChecked = AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled;
+                EdgeTouchSwitch.IsOn = AppConfig.TouchpadEdgeGesturesEnabled;
+                WindowDragSwitch.IsOn = AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled;
                 WindowDragImplementationComboBox.ItemsSource = new[]
                 {
                     new WindowDragImplementationChoice
@@ -174,16 +174,16 @@ namespace GestureSign.ControlPanel.MainWindowControls
             }
         }
 
-        private void EdgeTouchSwitch_Click(object sender, RoutedEventArgs e)
+        private void EdgeTouchSwitch_Toggled(object sender, RoutedEventArgs e)
         {
             if (!_loading)
-                AppConfig.TouchpadEdgeGesturesEnabled = EdgeTouchSwitch.IsChecked.GetValueOrDefault();
+                AppConfig.TouchpadEdgeGesturesEnabled = EdgeTouchSwitch.IsOn;
         }
 
-        private void WindowDragSwitch_Click(object sender, RoutedEventArgs e)
+        private void WindowDragSwitch_Toggled(object sender, RoutedEventArgs e)
         {
             if (!_loading)
-                AppConfig.TouchpadWindowDragMode = WindowDragSwitch.IsChecked.GetValueOrDefault()
+                AppConfig.TouchpadWindowDragMode = WindowDragSwitch.IsOn
                     ? GetSelectedWindowDragMode()
                     : TouchpadWindowDragMode.Disabled;
         }
@@ -195,7 +195,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
 
             var implementation = (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue;
             AppConfig.TouchpadWindowDragImplementation = implementation;
-            if (WindowDragSwitch.IsChecked.GetValueOrDefault())
+            if (WindowDragSwitch.IsOn)
                 AppConfig.TouchpadWindowDragMode = GetWindowDragMode(implementation);
         }
 

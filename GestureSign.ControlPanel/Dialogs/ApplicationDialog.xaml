@@ -18,7 +18,7 @@
                     WindowStyle="ToolWindow"
                     WindowStartupLocation="CenterScreen"
                     FlowDirection="{StaticResource DefaultFlowDirection}"
-                    BorderBrush="{StaticResource AccentColorBrush}"
+                    BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                     Loaded="ApplicationDialog_OnLoaded"
                     ResizeMode="CanMinimize"
                     MaxHeight="400"

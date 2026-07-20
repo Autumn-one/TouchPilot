@@ -10,7 +10,7 @@
                     mc:Ignorable="d"
                     Title="{localization:LocalisedText Common.Import}"
                     FlowDirection="{StaticResource DefaultFlowDirection}"
-                    BorderBrush="{StaticResource AccentColorBrush}"
+                    BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                     WindowStartupLocation="CenterScreen"
                     BorderThickness="1"
                     Height="380"

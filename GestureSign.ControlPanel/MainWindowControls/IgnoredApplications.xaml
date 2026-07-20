@@ -81,7 +81,7 @@
             </ListView.View>
         </ListView>
         <Button x:Name="btnEditIgnoredApp"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -100,7 +100,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="btnDeleteIgnoredApp"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -118,7 +118,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="btnAddIgnoredApp"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -134,7 +134,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="ExportButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -154,7 +154,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="DownloadButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Height="50"

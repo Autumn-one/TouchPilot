@@ -29,7 +29,7 @@
                 MinWidth="100"
                 HorizontalAlignment="Center"
                 BorderThickness="1"
-                BorderBrush="{StaticResource HighlightBrush}"
+                BorderBrush="{StaticResource MahApps.Brushes.Highlight}"
                 Click="RedrawButton_Click"
                 Focusable="False"
                 Margin="0,10,0,0" />

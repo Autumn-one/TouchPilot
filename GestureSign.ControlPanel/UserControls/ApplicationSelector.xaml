@@ -64,14 +64,14 @@
                                      Value="True">
                                 <Setter TargetName="Border"
                                         Property="Background"
-                                        Value="{DynamicResource AccentColorBrush2}" />
+                                        Value="{DynamicResource MahApps.Brushes.Accent2}" />
                                 <Setter Property="Foreground"
-                                        Value="{DynamicResource AccentSelectedColorBrush}" />
+                                        Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                             </Trigger>
                             <Trigger Property="IsEnabled"
                                      Value="False">
                                 <Setter Property="Foreground"
-                                        Value="{DynamicResource GrayBrush7}" />
+                                        Value="{DynamicResource MahApps.Brushes.Gray7}" />
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
@@ -82,9 +82,9 @@
                                 </MultiTrigger.Conditions>
                                 <Setter TargetName="Border"
                                         Property="Background"
-                                        Value="{DynamicResource GrayBrush7}" />
+                                        Value="{DynamicResource MahApps.Brushes.Gray7}" />
                                 <Setter Property="Foreground"
-                                        Value="{DynamicResource AccentSelectedColorBrush}" />
+                                        Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -95,7 +95,7 @@
     <TabControl x:Name="AppTabControl">
         <TabItem Header="{Binding ElementName=AppListBox,Path=Items.Count}"
                  HeaderStringFormat="{localization:LocalisedText ExportImportDialog.ApplicationHeader}"
-                 controls:ControlsHelper.HeaderFontSize="22">
+                  controls:HeaderedControlHelper.HeaderFontSize="22">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
@@ -104,7 +104,7 @@
                     <ColumnDefinition Width="1.25*" />
                 </Grid.ColumnDefinitions>
                 <Grid VerticalAlignment="Top"
-                      Background="{StaticResource AccentColorBrush}">
+                      Background="{StaticResource MahApps.Brushes.Accent}">
                     <CheckBox x:Name="AllAppCheckBox"
                               Margin="10,0,0,0"
                               Click="AllAppCheckBox_Click"
@@ -131,13 +131,13 @@
                         <GroupStyle>
                             <GroupStyle.HeaderTemplate>
                                 <DataTemplate>
-                                    <Border Background="{StaticResource AccentColorBrush}"
+                                    <Border Background="{StaticResource MahApps.Brushes.Accent}"
                                             Height="27">
                                         <CheckBox x:Name="AppGroupCheckBox"
                                                   Click="AppGroupCheckBox_Click"
                                                   Margin="10,0,0,0"
                                                   HorizontalContentAlignment="Center">
-                                            <TextBlock Foreground="{StaticResource AccentSelectedColorBrush}">
+                                            <TextBlock Foreground="{StaticResource MahApps.Brushes.IdealForeground}">
                                                 <TextBlock.Text>
                                                     <MultiBinding  Converter="{StaticResource ApplicationListHeaderConverter}">
                                                         <Binding Path="Name" />
@@ -181,7 +181,7 @@
                 </ListBox>
                 <TextBox x:Name="ActionFilterTextBox"
                          FontSize="14"
-                         Background="{StaticResource AccentColorBrush}"
+                         Background="{StaticResource MahApps.Brushes.Accent}"
                          Custom:TextBoxHelper.Watermark="{localization:LocalisedText ExportImportDialog.SearchAction}"
                          TextChanged="ActionFilterTextBox_TextChanged"
                          VerticalAlignment="Top"
@@ -229,7 +229,7 @@
                                            DockPanel.Dock="Top">
                             <Run Text="{Binding Action.Name}" />
                             <Run Text="{Binding Info}"
-                                    Foreground="{StaticResource AccentColorBrush2}" />
+                                    Foreground="{StaticResource MahApps.Brushes.Accent2}" />
                                 </TextBlock>
                             </DockPanel>
                         </DataTemplate>
@@ -245,7 +245,7 @@
                     </ListBox.ItemContainerStyle>
                 </ListBox>
                 <Border Height="27"
-                        Background="{StaticResource AccentColorBrush}"
+                        Background="{StaticResource MahApps.Brushes.Accent}"
                         VerticalAlignment="Top"
                         Grid.Column="2">
                     <TextBlock Text="{localization:LocalisedText ExportImportDialog.Commands}"
@@ -272,7 +272,7 @@
                             <Run Text="{Binding CommandName}" />
                             <LineBreak />
                             <Run Text="{Binding Description}"
-                                    Foreground="{StaticResource HighlightBrush}" />
+                                    Foreground="{StaticResource MahApps.Brushes.Highlight}" />
                                 </TextBlock>
                             </Grid>
                         </DataTemplate>
@@ -291,7 +291,7 @@
         </TabItem>
         <TabItem Header="{Binding ElementName=IgnoredListBox,Path=Items.Count}"
                  HeaderStringFormat="{localization:LocalisedText ExportImportDialog.IgnoreHeader}"
-                 controls:ControlsHelper.HeaderFontSize="22">
+                  controls:HeaderedControlHelper.HeaderFontSize="22">
             <ListBox x:Name="IgnoredListBox"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      ItemsSource="{Binding Source={StaticResource IgnoredAppViewSource}}">
@@ -299,10 +299,10 @@
                     <GroupStyle>
                         <GroupStyle.HeaderTemplate>
                             <DataTemplate>
-                                <Border Background="{StaticResource AccentColorBrush}"
+                                <Border Background="{StaticResource MahApps.Brushes.Accent}"
                                         Height="27">
                                     <TextBlock Text="{Binding Path=Name, Converter={StaticResource MatchUsingToStringConverter},Mode=OneWay}"
-                                               Foreground="{StaticResource AccentSelectedColorBrush}"
+                                               Foreground="{StaticResource MahApps.Brushes.IdealForeground}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center">
                                     </TextBlock>
@@ -325,7 +325,7 @@
                             <Run Text="{Binding Application.Name}" />
                             <LineBreak />
                             <Run Text="{Binding Application.MatchString}"
-                                 Foreground="{StaticResource HighlightBrush}" />
+                                 Foreground="{StaticResource MahApps.Brushes.Highlight}" />
                             </TextBlock>
                         </StackPanel>
                     </DataTemplate>

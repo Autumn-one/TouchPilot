@@ -13,7 +13,7 @@
                     ShowTitleBar="True"
                     Icon="Resources/normal.ico"
                     BorderThickness="1"
-                    BorderBrush="{StaticResource AccentColorBrush}"
+                    BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                     MinWidth="586"
                     MinHeight="420"
                     Loaded="MetroWindow_Loaded">
@@ -45,28 +45,28 @@
     <Grid>
         <TabControl>
             <TabItem Header="{localization:LocalisedText Action.Header}"
-                     controls:ControlsHelper.HeaderFontSize="32">
+                     controls:HeaderedControlHelper.HeaderFontSize="32">
                 <mainWindowControl:AvailableActions x:Name="AvailableActions"></mainWindowControl:AvailableActions>
             </TabItem>
             <TabItem Header="{localization:LocalisedText Ignored.Header}"
-                     controls:ControlsHelper.HeaderFontSize="32">
+                     controls:HeaderedControlHelper.HeaderFontSize="32">
                 <mainWindowControl:IgnoredApplications x:Name="ignoredApplications" />
             </TabItem>
             <TabItem Header="{localization:LocalisedText Gesture.Header}"
-                     controls:ControlsHelper.HeaderFontSize="32">
+                     controls:HeaderedControlHelper.HeaderFontSize="32">
                 <mainWindowControl:AvailableGestures x:Name="availableGestures"></mainWindowControl:AvailableGestures>
             </TabItem>
             <TabItem Header="{localization:LocalisedText EdgeTouch.Header}"
-                     controls:ControlsHelper.HeaderFontSize="32">
+                     controls:HeaderedControlHelper.HeaderFontSize="32">
                 <mainWindowControl:EdgeTouch />
             </TabItem>
             <TabItem Header="{localization:LocalisedText Options.Header}"
-                     controls:ControlsHelper.HeaderFontSize="32">
+                     controls:HeaderedControlHelper.HeaderFontSize="32">
                 <mainWindowControl:Options Width="Auto"
                                            Height="Auto" />
             </TabItem>
             <TabItem Header="{localization:LocalisedText About.Header}"
-                     controls:ControlsHelper.HeaderFontSize="32">
+                     controls:HeaderedControlHelper.HeaderFontSize="32">
                 <ScrollViewer PanningMode="VerticalFirst">
                     <StackPanel>
                         <TextBlock TextWrapping="Wrap"

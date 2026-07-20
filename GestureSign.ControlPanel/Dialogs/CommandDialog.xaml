@@ -17,7 +17,7 @@
                       ShowIconOnTitleBar="False"
                       WindowStartupLocation="CenterScreen"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
-                      BorderBrush="{StaticResource AccentColorBrush}"
+                      BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                       ResizeMode="CanMinimize">
     <controls:MetroWindow.Resources>
         <Style TargetType="ScrollViewer"
@@ -57,7 +57,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Path Width="24"
                               Height="24"
-                              Fill="{StaticResource HighlightBrush}"
+                              Fill="{StaticResource MahApps.Brushes.Highlight}"
                               Data="{Binding Icon}"
                               Stretch="Uniform"
                               Margin="0,3" />

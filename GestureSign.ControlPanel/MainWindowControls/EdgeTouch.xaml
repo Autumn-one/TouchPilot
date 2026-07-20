@@ -11,9 +11,9 @@
         <StackPanel Margin="24,16,24,28">
             <controls:ToggleSwitch x:Name="EdgeTouchSwitch"
                                    Header="{localization:LocalisedText EdgeTouch.Enabled}"
-                                   OnLabel="{localization:LocalisedText Options.OnLabel}"
-                                   OffLabel="{localization:LocalisedText Options.OffLabel}"
-                                   Click="EdgeTouchSwitch_Click" />
+                                   OnContent="{localization:LocalisedText Options.OnLabel}"
+                                   OffContent="{localization:LocalisedText Options.OffLabel}"
+                                   Toggled="EdgeTouchSwitch_Toggled" />
 
             <Separator Margin="0,14,0,12" />
             <TextBlock Text="{localization:LocalisedText EdgeTouch.WindowDrag}"
@@ -22,9 +22,9 @@
             <controls:ToggleSwitch x:Name="WindowDragSwitch"
                                    Margin="0,12,0,0"
                                    Header="{localization:LocalisedText EdgeTouch.WindowDragEnabled}"
-                                   OnLabel="{localization:LocalisedText Options.OnLabel}"
-                                   OffLabel="{localization:LocalisedText Options.OffLabel}"
-                                   Click="WindowDragSwitch_Click" />
+                                   OnContent="{localization:LocalisedText Options.OnLabel}"
+                                   OffContent="{localization:LocalisedText Options.OffLabel}"
+                                   Toggled="WindowDragSwitch_Toggled" />
             <Grid Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="170" />
@@ -62,7 +62,7 @@
 
             <TabControl Margin="0,10,0,0">
                 <TabItem Header="{localization:LocalisedText EdgeTouch.OneFinger}"
-                         controls:ControlsHelper.HeaderFontSize="15">
+                         controls:HeaderedControlHelper.HeaderFontSize="15">
                     <StackPanel Margin="0,4,0,8">
             <Grid Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
@@ -251,7 +251,7 @@
                 </TabItem>
 
                 <TabItem Header="{localization:LocalisedText EdgeTouch.TwoFingers}"
-                         controls:ControlsHelper.HeaderFontSize="15">
+                         controls:HeaderedControlHelper.HeaderFontSize="15">
                     <StackPanel Margin="0,4,0,8">
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
@@ -344,7 +344,7 @@
                 </TabItem>
 
                 <TabItem Header="{localization:LocalisedText EdgeTouch.ThreeFingers}"
-                         controls:ControlsHelper.HeaderFontSize="15">
+                         controls:HeaderedControlHelper.HeaderFontSize="15">
                     <StackPanel Margin="0,4,0,8">
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>

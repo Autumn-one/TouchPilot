@@ -34,6 +34,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
 
         private IApplication _cutActionSource;
         private readonly List<CommandInfo> _commandClipboard = new List<CommandInfo>();
+        private bool _updatingToggleSwitches;
 
         private void UserControl_Initialized(object sender, EventArgs eArgs)
         {
@@ -130,11 +131,16 @@ namespace GestureSign.ControlPanel.MainWindowControls
             }
         }
 
-        private void CommandCheckBox_Click(object sender, RoutedEventArgs e)
+        private void CommandCheckBox_Toggled(object sender, RoutedEventArgs e)
         {
-            CommandInfo info = UIHelper.GetParentDependencyObject<ListBoxItem>(sender as ToggleSwitch).Content as CommandInfo;
+            var toggleSwitch = sender as ToggleSwitch;
+            if (_updatingToggleSwitches || toggleSwitch == null || !toggleSwitch.IsLoaded)
+                return;
+
+            var item = UIHelper.GetParentDependencyObject<ListBoxItem>(toggleSwitch);
+            CommandInfo info = item?.Content as CommandInfo;
             if (info == null) return;
-            info.Command.IsEnabled = (sender as ToggleSwitch).IsChecked.Value;
+            info.Command.IsEnabled = toggleSwitch.IsOn;
             ApplicationManager.Instance.SaveApplications();
         }
 
@@ -438,7 +444,15 @@ namespace GestureSign.ControlPanel.MainWindowControls
             commandInfoProvider.RefreshCommandInfos(selectedApp, lstAvailableActions);
 
             ToggleAllActionsToggleSwitch.IsEnabled = true;
-            ToggleAllActionsToggleSwitch.IsChecked = selectedApp.Actions.SelectMany(a => a.Commands).All(c => c.IsEnabled);
+            _updatingToggleSwitches = true;
+            try
+            {
+                ToggleAllActionsToggleSwitch.IsOn = selectedApp.Actions.SelectMany(a => a.Commands).All(c => c.IsEnabled);
+            }
+            finally
+            {
+                _updatingToggleSwitches = false;
+            }
 
             Dispatcher.InvokeAsync(() => lstAvailableApplication.ScrollIntoView(selectedApp), DispatcherPriority.Background);
         }
@@ -507,23 +521,33 @@ namespace GestureSign.ControlPanel.MainWindowControls
             }
         }
 
-        private void ToggleAllActionsToggleSwitch_Click(object sender, RoutedEventArgs e)
+        private void ToggleAllActionsToggleSwitch_Toggled(object sender, RoutedEventArgs e)
         {
             try
             {
                 var toggleSwitch = ((ToggleSwitch)sender);
+                if (_updatingToggleSwitches || !toggleSwitch.IsLoaded)
+                    return;
 
                 IApplication app = lstAvailableApplication.SelectedItem as IApplication;
                 if (app == null) return;
-                foreach (var command in app.Actions.SelectMany(a => a.Commands))
+                _updatingToggleSwitches = true;
+                try
                 {
-                    command.IsEnabled = toggleSwitch.IsChecked.Value;
-                }
-                ApplicationManager.Instance.SaveApplications();
+                    foreach (var command in app.Actions.SelectMany(a => a.Commands))
+                    {
+                        command.IsEnabled = toggleSwitch.IsOn;
+                    }
+                    ApplicationManager.Instance.SaveApplications();
 
-                foreach (CommandInfo ai in lstAvailableActions.Items)
+                    foreach (CommandInfo ai in lstAvailableActions.Items)
+                    {
+                        ai.IsEnabled = toggleSwitch.IsOn;
+                    }
+                }
+                finally
                 {
-                    ai.IsEnabled = toggleSwitch.IsChecked.Value;
+                    _updatingToggleSwitches = false;
                 }
             }
             catch { }

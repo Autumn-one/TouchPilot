@@ -84,12 +84,12 @@ namespace GestureSign.ControlPanel.Dialogs
 
                 if (_sourceAction.ContinuousGesture != null)
                 {
-                    ContinuousGestureSwitch.IsChecked = true;
+                    ContinuousGestureSwitch.IsOn = true;
                     ContactCountSlider.Value = _sourceAction.ContinuousGesture.ContactCount;
                     GestureListBox.SelectedIndex = (int)Math.Log((int)_sourceAction.ContinuousGesture.Gesture, 2);
                 }
                 else
-                    ContinuousGestureSwitch.IsChecked = false;
+                    ContinuousGestureSwitch.IsOn = false;
 
                 var gesture = GestureManager.Instance.GetNewestGestureSample(_sourceAction.GestureName);
                 if (gesture != null)
@@ -189,7 +189,7 @@ namespace GestureSign.ControlPanel.Dialogs
                 }
                 : null;
             int contactCount = (int)ContactCountSlider.Value;
-            NewAction.ContinuousGesture = ContinuousGestureSwitch.IsChecked.GetValueOrDefault() && contactCount > 1 && GestureListBox.SelectedIndex >= 0 ? new ContinuousGesture(contactCount, (Gestures)(1 << GestureListBox.SelectedIndex)) : null;
+            NewAction.ContinuousGesture = ContinuousGestureSwitch.IsOn && contactCount > 1 && GestureListBox.SelectedIndex >= 0 ? new ContinuousGesture(contactCount, (Gestures)(1 << GestureListBox.SelectedIndex)) : null;
             Devices ignoredDevices = Devices.None;
             if (!MouseCheckBox.IsChecked.GetValueOrDefault())
                 ignoredDevices |= Devices.Mouse;

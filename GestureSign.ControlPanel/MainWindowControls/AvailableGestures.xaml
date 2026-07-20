@@ -105,7 +105,7 @@
                                                   BorderThickness="0">
                                             <Expander.Header>
                                                 <DockPanel>
-                                                    <TextBlock Foreground="{StaticResource AccentSelectedColorBrush}"
+                                                    <TextBlock Foreground="{StaticResource MahApps.Brushes.IdealForeground}"
                                                                Margin="5,0,0,0"
                                                                HorizontalAlignment="Center"
                                                                DockPanel.Dock="Top">
@@ -177,12 +177,12 @@
                                                         <DataTrigger Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource AncestorType={x:Type ListViewItem}}}"
                                                                      Value="True">
                                                             <Setter Property="Foreground"
-                                                                    Value="{DynamicResource AccentSelectedColorBrush}" />
+                                                                    Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding Path=IsEnabled, RelativeSource={RelativeSource AncestorType={x:Type ListView}}}"
                                                                      Value="False">
                                                             <Setter Property="Foreground"
-                                                                    Value="{DynamicResource GrayNormalBrush}" />
+                                                                    Value="{DynamicResource MahApps.Brushes.Gray}" />
                                                         </DataTrigger>
                                                         <MultiDataTrigger>
                                                             <MultiDataTrigger.Conditions>
@@ -193,7 +193,7 @@
                                                             </MultiDataTrigger.Conditions>
                                                             <MultiDataTrigger.Setters>
                                                                 <Setter Property="Foreground"
-                                                                        Value="{DynamicResource AccentSelectedColorBrush}" />
+                                                                        Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                                                             </MultiDataTrigger.Setters>
                                                         </MultiDataTrigger>
                                                     </Style.Triggers>
@@ -218,10 +218,10 @@
                                     <Trigger Property="IsSelected"
                                              Value="true">
                                         <Setter Property="Foreground"
-                                                Value="{DynamicResource AccentSelectedColorBrush}" />
+                                                Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                                         <Setter TargetName="Bd"
                                                 Property="Background"
-                                                Value="{DynamicResource AccentColorBrush2}" />
+                                                Value="{DynamicResource MahApps.Brushes.Accent2}" />
                                     </Trigger>
                                     <MultiTrigger>
                                         <MultiTrigger.Conditions>
@@ -233,7 +233,7 @@
                                         <MultiTrigger.Setters>
                                             <Setter TargetName="Bd"
                                                     Property="Background"
-                                                    Value="{DynamicResource GrayBrush7}" />
+                                                    Value="{DynamicResource MahApps.Brushes.Gray7}" />
                                         </MultiTrigger.Setters>
                                     </MultiTrigger>
                                 </ControlTemplate.Triggers>
@@ -244,7 +244,7 @@
             </ListView.ItemContainerStyle>
         </ListView>
         <Button x:Name="btnDelGesture"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -262,7 +262,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="btnEditGesture"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 Height="50"
                 Width="50"
                 HorizontalAlignment="Right"
@@ -281,7 +281,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="ImportButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Height="50"

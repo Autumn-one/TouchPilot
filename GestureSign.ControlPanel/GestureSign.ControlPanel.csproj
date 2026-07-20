@@ -7,12 +7,12 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <!-- Preserve the existing MahApps/SharpRaven behavior and the shared WPF DPI manifest. -->
+    <!-- SharpRaven still restores its .NET Framework asset on .NET 10. -->
     <NoWarn>$(NoWarn);NU1701;WFO0003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MahApps.Metro" Version="1.4.3" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
     <PackageReference Include="SharpRaven" Version="2.2.0" />
     <PackageReference Include="System.Management" Version="10.0.10" />
   </ItemGroup>

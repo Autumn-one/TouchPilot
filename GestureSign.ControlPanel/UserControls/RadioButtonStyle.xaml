@@ -3,7 +3,7 @@
                     xmlns:local="clr-namespace:GestureSign.ControlPanel.UserControls">
     <Style TargetType="{x:Type RadioButton}">
         <Setter Property="Foreground"
-                Value="{StaticResource HighlightBrush}" />
+                Value="{StaticResource MahApps.Brushes.Highlight}" />
         <Setter Property="Background"
                 Value="White" />
         <Setter Property="FontSize"
@@ -18,16 +18,16 @@
                                 <EasingColorKeyFrame KeyTime="0"
                                                      Value="White" />
                                 <EasingColorKeyFrame KeyTime="0:0:0.3"
-                                                     Value="{StaticResource AccentColor4}" />
+                                                     Value="{StaticResource MahApps.Colors.Accent4}" />
                             </ColorAnimationUsingKeyFrames>
                         </Storyboard>
                         <Storyboard x:Key="Storyboard2">
                             <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)"
                                                           Storyboard.TargetName="bd">
                                 <EasingColorKeyFrame KeyTime="0"
-                                                     Value="{StaticResource AccentColor4}" />
+                                                     Value="{StaticResource MahApps.Colors.Accent4}" />
                                 <EasingColorKeyFrame KeyTime="0:0:0.5"
-                                                     Value="{StaticResource AccentColor2}" />
+                                                     Value="{StaticResource MahApps.Colors.Accent2}" />
                             </ColorAnimationUsingKeyFrames>
                         </Storyboard>
                     </ControlTemplate.Resources>
@@ -74,13 +74,13 @@
                                                  Storyboard="{StaticResource Storyboard2}" />
                             </Trigger.EnterActions>
                             <Setter Property="Foreground"
-                                    Value="{StaticResource IdealForegroundColorBrush}"></Setter>
+                                    Value="{StaticResource MahApps.Brushes.IdealForeground}"></Setter>
                             <Setter TargetName="bd"
                                     Property="Background"
                                     Value="#FF606060" />
                             <Setter TargetName="bd"
                                     Property="BorderBrush"
-                                    Value="{StaticResource AccentColorBrush}" />
+                                    Value="{StaticResource MahApps.Brushes.Accent}" />
                         </Trigger>
 
                         <MultiTrigger>

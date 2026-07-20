@@ -11,7 +11,7 @@
                       Title="{localization:LocalisedText About.SendFeedback}"
                       SizeToContent="Height"
                       Width="500"
-                      BorderBrush="{StaticResource AccentColorBrush}"
+                      BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                       BorderThickness="1"
                       WindowStartupLocation="CenterScreen"
                       WindowStyle="ToolWindow"

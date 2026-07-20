@@ -11,7 +11,7 @@
                       Width="350"
                       SizeToContent="Height"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
-                      BorderBrush="{StaticResource AccentColorBrush}"
+                      BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                       BorderThickness="1"
                       ResizeMode="NoResize"
                       WindowStartupLocation="CenterScreen">

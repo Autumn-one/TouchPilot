@@ -5,7 +5,6 @@ using GestureSign.Common.Gestures;
 using GestureSign.Common.InterProcessCommunication;
 using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
-using GestureSign.ControlPanel.Common;
 using GestureSign.ControlPanel.Localization;
 using ManagedWinapi.Windows;
 using System;
@@ -74,14 +73,13 @@ namespace GestureSign.ControlPanel
             var font = LocalizationProviderEx.Font;
             var headerFontFamily = LocalizationProviderEx.HeaderFontFamily;
             if (font != null)
-                Current.Resources["DefaultFont"] =
-                    Current.Resources["ContentFontFamily"] =
-                    Current.Resources["ToggleSwitchFontFamily"] =
-                    Current.Resources["ToggleSwitchHeaderFontFamily"] =
-                    Current.Resources["ToggleSwitchFontFamily.Win10"] =
-                    Current.Resources["ToggleSwitchHeaderFontFamily.Win10"] = font;
+                Current.Resources["MahApps.Fonts.Family.Button"] =
+                    Current.Resources["MahApps.Fonts.Family.Control"] =
+                    Current.Resources["MahApps.Fonts.Family.ToggleSwitch"] =
+                    Current.Resources["MahApps.Fonts.Family.ToggleSwitch.Header"] = font;
             if (headerFontFamily != null)
-                Current.Resources["HeaderFontFamily"] = headerFontFamily;
+                Current.Resources["MahApps.Fonts.Family.Header"] =
+                    Current.Resources["MahApps.Fonts.Family.Window.Title"] = headerFontFamily;
         }
 
         private bool ShowControlPanel()
@@ -193,7 +191,6 @@ namespace GestureSign.ControlPanel
         protected override void OnStartup(StartupEventArgs e)
         {
             SetupExceptionHandling();
-            MetroWindowDragCompat.Initialize();
             AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
             AppContext.SetSwitch("Switch.System.Windows.Input.Stylus.DisableStylusAndTouchSupport", true);
             base.OnStartup(e);

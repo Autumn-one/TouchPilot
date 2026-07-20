@@ -52,14 +52,14 @@
                                          Value="True">
                                     <Setter TargetName="Border"
                                             Property="Background"
-                                            Value="{DynamicResource AccentColorBrush2}" />
+                                            Value="{DynamicResource MahApps.Brushes.Accent2}" />
                                     <Setter Property="Foreground"
-                                            Value="{DynamicResource AccentSelectedColorBrush}" />
+                                            Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled"
                                          Value="False">
                                     <Setter Property="Foreground"
-                                            Value="{DynamicResource GrayBrush7}" />
+                                            Value="{DynamicResource MahApps.Brushes.Gray7}" />
                                 </Trigger>
                                 <MultiTrigger>
                                     <MultiTrigger.Conditions>
@@ -70,9 +70,9 @@
                                     </MultiTrigger.Conditions>
                                     <Setter TargetName="Border"
                                             Property="Background"
-                                            Value="{DynamicResource GrayBrush7}" />
+                                            Value="{DynamicResource MahApps.Brushes.Gray7}" />
                                     <Setter Property="Foreground"
-                                            Value="{DynamicResource AccentSelectedColorBrush}" />
+                                            Value="{DynamicResource MahApps.Brushes.IdealForeground}" />
                                 </MultiTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -135,7 +135,7 @@
                     <Setter Property="Foreground"
                             Value="White" />
                     <Setter Property="Background"
-                            Value="{StaticResource AccentColorBrush}" />
+                            Value="{StaticResource MahApps.Brushes.Accent}" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
@@ -150,18 +150,18 @@
                                     <Trigger Property="IsMouseOver"
                                              Value="True">
                                         <Setter Property="BorderBrush"
-                                                Value="{StaticResource AccentColorBrush2}" />
+                                                Value="{StaticResource MahApps.Brushes.Accent2}" />
                                         <Setter Property="Background"
-                                                Value="{StaticResource AccentColorBrush2}" />
+                                                Value="{StaticResource MahApps.Brushes.Accent2}" />
                                     </Trigger>
                                     <Trigger Property="IsPressed"
                                              Value="True">
                                         <Setter Property="Background"
-                                                Value="{StaticResource AccentColorBrush3}" />
+                                                Value="{StaticResource MahApps.Brushes.Accent3}" />
                                         <Setter Property="Foreground"
-                                                Value="{StaticResource IdealForegroundColorBrush}" />
+                                                Value="{StaticResource MahApps.Brushes.IdealForeground}" />
                                         <Setter Property="BorderBrush"
-                                                Value="{StaticResource AccentColorBrush3}" />
+                                                Value="{StaticResource MahApps.Brushes.Accent3}" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -229,7 +229,7 @@
                                                   BorderThickness="0">
                                             <Expander.Header>
                                                 <DockPanel>
-                                                    <TextBlock Foreground="{StaticResource AccentSelectedColorBrush}"
+                                                    <TextBlock Foreground="{StaticResource MahApps.Brushes.IdealForeground}"
                                                                Margin="5,0,0,0"
                                                                HorizontalAlignment="Center"
                                                                DockPanel.Dock="Top">
@@ -274,7 +274,7 @@
                             <Button.Template>
                                 <ControlTemplate>
                                     <Rectangle Visibility="{Binding Path=IsSelected,RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ListBoxItem}},Converter={StaticResource BooleanToVisibilityConverter}}"
-                                               Fill="{StaticResource AccentColorBrush}">
+                                               Fill="{StaticResource MahApps.Brushes.Accent}">
                                         <Rectangle.OpacityMask>
                                             <VisualBrush Stretch="Uniform"
                                                          Visual="{StaticResource EditIcon}" />
@@ -298,24 +298,24 @@
         </ListBox>
         <Grid Grid.Row="0"
               Grid.Column="1"
-              Background="{StaticResource AccentColorBrush}"
+              Background="{StaticResource MahApps.Brushes.Accent}"
               Height="27"
               VerticalAlignment="Top">
-            <TextBlock Foreground="{StaticResource AccentSelectedColorBrush}"
+            <TextBlock Foreground="{StaticResource MahApps.Brushes.IdealForeground}"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center">
                 <Run Text="{Binding ElementName=lstAvailableApplication,Path=SelectedItem.(applications:IApplication.Name),Mode=OneWay}" />
                 <Run Text="{Binding ElementName=lstAvailableActions,Path=Items.Groups.Count,Mode=OneWay,StringFormat={localization:LocalisedText Action.ActionCount}}" />
             </TextBlock>
             <controls:ToggleSwitch x:Name="ToggleAllActionsToggleSwitch"
-                                   Style="{StaticResource MahApps.Metro.Styles.ToggleSwitch.Win10}"
+                                   Style="{StaticResource MahApps.Styles.ToggleSwitch}"
                                    IsEnabled="False"
-                                   Click="ToggleAllActionsToggleSwitch_Click"
+                                   Toggled="ToggleAllActionsToggleSwitch_Toggled"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
                                    Margin="0,0,15,0"
-                                   OffLabel=""
-                                   OnLabel="" />
+                                   OffContent=""
+                                   OnContent="" />
         </Grid>
         <!--VirtualizingPanel.IsVirtualizingWhenGrouping="True"-->
         <ListBox x:Name="lstAvailableActions"
@@ -328,7 +328,7 @@
                  ScrollViewer.CanContentScroll="False"
                  Grid.Row="0"
                  Grid.Column="1"
-                 BorderBrush="{StaticResource AccentColorBrush}"
+                 BorderBrush="{StaticResource MahApps.Brushes.Accent}"
                  Margin="0,27,0,0"
                  SelectionMode="Extended">
             <ListBox.GroupStyle>
@@ -342,7 +342,7 @@
                                                   Padding="0"
                                                   BorderThickness="0">
                                             <Expander.Header>
-                                                <TextBlock Foreground="{StaticResource AccentSelectedColorBrush}"
+                                                <TextBlock Foreground="{StaticResource MahApps.Brushes.IdealForeground}"
                                                            HorizontalAlignment="Center"
                                                            Text="{Binding Name,Converter={StaticResource ActionTitleConverter}}"
                                                            TextAlignment="Center" />
@@ -357,7 +357,7 @@
                                                             Width="200"
                                                             Padding="0"
                                                             BorderThickness="0"
-                                                            Background="{StaticResource GrayBrush10}">
+                                                            Background="{StaticResource MahApps.Brushes.Gray10}">
                                                         <Grid x:Name="GestureImageGrid"
                                                               VerticalAlignment="Top"
                                                               Height="76">
@@ -466,15 +466,15 @@
                             <ColumnDefinition />
                             <ColumnDefinition Width="60" />
                         </Grid.ColumnDefinitions>
-                        <controls:ToggleSwitch  Style="{StaticResource MahApps.Metro.Styles.ToggleSwitch.Win10}"
-                                                Click="CommandCheckBox_Click"
+                        <controls:ToggleSwitch  Style="{StaticResource MahApps.Styles.ToggleSwitch}"
+                                                Toggled="CommandCheckBox_Toggled"
                                                 Grid.Column="1"
-                                                IsChecked="{Binding Path=IsEnabled}"
+                                                IsOn="{Binding Path=IsEnabled}"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,0,0"
-                                                OffLabel=""
-                                                OnLabel="">
+                                                OffContent=""
+                                                OnContent="">
                         </controls:ToggleSwitch>
                         <TextBlock Grid.Column="0"
                                    TextWrapping="NoWrap"
@@ -490,7 +490,7 @@
                                    HorizontalAlignment="Left"
                                    VerticalAlignment="Top"
                                    Width="Auto"
-                                   Foreground="{StaticResource HighlightBrush}"
+                                   Foreground="{StaticResource MahApps.Brushes.Highlight}"
                                    Margin="10,41,0,0" />
                     </Grid>
                 </DataTemplate>
@@ -512,7 +512,7 @@
             </ListBox.ItemsPanel>
         </ListBox>
         <Button x:Name="btnAddAction"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -541,7 +541,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="cmdEdit"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -561,7 +561,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="cmdDelete"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -580,7 +580,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="MoveUpButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -600,7 +600,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="MoveDownButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -620,7 +620,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="ExportButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Height="50"
@@ -640,7 +640,7 @@
             </Rectangle>
         </Button>
         <Button x:Name="DownloadButton"
-                Style="{DynamicResource MetroCircleButtonStyle}"
+                Style="{DynamicResource MahApps.Styles.Button.Circle}"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
                 Height="50"
