@@ -46,29 +46,13 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 { BottomSlideLeftComboBox, FixedEdgeGesture.BottomSlideLeft },
                 { BottomSlideRightComboBox, FixedEdgeGesture.BottomSlideRight },
                 { TwoFingerLeftSwipeInComboBox, FixedEdgeGesture.TwoFingerLeftSwipeIn },
-                { TwoFingerLeftSlideUpComboBox, FixedEdgeGesture.TwoFingerLeftSlideUp },
-                { TwoFingerLeftSlideDownComboBox, FixedEdgeGesture.TwoFingerLeftSlideDown },
                 { TwoFingerRightSwipeInComboBox, FixedEdgeGesture.TwoFingerRightSwipeIn },
-                { TwoFingerRightSlideUpComboBox, FixedEdgeGesture.TwoFingerRightSlideUp },
-                { TwoFingerRightSlideDownComboBox, FixedEdgeGesture.TwoFingerRightSlideDown },
                 { TwoFingerTopSwipeInComboBox, FixedEdgeGesture.TwoFingerTopSwipeIn },
-                { TwoFingerTopSlideLeftComboBox, FixedEdgeGesture.TwoFingerTopSlideLeft },
-                { TwoFingerTopSlideRightComboBox, FixedEdgeGesture.TwoFingerTopSlideRight },
                 { TwoFingerBottomSwipeInComboBox, FixedEdgeGesture.TwoFingerBottomSwipeIn },
-                { TwoFingerBottomSlideLeftComboBox, FixedEdgeGesture.TwoFingerBottomSlideLeft },
-                { TwoFingerBottomSlideRightComboBox, FixedEdgeGesture.TwoFingerBottomSlideRight },
                 { ThreeFingerLeftSwipeInComboBox, FixedEdgeGesture.ThreeFingerLeftSwipeIn },
-                { ThreeFingerLeftSlideUpComboBox, FixedEdgeGesture.ThreeFingerLeftSlideUp },
-                { ThreeFingerLeftSlideDownComboBox, FixedEdgeGesture.ThreeFingerLeftSlideDown },
                 { ThreeFingerRightSwipeInComboBox, FixedEdgeGesture.ThreeFingerRightSwipeIn },
-                { ThreeFingerRightSlideUpComboBox, FixedEdgeGesture.ThreeFingerRightSlideUp },
-                { ThreeFingerRightSlideDownComboBox, FixedEdgeGesture.ThreeFingerRightSlideDown },
                 { ThreeFingerTopSwipeInComboBox, FixedEdgeGesture.ThreeFingerTopSwipeIn },
-                { ThreeFingerTopSlideLeftComboBox, FixedEdgeGesture.ThreeFingerTopSlideLeft },
-                { ThreeFingerTopSlideRightComboBox, FixedEdgeGesture.ThreeFingerTopSlideRight },
-                { ThreeFingerBottomSwipeInComboBox, FixedEdgeGesture.ThreeFingerBottomSwipeIn },
-                { ThreeFingerBottomSlideLeftComboBox, FixedEdgeGesture.ThreeFingerBottomSlideLeft },
-                { ThreeFingerBottomSlideRightComboBox, FixedEdgeGesture.ThreeFingerBottomSlideRight }
+                { ThreeFingerBottomSwipeInComboBox, FixedEdgeGesture.ThreeFingerBottomSwipeIn }
             };
         }
 

@@ -1067,7 +1067,7 @@ namespace GestureSign.Common.Input
 
         private static FixedEdgeGesture GetAlongGesture(TouchpadEdge edge, double direction, int fingerCount)
         {
-            if (direction == 0)
+            if (direction == 0 || fingerCount != 1)
                 return FixedEdgeGesture.None;
 
             FixedEdgeGesture gesture;

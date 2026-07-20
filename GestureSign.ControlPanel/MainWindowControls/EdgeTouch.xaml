@@ -276,30 +276,6 @@
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
                                 </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideUp}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerLeftSlideUpComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideDown}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerLeftSlideDownComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
@@ -314,30 +290,6 @@
                                     <TextBlock Text="{localization:LocalisedText EdgeTouch.SwipeIn}"
                                                VerticalAlignment="Center" />
                                     <ComboBox x:Name="TwoFingerRightSwipeInComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideUp}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerRightSlideUpComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideDown}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerRightSlideDownComboBox"
                                               Grid.Column="1"
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
@@ -368,30 +320,6 @@
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
                                 </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideLeft}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerTopSlideLeftComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideRight}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerTopSlideRightComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
@@ -406,30 +334,6 @@
                                     <TextBlock Text="{localization:LocalisedText EdgeTouch.SwipeIn}"
                                                VerticalAlignment="Center" />
                                     <ComboBox x:Name="TwoFingerBottomSwipeInComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideLeft}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerBottomSlideLeftComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideRight}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="TwoFingerBottomSlideRightComboBox"
                                               Grid.Column="1"
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
@@ -465,30 +369,6 @@
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
                                 </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideUp}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerLeftSlideUpComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideDown}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerLeftSlideDownComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
@@ -503,30 +383,6 @@
                                     <TextBlock Text="{localization:LocalisedText EdgeTouch.SwipeIn}"
                                                VerticalAlignment="Center" />
                                     <ComboBox x:Name="ThreeFingerRightSwipeInComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideUp}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerRightSlideUpComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideDown}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerRightSlideDownComboBox"
                                               Grid.Column="1"
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
@@ -557,30 +413,6 @@
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />
                                 </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideLeft}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerTopSlideLeftComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideRight}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerTopSlideRightComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
@@ -595,30 +427,6 @@
                                     <TextBlock Text="{localization:LocalisedText EdgeTouch.SwipeIn}"
                                                VerticalAlignment="Center" />
                                     <ComboBox x:Name="ThreeFingerBottomSwipeInComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideLeft}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerBottomSlideLeftComboBox"
-                                              Grid.Column="1"
-                                              DisplayMemberPath="DisplayName"
-                                              SelectionChanged="FixedGestureComboBox_SelectionChanged" />
-                                </Grid>
-                                <Grid Margin="0,7,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{localization:LocalisedText EdgeTouch.SlideRight}"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox x:Name="ThreeFingerBottomSlideRightComboBox"
                                               Grid.Column="1"
                                               DisplayMemberPath="DisplayName"
                                               SelectionChanged="FixedGestureComboBox_SelectionChanged" />

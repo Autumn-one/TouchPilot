@@ -107,7 +107,7 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void TwoFingerEdgeSlideRepeatsAndCanReverseDirection()
+        public void TwoFingerDirectionalBindingsDoNotClaimEdgeMovement()
         {
             var recognizer = CreateRecognizer(
                 FixedEdgeGesture.TwoFingerLeftSlideUp,
@@ -122,10 +122,12 @@ namespace GestureSign.Tests
             TouchpadInteractionFrameResult downward = recognizer.ProcessFrame(
                 Frame(Contact(1, 0.02, 0.62), Contact(2, 0.03, 0.72)), 180);
 
-            Assert.True(upward.ClaimInput);
-            Assert.All(upward.Events, item => Assert.Equal(FixedEdgeGesture.TwoFingerLeftSlideUp, item.EdgeGesture));
+            Assert.False(upward.ClaimInput);
+            Assert.Empty(upward.Events);
+            Assert.False(oneFingerContinued.ClaimInput);
             Assert.Empty(oneFingerContinued.Events);
-            Assert.Contains(downward.Events, item => item.EdgeGesture == FixedEdgeGesture.TwoFingerLeftSlideDown);
+            Assert.False(downward.ClaimInput);
+            Assert.Empty(downward.Events);
         }
 
         [Fact]
@@ -176,7 +178,7 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void ThreeFingerEdgeSlideRepeatsAndCanReverseDirection()
+        public void ThreeFingerDirectionalBindingsDoNotClaimEdgeMovement()
         {
             var recognizer = CreateRecognizer(
                 FixedEdgeGesture.ThreeFingerLeftSlideUp,
@@ -191,16 +193,20 @@ namespace GestureSign.Tests
             TouchpadInteractionFrameResult downward = recognizer.ProcessFrame(
                 Frame(Contact(1, 0.02, 0.48), Contact(2, 0.03, 0.63), Contact(3, 0.02, 0.78)), 180);
 
-            Assert.True(upward.ClaimInput);
-            Assert.All(upward.Events, item => Assert.Equal(FixedEdgeGesture.ThreeFingerLeftSlideUp, item.EdgeGesture));
+            Assert.False(upward.ClaimInput);
+            Assert.Empty(upward.Events);
+            Assert.False(inconsistent.ClaimInput);
             Assert.Empty(inconsistent.Events);
-            Assert.Contains(downward.Events, item => item.EdgeGesture == FixedEdgeGesture.ThreeFingerLeftSlideDown);
+            Assert.False(downward.ClaimInput);
+            Assert.Empty(downward.Events);
         }
 
         [Fact]
-        public void ThreeFingerBottomSlideRightUsesThreeFingerBinding()
+        public void LegacyThreeFingerDirectionalBindingDoesNotPreemptThreeFingerDrag()
         {
-            var recognizer = CreateRecognizer(FixedEdgeGesture.ThreeFingerBottomSlideRight);
+            var recognizer = CreateRecognizer(
+                FixedEdgeGesture.ThreeFingerBottomSlideRight,
+                windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
 
             recognizer.ProcessFrame(
                 Frame(Contact(1, 0.25, 0.98), Contact(2, 0.5, 0.97), Contact(3, 0.75, 0.98)), 0);
@@ -208,9 +214,7 @@ namespace GestureSign.Tests
                 Frame(Contact(1, 0.33, 0.98), Contact(2, 0.58, 0.97), Contact(3, 0.83, 0.98)), 100);
 
             Assert.True(result.ClaimInput);
-            Assert.NotEmpty(result.Events);
-            Assert.All(result.Events,
-                item => Assert.Equal(FixedEdgeGesture.ThreeFingerBottomSlideRight, item.EdgeGesture));
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(result.Events).EventType);
         }
 
         [Fact]
@@ -286,7 +290,7 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void CoherentTwoFingerBottomSlideWinsOverWindowDrag()
+        public void LegacyTwoFingerDirectionalBindingDoesNotPreemptWindowDrag()
         {
             var recognizer = CreateRecognizer(
                 FixedEdgeGesture.TwoFingerBottomSlideRight,
@@ -298,12 +302,7 @@ namespace GestureSign.Tests
                 Frame(Contact(0, 0.48, 0.96), Contact(1, 0.68, 0.95)), 120);
 
             Assert.True(result.ClaimInput);
-            Assert.NotEmpty(result.Events);
-            Assert.All(result.Events, item =>
-            {
-                Assert.Equal(TouchpadInteractionEventType.EdgeGesture, item.EventType);
-                Assert.Equal(FixedEdgeGesture.TwoFingerBottomSlideRight, item.EdgeGesture);
-            });
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(result.Events).EventType);
         }
 
         [Fact]
