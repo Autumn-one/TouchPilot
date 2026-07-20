@@ -160,6 +160,9 @@ Email:ccfyzh@gmail.com
     <Down>Swipe Down</Down>
     <Fingers>{0} Fingers </Fingers>
     <Sort>Sort by</Sort>
+    <EnableAll>Enable all commands</EnableAll>
+    <MoveUp>Move up</MoveUp>
+    <MoveDown>Move down</MoveDown>
     <Messages>
       <DeleteConfirmTitle>Delete Confirm</DeleteConfirmTitle>
       <DeleteCommandConfirm>Are you sure you want to delete these {0} Commands?</DeleteCommandConfirm>

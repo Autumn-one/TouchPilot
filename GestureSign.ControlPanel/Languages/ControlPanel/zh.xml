@@ -164,6 +164,9 @@ QQ交流群：576981420
     <Down>向下滑</Down>
     <Fingers>{0}根手指</Fingers>
     <Sort>排列方式</Sort>
+    <EnableAll>启用全部命令</EnableAll>
+    <MoveUp>上移</MoveUp>
+    <MoveDown>下移</MoveDown>
     <Messages>
       <DeleteConfirmTitle>删除确认</DeleteConfirmTitle>
       <DeleteCommandConfirm>确定要删除这 {0} 个命令吗？</DeleteCommandConfirm>
