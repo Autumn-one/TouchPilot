@@ -64,8 +64,6 @@
     <system:Double x:Key="V2.Size.Sidebar">204</system:Double>
     <GridLength x:Key="V2.Size.SidebarGridLength">204</GridLength>
 
-    <Thickness x:Key="V2.Spacing.Page">32,28,32,32</Thickness>
-    <Thickness x:Key="V2.Spacing.Section">0,24,0,0</Thickness>
     <Thickness x:Key="V2.Spacing.Control">12,7</Thickness>
     <CornerRadius x:Key="V2.Corner.Small">4</CornerRadius>
     <CornerRadius x:Key="V2.Corner.Medium">6</CornerRadius>
