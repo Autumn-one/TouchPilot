@@ -27,7 +27,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
     public partial class Options : UserControl
     {
         Color _VisualFeedbackColor;
-        private bool _loading;
+        private bool _loading = true;
 
         public Options()
         {
