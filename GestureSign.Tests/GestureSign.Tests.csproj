@@ -2,6 +2,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GestureSign.Common\GestureSign.Common.csproj" />
+    <ProjectReference Include="..\GestureSign.ControlPanel\GestureSign.ControlPanel.csproj" />
     <ProjectReference Include="..\GestureSign.Daemon\GestureSign.Daemon.csproj" />
   </ItemGroup>
 </Project>
