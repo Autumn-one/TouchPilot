@@ -16,10 +16,6 @@ namespace GestureSign.Common.Gestures
         #region Private Variables
 
         private const int ProbabilityThreshold = 80;
-        private const int GestureStackTimeout = 800;
-
-        private int _gestureLevel = 0;
-
         // Create variable to hold the only allowed instance of this class
         private static GestureManager _instance;
 
@@ -28,10 +24,6 @@ namespace GestureSign.Common.Gestures
 
         // Create PointPatternAnalyzer to process gestures when received
         PointPatternAnalyzer gestureAnalyzer = null;
-
-        private bool _isGestureStackTimeout;
-        private int? _lastGestureTime;
-        private List<IGesture> _gestureMatchResult;
 
         #endregion
 
@@ -75,47 +67,9 @@ namespace GestureSign.Common.Gestures
 
         #region Events
 
-        protected void PointCapture_CaptureStarted(object sender, PointsCapturedEventArgs e)
-        {
-            if (_lastGestureTime != null && Environment.TickCount - _lastGestureTime.Value > GestureStackTimeout)
-                _isGestureStackTimeout = true;
-        }
-
         protected void PointCapture_BeforePointsCaptured(object sender, PointsCapturedEventArgs e)
         {
-            var pointCapture = (IPointCapture)sender;
-
-            if (_isGestureStackTimeout)
-            {
-                _lastGestureTime = null;
-                _isGestureStackTimeout = false;
-
-                _gestureLevel = 0;
-                _gestureMatchResult = null;
-            }
-
-            if (pointCapture.Mode == CaptureMode.Training)
-            {
-                _gestureLevel = 0;
-                _gestureMatchResult = null;
-            }
-
-            var sourceGesture = _gestureLevel == 0 ? _Gestures : _gestureMatchResult;
-            GestureName = GetGestureSetNameMatch(e.Points.Select(l => l.ToArray()).ToArray(), sourceGesture, _gestureLevel, out _gestureMatchResult);
-
-            if (pointCapture.Mode != CaptureMode.Training)
-            {
-                if (_gestureMatchResult != null && _gestureMatchResult.Count != 0)
-                {
-                    _gestureLevel++;
-                    _lastGestureTime = Environment.TickCount;
-                }
-                else
-                {
-                    _gestureLevel = 0;
-                    _gestureMatchResult = null;
-                }
-            }
+            GestureName = GetGestureSetNameMatch(e.Points.Select(l => l.ToArray()).ToArray(), _Gestures);
         }
 
         #endregion
@@ -175,13 +129,13 @@ namespace GestureSign.Common.Gestures
             if (pointCapture != null)
             {
                 pointCapture.BeforePointsCaptured += PointCapture_BeforePointsCaptured;
-                pointCapture.CaptureStarted += PointCapture_CaptureStarted; ;
             }
         }
 
         public void AddGesture(IGesture Gesture)
         {
-            _Gestures.Add(Gesture);
+            if (IsSingleSegmentGesture(Gesture))
+                _Gestures.Add(Gesture);
         }
 
         public Task LoadGestures()
@@ -209,12 +163,15 @@ namespace GestureSign.Common.Gestures
                         {
                             List<LegacyGesture> legacyGestures = FileManager.LoadObject<List<LegacyGesture>>(path, true);
 
-                            foreach (var gesture in legacyGestures)
+                            foreach (var gesture in legacyGestures ?? Enumerable.Empty<LegacyGesture>())
                             {
                                 if (gesture.Points != null)
                                     gesture.PointPatterns = new[] { new PointPattern(gesture.Points) };
                             }
-                            _Gestures = legacyGestures.Cast<IGesture>().ToList();
+                            _Gestures = (legacyGestures ?? new List<LegacyGesture>())
+                                .Cast<IGesture>()
+                                .Where(IsSingleSegmentGesture)
+                                .ToList();
                         }
                         else
                         {
@@ -238,6 +195,7 @@ namespace GestureSign.Common.Gestures
         {
             try
             {
+                _Gestures.RemoveAll(gesture => !IsSingleSegmentGesture(gesture));
                 // Save gestures to file
                 bool flag = Configuration.FileManager.SaveObject(Gestures, Path.Combine(AppConfig.ApplicationDataPath, Constants.GesturesFileName));
                 if (flag)
@@ -310,7 +268,7 @@ namespace GestureSign.Common.Gestures
                                         break;
                                     }
                             }
-                            if (gesture.Name != null && gesture.PointPatterns != null)
+                            if (gesture.Name != null && IsSingleSegmentGesture(gesture))
                             {
                                 gestureList.Add(gesture);
                                 break;
@@ -330,21 +288,21 @@ namespace GestureSign.Common.Gestures
             return gestureList;
         }
 
-        public string GetGestureSetNameMatch(Point[][] points, List<IGesture> sourceGestures, int sourceGestureLevel, out List<IGesture> matching)//PointF[]
+        public string GetGestureSetNameMatch(Point[][] points, IEnumerable<IGesture> sourceGestures)//PointF[]
         {
-            if (points.Length == 0 || sourceGestures == null || sourceGestures.Count == 0)
-            { matching = null; return null; }
+            if (points == null || points.Length == 0 || sourceGestures == null)
+                return null;
             // Update gesture analyzer with latest gestures and get gesture match from current points array
             // Comparison results are sorted descending from highest to lowest probability
             var gestures =
                 sourceGestures.Where(g =>
-                        g.PointPatterns != null && g.PointPatterns.Length > sourceGestureLevel &&
-                        g.PointPatterns[sourceGestureLevel].Points != null &&
-                        g.PointPatterns[sourceGestureLevel].Points.Length == points.Length).ToList();
+                        IsSingleSegmentGesture(g) &&
+                        g.PointPatterns[0].Points != null &&
+                        g.PointPatterns[0].Points.Length == points.Length).ToList();
             List<PointPatternMatchResult>[] comparisonResults = new List<PointPatternMatchResult>[points.Length];
             for (int i = 0; i < points.Length; i++)
             {
-                gestureAnalyzer.PointPatternSet = gestures.Select(gesture => new PointsPatternSet(gesture.Name, gesture.PointPatterns[sourceGestureLevel].Points[i]));
+                gestureAnalyzer.PointPatternSet = gestures.Select(gesture => new PointsPatternSet(gesture.Name, gesture.PointPatterns[0].Points[i]));
                 comparisonResults[i] = new List<PointPatternMatchResult>(gestures.Count);
                 comparisonResults[i].AddRange(gestureAnalyzer.GetPointPatternMatchResults(points[i]));
             }
@@ -352,40 +310,24 @@ namespace GestureSign.Common.Gestures
             var numbers = Enumerable.Range(0, gestures.Count);
             numbers = comparisonResults.Aggregate(numbers, (current, matchResultsList) => current.Where(i => matchResultsList[i].Probability > ProbabilityThreshold).ToList());
 
-            List<IGesture> matchingResult = new List<IGesture>();
             List<KeyValuePair<string, double>> recognizedResult = new List<KeyValuePair<string, double>>();
 
             foreach (var number in numbers)
             {
                 var gesture = gestures[number];
-                if (gesture.PointPatterns.Length > sourceGestureLevel + 1)
-                {
-                    matchingResult.Add(gesture);
-                }
-                else
-                {
-                    double probability = comparisonResults.Sum(matchResultsList => matchResultsList[number].Probability);
+                double probability = comparisonResults.Sum(matchResultsList => matchResultsList[number].Probability);
 
-                    recognizedResult.Add(new KeyValuePair<string, double>(gesture.Name, probability));
-                }
+                recognizedResult.Add(new KeyValuePair<string, double>(gesture.Name, probability));
             }
 
-            matching = matchingResult.Count == 0 ? null : matchingResult;
             return recognizedResult.Count == 0 ? null : recognizedResult.OrderByDescending(r => r.Value).First().Key;
         }
 
         public string GetMostSimilarGestureName(PointPattern[] pointPattern)
         {
-            string matchName = null;
-            List<IGesture> matchGestures = null;
-            for (int i = 0; i < pointPattern.Length;)
-            {
-                matchName = GetGestureSetNameMatch(pointPattern[i].Points, matchGestures ?? _Gestures, i, out matchGestures);
-
-                if (++i < pointPattern.Length && matchGestures == null)
-                    return null;
-            }
-            return matchName;
+            return pointPattern?.Length == 1
+                ? GetGestureSetNameMatch(pointPattern[0].Points, _Gestures)
+                : null;
         }
 
         public string GetMostSimilarGestureName(IGesture gesture)
@@ -427,6 +369,11 @@ namespace GestureSign.Common.Gestures
                 newName = GetRandomString(random, 6);
             } while (GestureExists(newName));
             return newName;
+        }
+
+        private static bool IsSingleSegmentGesture(IGesture gesture)
+        {
+            return gesture?.PointPatterns?.Length == 1;
         }
 
         public string GetNewGestureId(PointPattern[] pointPatterns)
