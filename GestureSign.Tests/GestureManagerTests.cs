@@ -29,11 +29,11 @@ namespace GestureSign.Tests
 
             Assert.Equal(0, capture.CaptureStartedSubscriptionCount);
 
-            capture.RaiseBeforePointsCaptured(tap.Points);
-            Assert.Equal("single", manager.GestureName);
-
-            capture.RaiseBeforePointsCaptured(tap.Points);
-            Assert.Equal("single", manager.GestureName);
+            for (int captureIndex = 0; captureIndex < 100; captureIndex++)
+            {
+                capture.RaiseBeforePointsCaptured(tap.Points);
+                Assert.Equal("single", manager.GestureName);
+            }
         }
 
         [Fact]
