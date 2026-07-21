@@ -120,14 +120,19 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 Rect bounds = element.TransformToAncestor(lstAvailableActions).TransformBounds(new Rect(0.0, 0.0, element.RenderSize.Width, element.RenderSize.Height));
                 var gestureImageContainer = element.FindChild<Grid>("GestureImageGrid");
                 if (gestureImageContainer == null) return;
+                var translateTransform = gestureImageContainer.RenderTransform as TranslateTransform;
+                if (translateTransform == null)
+                {
+                    translateTransform = new TranslateTransform();
+                    gestureImageContainer.RenderTransform = translateTransform;
+                }
+
                 if (bounds.Top < 0)
                 {
-                    var topMargin = -bounds.Top + gestureImageContainer.ActualHeight > element.RenderSize.Height
-                        ? element.RenderSize.Height - gestureImageContainer.ActualHeight
-                        : Math.Abs(bounds.Top);
-                    gestureImageContainer.Margin = new Thickness(0, topMargin, 0, 0);
+                    double maximumOffset = Math.Max(0, element.RenderSize.Height - gestureImageContainer.ActualHeight);
+                    translateTransform.Y = Math.Min(Math.Abs(bounds.Top), maximumOffset);
                 }
-                else gestureImageContainer.Margin = new Thickness(0);
+                else translateTransform.Y = 0;
             }
         }
 
