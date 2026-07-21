@@ -39,7 +39,8 @@
                     Value="Stretch" />
         </Style>
     </UserControl.Resources>
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+    <ScrollViewer common:PrecisionScrolling.IsEnabled="True"
+                  HorizontalScrollBarVisibility="Disabled"
                   VerticalScrollBarVisibility="Auto"
                   PanningMode="VerticalFirst">
         <StackPanel MaxWidth="760"

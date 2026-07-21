@@ -69,7 +69,8 @@
             <TabItem Header="{localization:LocalisedText About.Header}"
                      Style="{StaticResource V2.Navigation.TabItem}"
                      Tag="{x:Static iconPacks:PackIconLucideKind.Info}">
-                <ScrollViewer PanningMode="VerticalFirst"
+                <ScrollViewer common:PrecisionScrolling.IsEnabled="True"
+                              PanningMode="VerticalFirst"
                               HorizontalContentAlignment="Stretch"
                               VerticalScrollBarVisibility="Auto">
                     <Grid MaxWidth="760"
