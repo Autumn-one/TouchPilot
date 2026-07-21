@@ -215,14 +215,14 @@ namespace GestureSign.Tests
 
         [Fact]
         [Trait("Category", "WindowsIntegration")]
-        public void ThreeFingerReleaseChordDrivesARealWindowAndStopsAfterRelease()
+        public void InteriorThreeFingerReleaseDoesNotDriveARealWindow()
         {
             Exception failure = null;
             var thread = new Thread(() =>
             {
                 try
                 {
-                    RunThreeFingerReleaseChordWindowTest();
+                    RunInteriorThreeFingerReleaseWindowTest();
                 }
                 catch (Exception exception)
                 {
@@ -232,12 +232,13 @@ namespace GestureSign.Tests
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
 
-            Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "The release chord window integration test timed out.");
+            Assert.True(thread.Join(TimeSpan.FromSeconds(10)),
+                "The three-finger release window integration test timed out.");
             if (failure != null)
                 ExceptionDispatchInfo.Capture(failure).Throw();
         }
 
-        private static void RunThreeFingerReleaseChordWindowTest()
+        private static void RunInteriorThreeFingerReleaseWindowTest()
         {
             Point originalCursor = Cursor.Position;
             var controller = new WindowDragController();
@@ -247,7 +248,8 @@ namespace GestureSign.Tests
             });
             Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
             using (var form = CreateDirectDragTestForm(
-                new Rectangle(workingArea.Left + 80, workingArea.Top + 80, 360, 240), "release chord"))
+                new Rectangle(workingArea.Left + 80, workingArea.Top + 80, 360, 240),
+                "three-finger release"))
             {
                 try
                 {
@@ -258,45 +260,36 @@ namespace GestureSign.Tests
                     RECT initialRectangle = window.Rectangle;
                     Point initialCursor = new Point(initialRectangle.Left + 80, initialRectangle.Top + 60);
                     Cursor.Position = initialCursor;
+                    Point effectiveInitialCursor = Cursor.Position;
 
-                    ProcessWindowDragFrame(recognizer,
+                    TouchpadInteractionFrameResult pressed = ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)),
                         0, controller, window);
-                    ProcessWindowDragFrame(recognizer,
+                    TouchpadInteractionFrameResult released = ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)),
                         1, controller, window);
-                    ProcessWindowDragFrame(recognizer,
+                    TouchpadInteractionFrameResult firstMove = ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.3, 0.4), Contact(2, 0.53, 0.4)),
                         20, controller, window);
-
-                    Assert.Equal(initialCursor, Cursor.Position);
                     Thread.Sleep(25);
-                    ProcessWindowDragFrame(recognizer,
+                    TouchpadInteractionFrameResult continuedMove = ProcessWindowDragFrame(recognizer,
                         Frame(Contact(1, 0.32, 0.4), Contact(2, 0.56, 0.4)),
                         50, controller, window);
                     PumpWindowMessages();
 
-                    RECT movedRectangle = window.Rectangle;
-                    Point movedCursor = Cursor.Position;
-                    Screen screen = Screen.FromPoint(initialCursor);
-                    int expectedX = (int)Math.Round(screen.Bounds.Width * 0.03);
-                    Assert.InRange(movedCursor.X - initialCursor.X, expectedX - 3, expectedX + 3);
-                    Assert.InRange(movedRectangle.Left - initialRectangle.Left, expectedX - 4, expectedX + 4);
+                    Assert.False(pressed.ClaimInput);
+                    Assert.Empty(pressed.Events);
+                    Assert.False(released.ClaimInput);
+                    Assert.Empty(released.Events);
+                    Assert.False(firstMove.ClaimInput);
+                    Assert.Empty(firstMove.Events);
+                    Assert.False(continuedMove.ClaimInput);
+                    Assert.Empty(continuedMove.Events);
+                    Assert.Equal(effectiveInitialCursor, Cursor.Position);
 
-                    ProcessWindowDragFrame(recognizer,
-                        Frame(Contact(1, 0.32, 0.4), ReleasedContact(2, 0.56, 0.4)),
-                        70, controller, window);
-                    ProcessWindowDragFrame(recognizer,
-                        Frame(Contact(1, 0.32, 0.4), Contact(4, 0.6, 0.4)),
-                        90, controller, window);
-                    ProcessWindowDragFrame(recognizer,
-                        Frame(Contact(1, 0.36, 0.4), Contact(4, 0.64, 0.4)),
-                        220, controller, window);
-                    PumpWindowMessages();
-
-                    RECT stoppedRectangle = window.Rectangle;
-                    Assert.InRange(stoppedRectangle.Left - movedRectangle.Left, -1, 1);
-                    Assert.InRange(stoppedRectangle.Top - movedRectangle.Top, -1, 1);
+                    RECT finalRectangle = window.Rectangle;
+                    Assert.InRange(finalRectangle.Left - initialRectangle.Left, -1, 1);
+                    Assert.InRange(finalRectangle.Top - initialRectangle.Top, -1, 1);
                 }
                 finally
                 {

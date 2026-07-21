@@ -560,136 +560,31 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void ThreeFingerReleaseChordStartsDragWithDominantMovingContact()
+        public void InteriorThreeFingerReleaseDoesNotStartBottomAnchoredWindowDrag()
         {
             var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
 
-            recognizer.ProcessFrame(Frame(Contact(1, 0.3, 0.4)), 0);
-            recognizer.ProcessFrame(Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4)), 20);
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 40);
-            TouchpadInteractionFrameResult armed = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)), 41);
-            TouchpadInteractionFrameResult belowThreshold = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.305, 0.4), Contact(2, 0.51, 0.4)), 60);
-            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.307, 0.4), Contact(2, 0.53, 0.4)), 80);
-            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.31, 0.4), Contact(2, 0.56, 0.4)), 100);
-
-            Assert.True(armed.ClaimInput);
-            Assert.Empty(armed.Events);
-            Assert.True(belowThreshold.ClaimInput);
-            Assert.Empty(belowThreshold.Events);
-            TouchpadInteractionEvent startedEvent = Assert.Single(started.Events);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, startedEvent.EventType);
-            Assert.Equal(2, startedEvent.ContactIdentifier);
-            TouchpadInteractionEvent movedEvent = Assert.Single(moved.Events);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragMoved, movedEvent.EventType);
-            Assert.Equal(2, movedEvent.ContactIdentifier);
-        }
-
-        [Fact]
-        public void ThreeFingerReleaseChordDoesNotRequireHold()
-        {
-            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
-
-            recognizer.ProcessFrame(
+            TouchpadInteractionFrameResult pressed = recognizer.ProcessFrame(
                 Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 0);
-            TouchpadInteractionFrameResult armed = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)), 1);
-            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.54, 0.4)), 20);
-
-            Assert.True(armed.ClaimInput);
-            Assert.Empty(armed.Events);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
-        }
-
-        [Fact]
-        public void ThreeFingerReleaseChordIsCancelledByPreReleaseMovement()
-        {
-            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
-
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 0);
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.54, 0.4), Contact(3, 0.7, 0.4)), 120);
             TouchpadInteractionFrameResult released = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.54, 0.4), ReleasedContact(3, 0.7, 0.4)), 140);
-            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.58, 0.4)), 180);
+                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)), 1);
+            TouchpadInteractionFrameResult firstMove = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.54, 0.4)), 20);
+            TouchpadInteractionFrameResult continuedMove = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.34, 0.4), Contact(2, 0.58, 0.4)), 50);
 
+            Assert.False(pressed.ClaimInput);
+            Assert.Empty(pressed.Events);
             Assert.False(released.ClaimInput);
             Assert.Empty(released.Events);
-            Assert.False(moved.ClaimInput);
-            Assert.Empty(moved.Events);
+            Assert.False(firstMove.ClaimInput);
+            Assert.Empty(firstMove.Events);
+            Assert.False(continuedMove.ClaimInput);
+            Assert.Empty(continuedMove.Events);
         }
 
         [Fact]
-        public void CancelledReleaseChordMustBeCompletedAgainBeforeInteriorDragStarts()
-        {
-            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
-
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 0);
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 110);
-            TouchpadInteractionFrameResult armed = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)), 120);
-            TouchpadInteractionFrameResult cancelled = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), ReleasedContact(2, 0.5, 0.4)), 140);
-            recognizer.ProcessFrame(Frame(Contact(1, 0.3, 0.4), Contact(4, 0.6, 0.4)), 160);
-            TouchpadInteractionFrameResult interiorMoved = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.34, 0.4), Contact(4, 0.64, 0.4)), 300);
-
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.34, 0.4), Contact(4, 0.64, 0.4), Contact(5, 0.8, 0.4)), 320);
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.34, 0.4), Contact(4, 0.64, 0.4), Contact(5, 0.8, 0.4)), 430);
-            TouchpadInteractionFrameResult rearmed = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.34, 0.4), Contact(4, 0.64, 0.4), ReleasedContact(5, 0.8, 0.4)), 440);
-            TouchpadInteractionFrameResult restarted = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.34, 0.4), Contact(4, 0.67, 0.4)), 470);
-
-            Assert.True(armed.ClaimInput);
-            Assert.Empty(armed.Events);
-            Assert.True(cancelled.ClaimInput);
-            Assert.Empty(cancelled.Events);
-            Assert.Empty(interiorMoved.Events);
-            Assert.True(rearmed.ClaimInput);
-            Assert.Empty(rearmed.Events);
-            TouchpadInteractionEvent restartedEvent = Assert.Single(restarted.Events);
-            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, restartedEvent.EventType);
-            Assert.Equal(4, restartedEvent.ContactIdentifier);
-        }
-
-        [Fact]
-        public void ReleaseChordDragEndsWhenEitherRemainingFingerIsReleased()
-        {
-            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
-
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 0);
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 110);
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)), 120);
-            recognizer.ProcessFrame(Frame(Contact(1, 0.3, 0.4), Contact(2, 0.53, 0.4)), 150);
-
-            TouchpadInteractionFrameResult ended = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), ReleasedContact(2, 0.53, 0.4)), 170);
-            recognizer.ProcessFrame(Frame(Contact(1, 0.3, 0.4), Contact(4, 0.6, 0.4)), 190);
-            TouchpadInteractionFrameResult interiorMoved = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.34, 0.4), Contact(4, 0.64, 0.4)), 320);
-
-            Assert.Equal(TouchpadInteractionEventType.WindowDragEnded, Assert.Single(ended.Events).EventType);
-            Assert.True(interiorMoved.ClaimInput);
-            Assert.Empty(interiorMoved.Events);
-        }
-
-        [Fact]
-        public void ThreeFingerEdgeGestureWinsOverReleaseChord()
+        public void ThreeFingerEdgeGestureStillWorksInBottomAnchorMode()
         {
             var recognizer = CreateRecognizer(
                 FixedEdgeGesture.ThreeFingerLeftSwipeIn,
@@ -706,24 +601,6 @@ namespace GestureSign.Tests
             Assert.Equal(TouchpadInteractionEventType.EdgeGesture, edgeEvent.EventType);
             Assert.Equal(FixedEdgeGesture.ThreeFingerLeftSwipeIn, edgeEvent.EdgeGesture);
             Assert.Empty(released.Events);
-        }
-
-        [Fact]
-        public void ReleaseChordDoesNotReplaceDedicatedThreeFingerDragMode()
-        {
-            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.ThreeFingerDrag);
-
-            recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), Contact(3, 0.7, 0.4)), 0);
-            TouchpadInteractionFrameResult released = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.5, 0.4), ReleasedContact(3, 0.7, 0.4)), 150);
-            TouchpadInteractionFrameResult moved = recognizer.ProcessFrame(
-                Frame(Contact(1, 0.3, 0.4), Contact(2, 0.55, 0.4)), 180);
-
-            Assert.True(released.ClaimInput);
-            Assert.Empty(released.Events);
-            Assert.True(moved.ClaimInput);
-            Assert.Empty(moved.Events);
         }
 
         [Fact]
