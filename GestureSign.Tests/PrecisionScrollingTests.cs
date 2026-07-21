@@ -68,18 +68,23 @@ namespace GestureSign.Tests
         }
 
         [Theory]
-        [InlineData(false, null, true)]
-        [InlineData(false, ScrollUnit.Item, true)]
-        [InlineData(true, null, false)]
-        [InlineData(true, ScrollUnit.Item, false)]
-        [InlineData(true, ScrollUnit.Pixel, true)]
-        public void OnlyPhysicalOrPixelVirtualizedContainersUsePixelOffsets(
+        [InlineData(false, null, false, true)]
+        [InlineData(false, ScrollUnit.Item, false, true)]
+        [InlineData(true, null, false, false)]
+        [InlineData(true, ScrollUnit.Item, false, false)]
+        [InlineData(true, ScrollUnit.Pixel, false, true)]
+        [InlineData(true, null, true, true)]
+        public void OnlyKnownPixelContainersUsePixelOffsets(
             bool canContentScroll,
             ScrollUnit? ownerScrollUnit,
+            bool hostUsesPixelOffsets,
             bool expected)
         {
             Assert.Equal(expected,
-                PrecisionScrolling.CanUsePixelOffsets(canContentScroll, ownerScrollUnit));
+                PrecisionScrolling.CanUsePixelOffsets(
+                    canContentScroll,
+                    ownerScrollUnit,
+                    hostUsesPixelOffsets));
         }
     }
 }

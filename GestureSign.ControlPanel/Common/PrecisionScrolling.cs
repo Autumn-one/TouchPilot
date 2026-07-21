@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -99,9 +100,13 @@ namespace GestureSign.ControlPanel.Common
             return Math.Max(0, Math.Min(offset, scrollableHeight));
         }
 
-        internal static bool CanUsePixelOffsets(bool canContentScroll, ScrollUnit? ownerScrollUnit)
+        internal static bool CanUsePixelOffsets(bool canContentScroll,
+            ScrollUnit? ownerScrollUnit,
+            bool hostUsesPixelOffsets = false)
         {
-            return !canContentScroll || ownerScrollUnit == ScrollUnit.Pixel;
+            return !canContentScroll ||
+                   ownerScrollUnit == ScrollUnit.Pixel ||
+                   hostUsesPixelOffsets;
         }
 
         private static bool IsValidNonNegativeFiniteDouble(object value)
@@ -195,7 +200,9 @@ namespace GestureSign.ControlPanel.Common
             ScrollUnit? scrollUnit = owner == null
                 ? null
                 : VirtualizingPanel.GetScrollUnit(owner);
-            return CanUsePixelOffsets(scrollViewer.CanContentScroll, scrollUnit);
+            return CanUsePixelOffsets(scrollViewer.CanContentScroll,
+                scrollUnit,
+                host is TextBoxBase);
         }
 
         private static ItemsControl FindItemsControlOwner(ScrollViewer scrollViewer, UIElement host)
