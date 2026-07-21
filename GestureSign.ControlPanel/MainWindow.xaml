@@ -23,6 +23,7 @@
                     WindowTitleBrush="{StaticResource V2.Brush.Surface}"
                     NonActiveWindowTitleBrush="{StaticResource V2.Brush.SurfaceSubtle}"
                     TitleForeground="{StaticResource V2.Brush.Text}"
+                    OverrideDefaultWindowCommandsBrush="{StaticResource V2.Brush.Text}"
                     GlowBrush="{StaticResource V2.Brush.Accent}"
                     Loaded="MetroWindow_Loaded">
     <controls:MetroWindow.RightWindowCommands>
