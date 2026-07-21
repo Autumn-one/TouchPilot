@@ -552,7 +552,7 @@
                                                                    Text="{Binding Name, Converter={StaticResource ActionTitleConverter}}"
                                                                    TextWrapping="Wrap" />
                                                     </Expander.Header>
-                                                    <Grid MinHeight="80">
+                                                    <Grid MinHeight="78">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="112" />
                                                             <ColumnDefinition Width="*" />
@@ -563,7 +563,7 @@
                                                                 AutomationProperties.Name="{localization:LocalisedText Action.SelectGesture}"
                                                                 Click="ActionButton_Click">
                                                             <Grid x:Name="GestureImageGrid"
-                                                                  Height="76"
+                                                                  Height="62"
                                                                   VerticalAlignment="Top">
                                                                 <TextBlock HorizontalAlignment="Center"
                                                                            VerticalAlignment="Center"
