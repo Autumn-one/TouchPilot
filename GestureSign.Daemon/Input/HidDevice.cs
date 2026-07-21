@@ -55,6 +55,17 @@ namespace GestureSign.Daemon.Input
             return usageList;
         }
 
+        protected bool HasInputButtonUsage(ushort usage)
+        {
+            short capabilityCount = 0;
+            int status = HidNativeApi.HidP_GetSpecificButtonCaps(HidReportType.Input,
+                (short)NativeMethods.DigitizerUsagePage, 0, (short)usage, null, ref capabilityCount,
+                _hPreparsedData.DangerousGetHandle());
+            return capabilityCount > 0 &&
+                   (status == HidNativeApi.HIDP_STATUS_SUCCESS ||
+                    status == HidNativeApi.HIDP_STATUS_BUFFER_TOO_SMALL);
+        }
+
         protected virtual Point GetCoordinate(short linkCollection, Screen currentScr, IntPtr pRawDataPacket)
         {
             Point physicalPoint = GetPhysicalCoordinate(linkCollection, pRawDataPacket);

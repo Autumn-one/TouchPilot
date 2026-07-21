@@ -93,6 +93,7 @@ namespace GestureSign.Daemon.Native
         internal const ushort ContactCountId = 0x54;
         internal const ushort ScanTimeId = 0x56;
         internal const ushort TipId = 0x42;
+        internal const ushort ConfidenceId = 0x47;
         internal const ushort XCoordinateId = 0x30;
         internal const ushort YCoordinateId = 0x31;
         internal const ushort InRangeId = 0x32;

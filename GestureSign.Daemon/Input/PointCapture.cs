@@ -465,7 +465,8 @@ namespace GestureSign.Daemon.Input
 
             var contacts = e.RawData
                 .Where(contact => !double.IsNaN(contact.NormalizedX) && !double.IsNaN(contact.NormalizedY))
-                .Select(contact => new TouchpadContact(contact.ContactIdentifier, contact.State, contact.NormalizedX, contact.NormalizedY))
+                .Select(contact => new TouchpadContact(contact.ContactIdentifier, contact.State,
+                    contact.NormalizedX, contact.NormalizedY, contact.Confidence))
                 .ToList();
 
             var frame = new TouchpadFrameEventArgs(contacts, e.TimestampMilliseconds);
