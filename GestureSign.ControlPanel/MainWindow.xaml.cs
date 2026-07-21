@@ -28,7 +28,7 @@ namespace GestureSign.ControlPanel
             InitializeComponent();
         }
 
-        private void MetroWindow_Loaded(object sender, RoutedEventArgs e)
+        private async void MetroWindow_Loaded(object sender, RoutedEventArgs e)
         {
             if (CheckIfApplicationRunAsAdmin())
             {
@@ -37,13 +37,15 @@ namespace GestureSign.ControlPanel
             }
             StartDaemon();
             SetAboutInfo();
-
-            if (ExistsNewerErrorLog() && AppConfig.SendErrorReport)
-            {
-                this.Dispatcher.InvokeAsync(SendLog, DispatcherPriority.Background);
-            }
-
             Activate();
+
+            DateTime? latestErrorTime = await Task.Run(FindLatestGestureSignErrorTime);
+            if (!IsLoaded || latestErrorTime == null || AppConfig.LastErrorTime.CompareTo(latestErrorTime.Value) >= 0)
+                return;
+
+            AppConfig.LastErrorTime = latestErrorTime.Value;
+            if (AppConfig.SendErrorReport)
+                await Dispatcher.InvokeAsync(SendLog, DispatcherPriority.Background);
         }
 
         private void SetAboutInfo()
@@ -78,9 +80,9 @@ namespace GestureSign.ControlPanel
             SendFeedback();
         }
 
-        private bool ExistsNewerErrorLog()
+        private DateTime? FindLatestGestureSignErrorTime()
         {
-            EventLog logs = new EventLog { Log = "Application" };
+            using EventLog logs = new EventLog { Log = "Application" };
             var now = DateTime.Now;
             var entryCollection = logs.Entries;
             int logCount = entryCollection.Count;
@@ -93,18 +95,12 @@ namespace GestureSign.ControlPanel
                 if (entry.EntryType == EventLogEntryType.Error && ".NET Runtime".Equals(entry.Source) &&
                     entry.Message.IndexOf("GestureSign", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    bool hasNewLog = AppConfig.LastErrorTime.CompareTo(entry.TimeWritten) < 0;
-                    if (hasNewLog)
-                    {
-                        AppConfig.LastErrorTime = entry.TimeWritten;
-                    }
-
-                    return hasNewLog;
+                    return entry.TimeWritten;
                 }
                 //The collection is dynamic and the number of entries may not be immutable
                 logCount = entryCollection.Count;
             }
-            return false;
+            return null;
         }
 
         private void SendLog()
