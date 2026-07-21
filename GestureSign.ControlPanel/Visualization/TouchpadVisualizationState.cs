@@ -7,16 +7,19 @@ namespace GestureSign.ControlPanel.Visualization
 {
     internal readonly struct TouchpadTracePoint
     {
-        public TouchpadTracePoint(long timestampMilliseconds, double normalizedX, double normalizedY)
+        public TouchpadTracePoint(long timestampMilliseconds, double normalizedX, double normalizedY,
+            TouchpadContactConfidence confidence)
         {
             TimestampMilliseconds = timestampMilliseconds;
             NormalizedX = normalizedX;
             NormalizedY = normalizedY;
+            Confidence = confidence;
         }
 
         public long TimestampMilliseconds { get; }
         public double NormalizedX { get; }
         public double NormalizedY { get; }
+        public TouchpadContactConfidence Confidence { get; }
     }
 
     internal sealed class TouchpadContactTrace
@@ -103,7 +106,7 @@ namespace GestureSign.ControlPanel.Visualization
                 }
 
                 trace.AddPoint(new TouchpadTracePoint(frame.TimestampMilliseconds,
-                    contact.NormalizedX, contact.NormalizedY), MaximumTrailPointCount);
+                    contact.NormalizedX, contact.NormalizedY, contact.Confidence), MaximumTrailPointCount);
             }
 
             foreach (TouchpadContactTrace trace in _traces.Values)

@@ -28,9 +28,9 @@ namespace GestureSign.Common.Input
 
     public static class TouchpadVisualizationProtocol
     {
-        private static readonly byte[] Handshake = { (byte)'G', (byte)'S', (byte)'T', (byte)'V', 1 };
+        private static readonly byte[] Handshake = { (byte)'G', (byte)'S', (byte)'T', (byte)'V', 2 };
         private const int FrameHeaderSize = sizeof(long) + sizeof(int);
-        private const int ContactSize = sizeof(int) + sizeof(int) + sizeof(float) + sizeof(float);
+        private const int ContactSize = sizeof(int) + sizeof(int) + sizeof(float) + sizeof(float) + sizeof(byte);
         public const int MaximumContactCount = 32;
 
         public static async ValueTask WriteHandshakeAsync(Stream stream, CancellationToken cancellationToken)
@@ -72,12 +72,14 @@ namespace GestureSign.Common.Input
             {
                 ValidateCoordinate(contact.NormalizedX);
                 ValidateCoordinate(contact.NormalizedY);
+                ValidateConfidence(contact.Confidence);
                 BinaryPrimitives.WriteInt32LittleEndian(payload.Slice(offset), contact.ContactIdentifier);
                 BinaryPrimitives.WriteInt32LittleEndian(payload.Slice(offset + sizeof(int)), (int)contact.State);
                 BinaryPrimitives.WriteSingleLittleEndian(payload.Slice(offset + sizeof(int) * 2),
                     (float)contact.NormalizedX);
                 BinaryPrimitives.WriteSingleLittleEndian(payload.Slice(offset + sizeof(int) * 2 + sizeof(float)),
                     (float)contact.NormalizedY);
+                payload[offset + ContactSize - sizeof(byte)] = (byte)contact.Confidence;
                 offset += ContactSize;
             }
 
@@ -113,9 +115,11 @@ namespace GestureSign.Common.Input
                     payload.AsSpan(offset + sizeof(int) * 2));
                 float normalizedY = BinaryPrimitives.ReadSingleLittleEndian(
                     payload.AsSpan(offset + sizeof(int) * 2 + sizeof(float)));
+                var confidence = (TouchpadContactConfidence)payload[offset + ContactSize - sizeof(byte)];
                 ValidateCoordinate(normalizedX);
                 ValidateCoordinate(normalizedY);
-                contacts[i] = new TouchpadContact(contactIdentifier, state, normalizedX, normalizedY);
+                ValidateConfidence(confidence);
+                contacts[i] = new TouchpadContact(contactIdentifier, state, normalizedX, normalizedY, confidence);
             }
 
             return new TouchpadVisualizationFrame(timestampMilliseconds, contacts);
@@ -125,6 +129,17 @@ namespace GestureSign.Common.Input
         {
             if (double.IsNaN(coordinate) || double.IsInfinity(coordinate) || coordinate < 0 || coordinate > 1)
                 throw new InvalidDataException("The touchpad visualization frame contains an invalid coordinate.");
+        }
+
+        private static void ValidateConfidence(TouchpadContactConfidence confidence)
+        {
+            if (confidence != TouchpadContactConfidence.NotReported &&
+                confidence != TouchpadContactConfidence.Confident &&
+                confidence != TouchpadContactConfidence.LowConfidence)
+            {
+                throw new InvalidDataException(
+                    "The touchpad visualization frame contains an invalid confidence value.");
+            }
         }
     }
 }

@@ -23,8 +23,10 @@ namespace GestureSign.Tests
         {
             var expected = new TouchpadVisualizationFrame(12345, new[]
             {
-                new TouchpadContact(7, DeviceStates.Tip, 0.25, 0.75),
-                new TouchpadContact(9, DeviceStates.None, 0.8, 0.1)
+                new TouchpadContact(7, DeviceStates.Tip, 0.25, 0.75,
+                    TouchpadContactConfidence.LowConfidence),
+                new TouchpadContact(9, DeviceStates.None, 0.8, 0.1,
+                    TouchpadContactConfidence.Confident)
             });
             using var stream = new MemoryStream();
 
@@ -41,13 +43,15 @@ namespace GestureSign.Tests
             Assert.Equal(DeviceStates.Tip, actual.Contacts[0].State);
             Assert.Equal(0.25, actual.Contacts[0].NormalizedX, 5);
             Assert.Equal(0.75, actual.Contacts[0].NormalizedY, 5);
+            Assert.Equal(TouchpadContactConfidence.LowConfidence, actual.Contacts[0].Confidence);
             Assert.Equal(DeviceStates.None, actual.Contacts[1].State);
+            Assert.Equal(TouchpadContactConfidence.Confident, actual.Contacts[1].Confidence);
         }
 
         [Fact]
         public async Task ProtocolRejectsUnsupportedHandshake()
         {
-            using var stream = new MemoryStream(new byte[] { (byte)'G', (byte)'S', (byte)'T', (byte)'V', 2 });
+            using var stream = new MemoryStream(new byte[] { (byte)'G', (byte)'S', (byte)'T', (byte)'V', 99 });
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await TouchpadVisualizationProtocol.ReadHandshakeAsync(stream, CancellationToken.None));
@@ -157,6 +161,25 @@ namespace GestureSign.Tests
             TouchpadTracePoint point = Assert.Single(trace.Points);
             Assert.True(trace.IsActive);
             Assert.Equal(0.9, point.NormalizedX, 5);
+        }
+
+        [Fact]
+        public void VisualizationStateTracksLatestContactConfidence()
+        {
+            var state = new TouchpadVisualizationState();
+            state.ApplyFrame(new TouchpadVisualizationFrame(10, new[]
+            {
+                new TouchpadContact(1, DeviceStates.Tip, 0.2, 0.3,
+                    TouchpadContactConfidence.Confident)
+            }));
+            state.ApplyFrame(new TouchpadVisualizationFrame(20, new[]
+            {
+                new TouchpadContact(1, DeviceStates.Tip, 0.25, 0.35,
+                    TouchpadContactConfidence.LowConfidence)
+            }));
+
+            TouchpadContactTrace trace = Assert.Single(state.Traces);
+            Assert.Equal(TouchpadContactConfidence.LowConfidence, trace.LastPoint.Confidence);
         }
 
         [Fact]
@@ -276,6 +299,68 @@ namespace GestureSign.Tests
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "The WPF render test timed out.");
+            if (failure != null)
+                throw failure;
+        }
+
+        [Fact]
+        public void VisualizerDistinguishesLowConfidenceContact()
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    const int width = 240;
+                    const int height = 140;
+
+                    byte RenderMarkerBlue(TouchpadContactConfidence confidence)
+                    {
+                        var visualizer = new TouchpadVisualizer
+                        {
+                            Width = width,
+                            Height = height,
+                            SurfaceBrush = Brushes.Black,
+                            OutlineBrush = Brushes.Black,
+                            EdgeAreaBrush = Brushes.Transparent,
+                            EdgeBoundaryBrush = Brushes.Transparent,
+                            IsConnected = true
+                        };
+                        visualizer.Measure(new Size(width, height));
+                        visualizer.Arrange(new Rect(0, 0, width, height));
+                        visualizer.UpdateFrame(new TouchpadVisualizationFrame(100, new[]
+                        {
+                            new TouchpadContact(0, DeviceStates.Tip, 0.5, 0.5, confidence)
+                        }));
+                        visualizer.UpdateLayout();
+
+                        var bitmap = new RenderTargetBitmap(width, height, 96, 96,
+                            PixelFormats.Pbgra32);
+                        bitmap.Render(visualizer);
+                        var pixels = new byte[width * height * 4];
+                        bitmap.CopyPixels(pixels, width * 4, 0);
+                        int centerX = (int)Math.Round(1 + (width - 2) * 0.5);
+                        int centerY = (int)Math.Round(1 + (height - 2) * 0.5);
+                        byte blue = pixels[(centerY * width + centerX + 8) * 4];
+                        visualizer.ClearContacts();
+                        return blue;
+                    }
+
+                    byte confidentBlue = RenderMarkerBlue(TouchpadContactConfidence.Confident);
+                    byte lowConfidenceBlue = RenderMarkerBlue(TouchpadContactConfidence.LowConfidence);
+
+                    Assert.True(confidentBlue > lowConfidenceBlue + 100,
+                        $"Expected a visibly hollow low-confidence marker; blue values were " +
+                        $"{confidentBlue} and {lowConfidenceBlue}.");
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "The WPF confidence render test timed out.");
             if (failure != null)
                 throw failure;
         }

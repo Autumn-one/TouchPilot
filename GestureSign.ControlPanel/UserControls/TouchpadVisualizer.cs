@@ -34,6 +34,22 @@ namespace GestureSign.ControlPanel.UserControls
                 new SolidColorBrush(Color.FromArgb(125, color.R, color.G, color.B)), 4)))
             .ToArray();
 
+        private static readonly Brush[] LowConfidenceContactBrushes = ContactColors
+            .Select(color => Freeze(new SolidColorBrush(Color.FromArgb(38, color.R, color.G, color.B))))
+            .ToArray();
+
+        private static readonly Pen[] LowConfidenceContactPens = ContactColors
+            .Select(color => Freeze(new Pen(new SolidColorBrush(color), 3) { DashStyle = DashStyles.Dash }))
+            .ToArray();
+
+        private static readonly Pen[] LowConfidenceTrailPens = ContactColors
+            .Select(color => Freeze(new Pen(
+                new SolidColorBrush(Color.FromArgb(95, color.R, color.G, color.B)), 3)
+            {
+                DashStyle = DashStyles.Dash
+            }))
+            .ToArray();
+
         private readonly TouchpadVisualizationState _state = new TouchpadVisualizationState();
         private readonly DispatcherTimer _fadeTimer;
 
@@ -218,6 +234,7 @@ namespace GestureSign.ControlPanel.UserControls
                 return;
 
             int paletteIndex = Math.Abs(trace.ContactIdentifier % ContactBrushes.Length);
+            bool lowConfidence = trace.LastPoint.Confidence == TouchpadContactConfidence.LowConfidence;
             double opacity = trace.IsActive
                 ? 1
                 : Math.Max(0, 1 - (timestampMilliseconds - trace.ReleasedAtMilliseconds) /
@@ -233,14 +250,25 @@ namespace GestureSign.ControlPanel.UserControls
                         context.LineTo(Map(bounds, trace.Points[i]), true, false);
                 }
                 geometry.Freeze();
-                drawingContext.DrawGeometry(null, TrailPens[paletteIndex], geometry);
+                drawingContext.DrawGeometry(null,
+                    lowConfidence ? LowConfidenceTrailPens[paletteIndex] : TrailPens[paletteIndex], geometry);
             }
 
             Point center = Map(bounds, trace.LastPoint);
             drawingContext.DrawEllipse(ContactHaloBrushes[paletteIndex], null, center, 19, 19);
-            drawingContext.DrawEllipse(ContactBrushes[paletteIndex],
-                new Pen(Brushes.White, 2), center, 13, 13);
-            DrawContactIdentifier(drawingContext, center, trace.ContactIdentifier);
+            if (lowConfidence)
+            {
+                drawingContext.DrawEllipse(LowConfidenceContactBrushes[paletteIndex],
+                    LowConfidenceContactPens[paletteIndex], center, 13, 13);
+                DrawContactIdentifier(drawingContext, center, trace.ContactIdentifier,
+                    ContactBrushes[paletteIndex]);
+            }
+            else
+            {
+                drawingContext.DrawEllipse(ContactBrushes[paletteIndex],
+                    new Pen(Brushes.White, 2), center, 13, 13);
+                DrawContactIdentifier(drawingContext, center, trace.ContactIdentifier, Brushes.White);
+            }
             drawingContext.Pop();
         }
 
@@ -252,7 +280,7 @@ namespace GestureSign.ControlPanel.UserControls
         }
 
         private void DrawContactIdentifier(DrawingContext drawingContext, Point center,
-            int contactIdentifier)
+            int contactIdentifier, Brush textBrush)
         {
             var text = new FormattedText(
                 contactIdentifier.ToString(CultureInfo.InvariantCulture),
@@ -260,7 +288,7 @@ namespace GestureSign.ControlPanel.UserControls
                 FlowDirection.LeftToRight,
                 new Typeface("Segoe UI"),
                 11,
-                Brushes.White,
+                textBrush,
                 VisualTreeHelper.GetDpi(this).PixelsPerDip);
             drawingContext.DrawText(text,
                 new Point(center.X - text.Width / 2, center.Y - text.Height / 2));
