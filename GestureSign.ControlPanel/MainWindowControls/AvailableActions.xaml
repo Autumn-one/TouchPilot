@@ -7,6 +7,7 @@
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:applications="clr-namespace:GestureSign.Common.Applications;assembly=GestureSign.Common"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
+             xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
              xmlns:converters="clr-namespace:GestureSign.ControlPanel.Converters"
              xmlns:viewModel="clr-namespace:GestureSign.ControlPanel.ViewModel"
              xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
@@ -524,6 +525,7 @@
 
                 <ListBox x:Name="lstAvailableActions"
                          Grid.Row="1"
+                         common:PrecisionScrolling.IsEnabled="True"
                          ItemsSource="{Binding Source={StaticResource ActionsViewSource}}"
                          SelectedValuePath="CommandName"
                          SelectionMode="Extended"

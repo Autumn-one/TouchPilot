@@ -23,10 +23,10 @@
         <SolidColorBrush x:Key="MahApps.Brushes.Highlight"
                          Color="{StaticResource V2.Color.Accent}" />
     </UserControl.Resources>
-    <common:ControlledScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                   VerticalScrollBarVisibility="Auto"
-                                   PanningMode="VerticalFirst"
-                                   WheelScrollStep="24">
+    <ScrollViewer common:PrecisionScrolling.IsEnabled="True"
+                  HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto"
+                  PanningMode="VerticalFirst">
         <StackPanel MaxWidth="760"
                     HorizontalAlignment="Stretch">
             <TextBlock Style="{StaticResource V2.Settings.SectionTitle}"
@@ -495,5 +495,5 @@
                 </WrapPanel>
             </Border>
         </StackPanel>
-    </common:ControlledScrollViewer>
+    </ScrollViewer>
 </UserControl>
