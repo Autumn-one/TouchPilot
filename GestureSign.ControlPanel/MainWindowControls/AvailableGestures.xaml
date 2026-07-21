@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
+             xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
              xmlns:viewModel="clr-namespace:GestureSign.ControlPanel.ViewModel"
              xmlns:converters="clr-namespace:GestureSign.ControlPanel.Converters"
              xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
@@ -453,6 +454,7 @@
 
         <ListView x:Name="lstAvailableGestures"
                   Grid.Row="1"
+                  common:PrecisionScrolling.IsEnabled="True"
                   ItemsSource="{Binding Source={StaticResource GestureViewSource}}"
                   ItemContainerStyle="{StaticResource Gesture.ListViewItem}"
                   Background="{StaticResource V2.Brush.Surface}"
@@ -461,6 +463,7 @@
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                   ScrollViewer.PanningMode="VerticalOnly"
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  VirtualizingPanel.ScrollUnit="Pixel"
                   SelectedValuePath="Gesture"
                   SelectionChanged="lstAvailableGestures_SelectionChanged"
                   GridViewColumnHeader.Click="GridViewColumnHeaderClickedHandler">

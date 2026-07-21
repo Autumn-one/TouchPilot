@@ -216,6 +216,10 @@
                     Value="True" />
             <Setter Property="VirtualizingPanel.VirtualizationMode"
                     Value="Recycling" />
+            <Setter Property="VirtualizingPanel.ScrollUnit"
+                    Value="Pixel" />
+            <Setter Property="common:PrecisionScrolling.IsEnabled"
+                    Value="True" />
             <Setter Property="HorizontalContentAlignment"
                     Value="Stretch" />
         </Style>
@@ -399,8 +403,7 @@
                              Grid.Row="1"
                              Style="{StaticResource Selector.ListBox}"
                              ItemContainerStyle="{StaticResource Selector.ListBoxItem}"
-                             ItemsSource="{Binding Source={StaticResource ActionViewSource}}"
-                             VirtualizingPanel.ScrollUnit="Pixel">
+                             ItemsSource="{Binding Source={StaticResource ActionViewSource}}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Grid MinHeight="72"

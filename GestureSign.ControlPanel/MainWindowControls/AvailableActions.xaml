@@ -340,6 +340,7 @@
 
                 <ListBox x:Name="lstAvailableApplication"
                          Grid.Row="1"
+                         common:PrecisionScrolling.IsEnabled="True"
                          ItemsSource="{Binding Source={StaticResource ApplicationViewSource}}"
                          Background="Transparent"
                          BorderThickness="0"
@@ -349,6 +350,7 @@
                          VirtualizingPanel.IsVirtualizing="True"
                          VirtualizingPanel.VirtualizationMode="Recycling"
                          VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                         VirtualizingPanel.ScrollUnit="Pixel"
                          SelectionChanged="lstAvailableApplication_SelectionChanged"
                          ContextMenuOpening="lstAvailableApplication_ContextMenuOpening">
                     <ListBox.ContextMenu>

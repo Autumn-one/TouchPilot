@@ -5,6 +5,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
                  xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
+                 xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
                  mc:Ignorable="d"
                  d:DesignHeight="480"
                  d:DesignWidth="360"
@@ -76,6 +77,7 @@
     </controls:Flyout.Resources>
 
     <ListView x:Name="lstRunningApplications"
+              common:PrecisionScrolling.IsEnabled="True"
               Margin="0,0,0,10"
               ItemContainerStyle="{StaticResource RunningApplications.Item}"
               Background="{StaticResource V2.Brush.Surface}"
@@ -83,6 +85,7 @@
               ScrollViewer.PanningMode="VerticalOnly"
               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
               ScrollViewer.VerticalScrollBarVisibility="Auto"
+              VirtualizingPanel.ScrollUnit="Pixel"
               SelectionChanged="lstRunningApplications_SelectionChanged">
         <ListView.ItemTemplate>
             <DataTemplate>
