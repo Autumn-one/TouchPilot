@@ -16,6 +16,8 @@
                 Value="{StaticResource V2.Brush.SurfaceSubtle}" />
         <Setter Property="TitleForeground"
                 Value="{StaticResource V2.Brush.Text}" />
+        <Setter Property="OverrideDefaultWindowCommandsBrush"
+                Value="{StaticResource V2.Brush.Text}" />
         <Setter Property="GlowBrush"
                 Value="{StaticResource V2.Brush.Accent}" />
         <Setter Property="ShowIconOnTitleBar"
