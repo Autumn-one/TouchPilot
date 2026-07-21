@@ -99,6 +99,11 @@ namespace GestureSign.ControlPanel.Common
             return Math.Max(0, Math.Min(offset, scrollableHeight));
         }
 
+        internal static bool CanUsePixelOffsets(bool canContentScroll, ScrollUnit? ownerScrollUnit)
+        {
+            return !canContentScroll || ownerScrollUnit == ScrollUnit.Pixel;
+        }
+
         private static bool IsValidNonNegativeFiniteDouble(object value)
         {
             return value is double number && number >= 0 && !double.IsNaN(number) && !double.IsInfinity(number);
@@ -167,12 +172,42 @@ namespace GestureSign.ControlPanel.Common
             while (current != null)
             {
                 if (current is ScrollViewer scrollViewer &&
-                    !scrollViewer.CanContentScroll &&
+                    UsesPixelOffsets(scrollViewer, host) &&
                     CanScroll(scrollViewer, pixelDelta))
                 {
                     return scrollViewer;
                 }
 
+                if (ReferenceEquals(current, host))
+                    break;
+                current = GetParent(current);
+            }
+
+            return null;
+        }
+
+        private static bool UsesPixelOffsets(ScrollViewer scrollViewer, UIElement host)
+        {
+            if (!scrollViewer.CanContentScroll)
+                return true;
+
+            ItemsControl owner = FindItemsControlOwner(scrollViewer, host);
+            ScrollUnit? scrollUnit = owner == null
+                ? null
+                : VirtualizingPanel.GetScrollUnit(owner);
+            return CanUsePixelOffsets(scrollViewer.CanContentScroll, scrollUnit);
+        }
+
+        private static ItemsControl FindItemsControlOwner(ScrollViewer scrollViewer, UIElement host)
+        {
+            if (scrollViewer.TemplatedParent is ItemsControl templatedOwner)
+                return templatedOwner;
+
+            DependencyObject current = scrollViewer;
+            while (current != null)
+            {
+                if (current is ItemsControl owner)
+                    return owner;
                 if (ReferenceEquals(current, host))
                     break;
                 current = GetParent(current);

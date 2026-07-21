@@ -1,4 +1,5 @@
 using GestureSign.ControlPanel.Common;
+using System.Windows.Controls;
 using Xunit;
 
 namespace GestureSign.Tests
@@ -64,6 +65,21 @@ namespace GestureSign.Tests
         public void ScrollTargetsStayWithinTheScrollableRange(double offset, double expected)
         {
             Assert.Equal(expected, PrecisionScrolling.ClampOffset(offset, 100));
+        }
+
+        [Theory]
+        [InlineData(false, null, true)]
+        [InlineData(false, ScrollUnit.Item, true)]
+        [InlineData(true, null, false)]
+        [InlineData(true, ScrollUnit.Item, false)]
+        [InlineData(true, ScrollUnit.Pixel, true)]
+        public void OnlyPhysicalOrPixelVirtualizedContainersUsePixelOffsets(
+            bool canContentScroll,
+            ScrollUnit? ownerScrollUnit,
+            bool expected)
+        {
+            Assert.Equal(expected,
+                PrecisionScrolling.CanUsePixelOffsets(canContentScroll, ownerScrollUnit));
         }
     }
 }
