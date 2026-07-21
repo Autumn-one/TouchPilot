@@ -24,9 +24,7 @@
         <Border Background="{StaticResource V2.Brush.SurfaceSubtle}"
                 BorderBrush="{StaticResource V2.Brush.Border}"
                 BorderThickness="1"
-                CornerRadius="{StaticResource V2.Corner.Small}"
-                Cursor="Hand"
-                MouseLeftButtonDown="imgGestureThumbnail_MouseLeftButtonDown">
+                CornerRadius="{StaticResource V2.Corner.Small}">
             <Grid>
                 <Image x:Name="imgGestureThumbnail"
                        Height="96"

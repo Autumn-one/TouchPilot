@@ -1,10 +1,8 @@
 ﻿using GestureSign.Common;
 using GestureSign.Common.Gestures;
 using GestureSign.Common.InterProcessCommunication;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace GestureSign.ControlPanel.UserControls
 {
@@ -13,9 +11,6 @@ namespace GestureSign.ControlPanel.UserControls
     /// </summary>
     public partial class GestureSelector : UserControl
     {
-        private bool _stackUp;
-        private PointPattern[] _tempPointPattern;
-
         public IGesture CurrentGesture
         {
             get { return (IGesture)GetValue(CurrentGestureProperty); }
@@ -34,24 +29,17 @@ namespace GestureSign.ControlPanel.UserControls
 
         private void MessageProcessor_GotNewPattern(object sender, PointPattern[] newPattern)
         {
-            var currentPatterns = newPattern;
-            if (_stackUp && _tempPointPattern != null)
-            {
-                currentPatterns = _tempPointPattern.Concat(newPattern).ToArray();
-                _stackUp = false;
-                _tempPointPattern = null;
-            }
-            var existingSimilarGestureName = GestureManager.Instance.GetMostSimilarGestureName(currentPatterns);
+            var existingSimilarGestureName = GestureManager.Instance.GetMostSimilarGestureName(newPattern);
             if (existingSimilarGestureName == null)
             {
-                CurrentGesture = new Gesture(null, currentPatterns);
+                CurrentGesture = new Gesture(null, newPattern);
                 ExistingTextBlock.Visibility = Visibility.Collapsed;
             }
             else
             {
                 if (OldGesture?.Name == existingSimilarGestureName)
                 {
-                    CurrentGesture = new Gesture(existingSimilarGestureName, currentPatterns);
+                    CurrentGesture = new Gesture(existingSimilarGestureName, newPattern);
                 }
                 else
                 {
@@ -84,16 +72,6 @@ namespace GestureSign.ControlPanel.UserControls
         private void RedrawButton_Click(object sender, RoutedEventArgs e)
         {
             SetTrainingState(true);
-        }
-
-        private void imgGestureThumbnail_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ClickCount == 2 && CurrentGesture != null && CurrentGesture.PointPatterns?.Length < 3)
-            {
-                _stackUp = true;
-                _tempPointPattern = CurrentGesture.PointPatterns;
-                SetTrainingState(true);
-            }
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
