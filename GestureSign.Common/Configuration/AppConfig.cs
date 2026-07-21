@@ -305,6 +305,12 @@ namespace GestureSign.Common.Configuration
             set { SetValue(nameof(TouchpadEdgeGesturesEnabled), value); }
         }
 
+        public static bool TouchpadEdgeConfidenceFilteringEnabled
+        {
+            get { return GetValue(nameof(TouchpadEdgeConfidenceFilteringEnabled), false); }
+            set { SetValue(nameof(TouchpadEdgeConfidenceFilteringEnabled), value); }
+        }
+
         public static TouchpadWindowDragMode TouchpadWindowDragMode
         {
             get

@@ -158,6 +158,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
             try
             {
                 EdgeTouchSwitch.IsOn = AppConfig.TouchpadEdgeGesturesEnabled;
+                ConfidenceFilterSwitch.IsOn = AppConfig.TouchpadEdgeConfidenceFilteringEnabled;
                 WindowDragSwitch.IsOn = AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled;
                 WindowDragImplementationComboBox.ItemsSource = new[]
                 {
@@ -239,6 +240,12 @@ namespace GestureSign.ControlPanel.MainWindowControls
         {
             if (!_loading)
                 AppConfig.TouchpadEdgeGesturesEnabled = EdgeTouchSwitch.IsOn;
+        }
+
+        private void ConfidenceFilterSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (!_loading)
+                AppConfig.TouchpadEdgeConfidenceFilteringEnabled = ConfidenceFilterSwitch.IsOn;
         }
 
         private void WindowDragSwitch_Toggled(object sender, RoutedEventArgs e)

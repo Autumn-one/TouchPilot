@@ -239,6 +239,8 @@ QQ交流群：576981420
     <Visualizer>触控板实时预览</Visualizer>
     <VisualizerConnecting>正在连接触控板...</VisualizerConnecting>
     <VisualizerWaiting>等待触控输入</VisualizerWaiting>
+    <ConfidenceFilter>边缘交互过滤低可信触点</ConfidenceFilter>
+    <ConfidenceFilterHelp>仅影响固定边缘手势和窗口拖动，不影响普通录入手势</ConfidenceFilterHelp>
     <WindowDrag>窗口拖动</WindowDrag>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
     <WindowDragEnabled>启用拖移</WindowDragEnabled>

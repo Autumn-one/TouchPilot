@@ -3,6 +3,7 @@ using GestureSign.Common.Configuration;
 using GestureSign.Common.Input;
 using GestureSign.Daemon.Input;
 using ManagedWinapi.Windows;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -15,11 +16,17 @@ namespace GestureSign.Daemon.Triggers
         private TouchpadInteractionRecognizer _recognizer;
         private readonly WindowDragController _windowDragController = new WindowDragController();
         private readonly TouchpadWheelSuppressor _wheelSuppressor = new TouchpadWheelSuppressor();
+        private readonly ITouchpadContactFilter _confidenceFilter;
         private Point _sessionStartPoint;
         private TouchpadWindowDragImplementation _sessionWindowDragImplementation;
 
-        public TouchpadInteractionTrigger()
+        public TouchpadInteractionTrigger() : this(new TouchpadConfidenceContactFilter())
         {
+        }
+
+        internal TouchpadInteractionTrigger(ITouchpadContactFilter confidenceFilter)
+        {
+            _confidenceFilter = confidenceFilter ?? throw new ArgumentNullException(nameof(confidenceFilter));
             _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
             _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
             PointCapture.Instance.TouchpadFrame += PointCapture_TouchpadFrame;
@@ -28,8 +35,11 @@ namespace GestureSign.Daemon.Triggers
         private void PointCapture_TouchpadFrame(object sender, TouchpadFrameEventArgs e)
         {
             bool normalMode = PointCapture.Instance.Mode == CaptureMode.Normal;
+            IReadOnlyList<TouchpadContact> contacts = AppConfig.TouchpadEdgeConfidenceFilteringEnabled
+                ? _confidenceFilter.Filter(e.Contacts)
+                : e.Contacts;
             if (normalMode && AppConfig.TouchpadEdgeGesturesEnabled &&
-                e.Contacts.Count(contact => contact.IsActive) >= 2)
+                contacts.Count(contact => contact.IsActive) >= 2)
             {
                 _wheelSuppressor.StartMonitoring();
             }
@@ -41,7 +51,7 @@ namespace GestureSign.Daemon.Triggers
                 _sessionStartPoint = Cursor.Position;
             }
 
-            TouchpadInteractionFrameResult result = _recognizer.ProcessFrame(e.Contacts, e.TimestampMilliseconds);
+            TouchpadInteractionFrameResult result = _recognizer.ProcessFrame(contacts, e.TimestampMilliseconds);
             e.ClaimInput = result.ClaimInput && normalMode;
             _wheelSuppressor.SuppressWheel = e.ClaimInput;
 

@@ -235,6 +235,8 @@ Email: ccfyzh@gmail.com
     <Visualizer>Live touchpad preview</Visualizer>
     <VisualizerConnecting>Connecting to touchpad...</VisualizerConnecting>
     <VisualizerWaiting>Waiting for touch input</VisualizerWaiting>
+    <ConfidenceFilter>Filter low-confidence edge contacts</ConfidenceFilter>
+    <ConfidenceFilterHelp>Only affects fixed edge gestures and window dragging, not recorded gestures</ConfidenceFilterHelp>
     <WindowDrag>Window dragging</WindowDrag>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
     <WindowDragEnabled>Enable dragging</WindowDragEnabled>

@@ -89,6 +89,28 @@
                                                  WaitingText="{localization:LocalisedText EdgeTouch.VisualizerWaiting}" />
             </Viewbox>
 
+            <Border Margin="0,12,0,0"
+                    Style="{StaticResource V2.Settings.Row}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource V2.Settings.Label}"
+                               Text="{localization:LocalisedText EdgeTouch.ConfidenceFilter}"
+                               ToolTip="{localization:LocalisedText EdgeTouch.ConfidenceFilterHelp}" />
+                    <controls:ToggleSwitch x:Name="ConfidenceFilterSwitch"
+                                           Grid.Column="1"
+                                           Style="{StaticResource V2.Settings.ToggleSwitch}"
+                                           OnContent="{localization:LocalisedText Options.OnLabel}"
+                                           OffContent="{localization:LocalisedText Options.OffLabel}"
+                                           ToolTip="{localization:LocalisedText EdgeTouch.ConfidenceFilterHelp}"
+                                           AutomationProperties.Name="{localization:LocalisedText EdgeTouch.ConfidenceFilter}"
+                                           AutomationProperties.HelpText="{localization:LocalisedText EdgeTouch.ConfidenceFilterHelp}"
+                                           Toggled="ConfidenceFilterSwitch_Toggled" />
+                </Grid>
+            </Border>
+
             <TextBlock Margin="0,28,0,6"
                        Style="{StaticResource V2.Settings.SectionTitle}"
                        Text="{localization:LocalisedText EdgeTouch.WindowDrag}" />
