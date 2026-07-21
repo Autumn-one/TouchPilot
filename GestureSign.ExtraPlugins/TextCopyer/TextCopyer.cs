@@ -1,4 +1,5 @@
 ﻿using GestureSign.Common.Plugins;
+using GestureSign.Common.Localization;
 using System.Windows;
 using System.Windows.Automation;
 
@@ -17,17 +18,23 @@ namespace GestureSign.ExtraPlugins.TextCopyer
 
         public string Name
         {
-            get { return "TextCopyer"; }
+            get { return LocalizationProvider.Instance.GetTextValue("TextCopyer.Name"); }
         }
 
         public string Category
         {
-            get { return "Clipboard"; }
+            get { return LocalizationProvider.Instance.GetTextValue("TextCopyer.Category"); }
         }
 
         public string Description
         {
-            get { return "Copy text from " + (_position == null ? "First Point Down" : $"({_position.Value})"); }
+            get
+            {
+                string position = _position == null
+                    ? LocalizationProvider.Instance.GetTextValue("TextCopyer.FirstPointDown")
+                    : $"({_position.Value})";
+                return string.Format(LocalizationProvider.Instance.GetTextValue("TextCopyer.Description"), position);
+            }
         }
 
         public bool IsAction

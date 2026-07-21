@@ -4,63 +4,76 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:GestureSign.ExtraPlugins.TextCopyer"
+             xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
-             d:DesignHeight="300"
-             d:DesignWidth="300">
+             d:DesignHeight="160"
+             d:DesignWidth="340"
+             MinWidth="300"
+             Background="Transparent">
     <StackPanel>
         <TextBlock x:Name="PositionText"
-                   Text="Target Position"
-                   FontSize="14"
-                   Margin="0,5,0,0" />
+                   Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText TextCopyer.TargetPosition}" />
         <ComboBox x:Name="PositionComboBox"
-                  FontSize="14"
-                  Margin="0,5,0,0"
+                  Margin="0,6,0,0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
                   SelectedIndex="0"
+                  AutomationProperties.Name="{localization:LocalisedText TextCopyer.TargetPosition}"
                   SelectionChanged="PositionComboBox_SelectionChanged">
             <ComboBox.ItemsSource>
                 <CompositeCollection>
-                    <ComboBoxItem Content="First Point Down" />
-                    <ComboBoxItem Content="Custom" />
+                    <ComboBoxItem Content="{localization:LocalisedText TextCopyer.FirstPointDown}" />
+                    <ComboBoxItem Content="{localization:LocalisedText TextCopyer.Custom}" />
                 </CompositeCollection>
             </ComboBox.ItemsSource>
         </ComboBox>
-        <Canvas x:Name="PositionCanvas"
-                Height="55"
-                Visibility="Collapsed"
-                Margin="0,10,0,0">
-            <TextBlock TextWrapping="Wrap"
-                       Text="X"
-                       Canvas.Top="14"
-                       FontSize="14" />
-            <TextBlock TextWrapping="Wrap"
-                       Text="Y"
-                       Canvas.Left="135"
-                       Canvas.Top="14"
-                       FontSize="14" />
+        <Grid x:Name="PositionCanvas"
+              Margin="0,12,0,0"
+              Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="86" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="86" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="44" />
+            </Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="X" />
             <TextBox x:Name="XTextBox"
+                     Grid.Column="2"
+                     MinWidth="0"
+                     Style="{StaticResource V2.Dialog.TextBox}"
+                     HorizontalContentAlignment="Center"
+                     InputMethod.IsInputMethodEnabled="False"
+                     AutomationProperties.Name="X"
                      KeyDown="TextBox_KeyDown"
                      TextChanged="TextBox_TextChanged"
-                     Height="23"
-                     Canvas.Left="25"
-                     TextWrapping="Wrap"
-                     Canvas.Top="10"
-                     Width="60"
-                     FontSize="14" />
+                     TextWrapping="NoWrap" />
+            <TextBlock Grid.Column="4"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource V2.Dialog.Label}"
+                       Text="Y" />
             <TextBox x:Name="YTextBox"
+                     Grid.Column="6"
+                     MinWidth="0"
+                     Style="{StaticResource V2.Dialog.TextBox}"
+                     HorizontalContentAlignment="Center"
+                     InputMethod.IsInputMethodEnabled="False"
+                     AutomationProperties.Name="Y"
                      KeyDown="TextBox_KeyDown"
                      TextChanged="TextBox_TextChanged"
-                     Height="23"
-                     Canvas.Left="160"
-                     TextWrapping="Wrap"
-                     Canvas.Top="10"
-                     Width="60"
-                     FontSize="14" />
+                     TextWrapping="NoWrap" />
             <local:Crosshair x:Name="Crosshair"
-                             Height="36"
-                             Width="36"
+                             Grid.Column="8"
+                             Width="44"
+                             Height="44"
                              CrosshairDragging="Crosshair_CrosshairDragging"
-                             Canvas.Left="260"
-                             Canvas.Top="10" />
-        </Canvas>
+                             AutomationProperties.Name="{localization:LocalisedText TextCopyer.PickPosition}" />
+        </Grid>
     </StackPanel>
 </UserControl>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Language DisplayName="中文" Culture="zh-CN" Version="8.1">
+  <TextCopyer>
+    <Name>复制文本</Name>
+    <Category>剪贴板</Category>
+    <Description>复制文本：{0}</Description>
+    <TargetPosition>目标位置</TargetPosition>
+    <FirstPointDown>第一根手指落点</FirstPointDown>
+    <Custom>指定坐标</Custom>
+    <PickPosition>拾取坐标</PickPosition>
+  </TextCopyer>
+</Language>

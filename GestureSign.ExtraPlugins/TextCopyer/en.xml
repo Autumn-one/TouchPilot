@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Language DisplayName="English" Culture="en" Version="8.1">
+  <TextCopyer>
+    <Name>Copy Text</Name>
+    <Category>Clipboard</Category>
+    <Description>Copy text from {0}</Description>
+    <TargetPosition>Target Position</TargetPosition>
+    <FirstPointDown>First Finger Down</FirstPointDown>
+    <Custom>Specified Point</Custom>
+    <PickPosition>Pick Position</PickPosition>
+  </TextCopyer>
+</Language>
