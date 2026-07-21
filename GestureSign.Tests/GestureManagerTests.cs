@@ -5,7 +5,9 @@ using System.IO;
 using System.Linq;
 using GestureSign.Common.Gestures;
 using GestureSign.Common.Input;
+using Newtonsoft.Json.Linq;
 using Xunit;
+using GestureAction = GestureSign.Common.Applications.Action;
 
 namespace GestureSign.Tests
 {
@@ -54,6 +56,30 @@ namespace GestureSign.Tests
             finally
             {
                 File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void BundledDefaultsHaveNoStackedGesturesOrDanglingGestureActions()
+        {
+            string defaultsPath = Path.Combine(AppContext.BaseDirectory, "Defaults");
+            var gestures = JArray.Parse(File.ReadAllText(Path.Combine(defaultsPath, "Gestures.gest")));
+            var gestureNames = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (JObject gesture in gestures.OfType<JObject>())
+            {
+                Assert.Single((JArray)gesture[nameof(Gesture.PointPatterns)]);
+                gestureNames.Add(gesture.Value<string>(nameof(Gesture.Name)));
+            }
+
+            var applications = JArray.Parse(File.ReadAllText(Path.Combine(defaultsPath, "Actions.gsa")));
+            foreach (JObject action in applications
+                         .OfType<JObject>()
+                         .SelectMany(application => application["Actions"]?.OfType<JObject>() ?? Enumerable.Empty<JObject>()))
+            {
+                string gestureName = action.Value<string>(nameof(GestureAction.GestureName));
+                if (!string.IsNullOrEmpty(gestureName))
+                    Assert.Contains(gestureName, gestureNames);
             }
         }
 
