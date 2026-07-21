@@ -5,18 +5,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              mc:Ignorable="d"
-             d:DesignWidth="320"
-             Height="145">
+             d:DesignHeight="110"
+             d:DesignWidth="340"
+             MinWidth="300"
+             Background="Transparent">
     <StackPanel>
-        <TextBlock HorizontalAlignment="Left"
-                   TextWrapping="Wrap"
-                   Text="{localization:LocalisedText ClipboardMatch.PatternString}"
-                   VerticalAlignment="Top"
-                   FontSize="14" />
+        <TextBlock Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText ClipboardMatch.PatternString}" />
         <TextBox x:Name="MatchTextBox"
+                 Height="44"
+                 Margin="0,6,0,0"
+                 Style="{StaticResource V2.Dialog.TextBox}"
                  TextWrapping="Wrap"
-                 VerticalAlignment="Top"
-                 Margin="0,10,0,0"
-                 MaxHeight="85" />
+                 VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="{localization:LocalisedText ClipboardMatch.PatternString}" />
     </StackPanel>
 </UserControl>
