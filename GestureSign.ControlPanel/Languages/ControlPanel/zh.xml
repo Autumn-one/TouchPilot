@@ -236,6 +236,9 @@ QQ交流群：576981420
   <EdgeTouch>
     <Header>边缘</Header>
     <Enabled>边缘触控</Enabled>
+    <Visualizer>触控板实时预览</Visualizer>
+    <VisualizerConnecting>正在连接触控板...</VisualizerConnecting>
+    <VisualizerWaiting>等待触控输入</VisualizerWaiting>
     <WindowDrag>窗口拖动</WindowDrag>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
     <WindowDragEnabled>启用拖移</WindowDragEnabled>

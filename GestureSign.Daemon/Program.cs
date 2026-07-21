@@ -10,11 +10,14 @@ using GestureSign.Common.Log;
 using GestureSign.Common.Plugins;
 using GestureSign.Daemon.Input;
 using GestureSign.Daemon.Triggers;
+using GestureSign.Daemon.Visualization;
 
 namespace GestureSign.Daemon
 {
     static class Program
     {
+        private static TouchpadVisualizationServer _touchpadVisualizationServer;
+
         /// <summary>
         /// 应用程序的主入口点。
         /// </summary>
@@ -42,6 +45,9 @@ namespace GestureSign.Daemon
                         PointCapture.Instance.Load();
                         SynchronizationContext uiContext = SynchronizationContext.Current;
                         TriggerManager.Instance.Load();
+                        _touchpadVisualizationServer = new TouchpadVisualizationServer(
+                            new PointCaptureVisualizationFrameSource());
+                        _touchpadVisualizationServer.Start();
 
                         GestureManager.Instance.Load(PointCapture.Instance);
                         ApplicationManager.Instance.Load(PointCapture.Instance);
@@ -80,6 +86,7 @@ namespace GestureSign.Daemon
 
         private static void Application_ApplicationExit(object sender, EventArgs e)
         {
+            _touchpadVisualizationServer?.Dispose();
             NamedPipe.Instance.Dispose();
             PointCapture.Instance.Dispose();
         }

@@ -93,6 +93,39 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public async Task ClientReceivesFramesAndDisconnectsWithoutBlocking()
+        {
+            string pipeName = "GestureSignTouchpadVisualizationClientTest-" + Guid.NewGuid().ToString("N");
+            var source = new FakeFrameSource();
+            using var server = new TouchpadVisualizationServer(source, pipeName);
+            using var client = new TouchpadVisualizationClient(pipeName, TimeSpan.FromMilliseconds(20));
+            var connected = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var received = new TaskCompletionSource<TouchpadVisualizationFrame>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            client.ConnectionChanged += (sender, value) =>
+            {
+                if (value)
+                    connected.TrySetResult(true);
+            };
+            client.FrameReceived += (sender, frame) =>
+            {
+                if (frame.TimestampMilliseconds == 42)
+                    received.TrySetResult(frame);
+            };
+
+            server.Start();
+            client.Start();
+            await connected.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.True(SpinWait.SpinUntil(() => source.SubscriberCount == 1, 3000));
+            source.Publish(Frame(42, 0.6));
+
+            TouchpadVisualizationFrame actual = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.Equal(0.6, actual.Contacts[0].NormalizedX, 5);
+            client.Dispose();
+            Assert.True(SpinWait.SpinUntil(() => source.SubscriberCount == 0, 3000));
+        }
+
+        [Fact]
         public void VisualizationStateReleasesContactsMissingFromNextFrame()
         {
             var state = new TouchpadVisualizationState();

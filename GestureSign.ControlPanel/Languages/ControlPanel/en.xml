@@ -232,6 +232,9 @@ Email: ccfyzh@gmail.com
   <EdgeTouch>
     <Header>Edges</Header>
     <Enabled>Edge touch</Enabled>
+    <Visualizer>Live touchpad preview</Visualizer>
+    <VisualizerConnecting>Connecting to touchpad...</VisualizerConnecting>
+    <VisualizerWaiting>Waiting for touch input</VisualizerWaiting>
     <WindowDrag>Window dragging</WindowDrag>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
     <WindowDragEnabled>Enable dragging</WindowDragEnabled>

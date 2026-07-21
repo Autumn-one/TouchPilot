@@ -2,11 +2,13 @@ using GestureSign.Common.Applications;
 using GestureSign.Common.Configuration;
 using GestureSign.Common.Input;
 using GestureSign.Common.Localization;
+using GestureSign.ControlPanel.Visualization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace GestureSign.ControlPanel.MainWindowControls
 {
@@ -25,6 +27,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
         }
 
         private readonly Dictionary<ComboBox, FixedEdgeGesture> _gestureSelectors;
+        private TouchpadVisualizationClient _visualizationClient;
         private bool _loading;
         private bool _subscribed;
 
@@ -59,6 +62,8 @@ namespace GestureSign.ControlPanel.MainWindowControls
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
             SubscribeToApplicationChanges();
+            if (IsVisible)
+                StartTouchpadVisualization();
             await ApplicationManager.Instance.LoadingTask;
             if (!IsLoaded)
                 return;
@@ -68,12 +73,68 @@ namespace GestureSign.ControlPanel.MainWindowControls
 
         private void UserControl_Unloaded(object sender, RoutedEventArgs e)
         {
+            StopTouchpadVisualization();
             if (!_subscribed)
                 return;
 
             ApplicationManager.OnLoadApplicationsCompleted -= ApplicationManager_ApplicationsChanged;
             ApplicationManager.ApplicationSaved -= ApplicationManager_ApplicationsChanged;
             _subscribed = false;
+        }
+
+        private void UserControl_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!IsLoaded)
+                return;
+
+            if (IsVisible)
+                StartTouchpadVisualization();
+            else
+                StopTouchpadVisualization();
+        }
+
+        private void StartTouchpadVisualization()
+        {
+            if (_visualizationClient != null)
+                return;
+
+            var client = new TouchpadVisualizationClient();
+            client.FrameReceived += VisualizationClient_FrameReceived;
+            client.ConnectionChanged += VisualizationClient_ConnectionChanged;
+            _visualizationClient = client;
+            client.Start();
+        }
+
+        private void StopTouchpadVisualization()
+        {
+            TouchpadVisualizationClient client = _visualizationClient;
+            if (client == null)
+                return;
+
+            _visualizationClient = null;
+            client.FrameReceived -= VisualizationClient_FrameReceived;
+            client.ConnectionChanged -= VisualizationClient_ConnectionChanged;
+            client.Dispose();
+            TouchpadPreview.IsConnected = false;
+        }
+
+        private void VisualizationClient_FrameReceived(TouchpadVisualizationClient client,
+            TouchpadVisualizationFrame frame)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (IsLoaded && ReferenceEquals(_visualizationClient, client))
+                    TouchpadPreview.UpdateFrame(frame);
+            }, DispatcherPriority.Render);
+        }
+
+        private void VisualizationClient_ConnectionChanged(TouchpadVisualizationClient client, bool connected)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (IsLoaded && ReferenceEquals(_visualizationClient, client))
+                    TouchpadPreview.IsConnected = connected;
+            }, DispatcherPriority.Render);
         }
 
         private void SubscribeToApplicationChanges()

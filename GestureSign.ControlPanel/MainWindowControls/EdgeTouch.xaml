@@ -4,7 +4,9 @@
              xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              xmlns:common="clr-namespace:GestureSign.ControlPanel.Common"
+             xmlns:userControls="clr-namespace:GestureSign.ControlPanel.UserControls"
              Loaded="UserControl_Loaded"
+             IsVisibleChanged="UserControl_IsVisibleChanged"
              Unloaded="UserControl_Unloaded">
     <UserControl.Resources>
         <Style x:Key="EdgeTouch.EdgeGroup"
@@ -38,6 +40,9 @@
             <Setter Property="HorizontalAlignment"
                     Value="Stretch" />
         </Style>
+        <SolidColorBrush x:Key="EdgeTouch.VisualizerEdgeArea"
+                         Color="{StaticResource V2.Color.Accent}"
+                         Opacity="0.16" />
     </UserControl.Resources>
     <ScrollViewer common:PrecisionScrolling.IsEnabled="True"
                   HorizontalScrollBarVisibility="Disabled"
@@ -62,6 +67,27 @@
                                            Toggled="EdgeTouchSwitch_Toggled" />
                 </Grid>
             </Border>
+
+            <TextBlock Margin="0,28,0,12"
+                       Style="{StaticResource V2.Settings.SectionTitle}"
+                       Text="{localization:LocalisedText EdgeTouch.Visualizer}" />
+            <Viewbox MaxHeight="360"
+                     HorizontalAlignment="Center"
+                     Stretch="Uniform"
+                     StretchDirection="DownOnly">
+                <userControls:TouchpadVisualizer x:Name="TouchpadPreview"
+                                                 Width="620"
+                                                 Height="360"
+                                                 AutomationProperties.Name="{localization:LocalisedText EdgeTouch.Visualizer}"
+                                                 DisconnectedText="{localization:LocalisedText EdgeTouch.VisualizerConnecting}"
+                                                 EdgeAreaBrush="{StaticResource EdgeTouch.VisualizerEdgeArea}"
+                                                 EdgeBoundaryBrush="{StaticResource V2.Brush.Accent}"
+                                                 EdgeZonePercent="{Binding ElementName=EdgeZoneSlider, Path=Value}"
+                                                 EmptyTextBrush="{StaticResource V2.Brush.TextMuted}"
+                                                 OutlineBrush="{StaticResource V2.Brush.Border}"
+                                                 SurfaceBrush="{StaticResource V2.Brush.Surface}"
+                                                 WaitingText="{localization:LocalisedText EdgeTouch.VisualizerWaiting}" />
+            </Viewbox>
 
             <TextBlock Margin="0,28,0,6"
                        Style="{StaticResource V2.Settings.SectionTitle}"
