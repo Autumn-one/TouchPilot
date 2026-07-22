@@ -19,7 +19,7 @@ namespace GestureSign.Daemon.Input
         public TouchPadDevice(IntPtr rawInputBuffer, ref RAWINPUT raw) : base(rawInputBuffer, ref raw)
         {
             _supportsConfidence = ConfidenceSupportByDevice.GetOrAdd(raw.header.hDevice,
-                deviceHandle => HasInputButtonUsage(NativeMethods.ConfidenceId));
+                _ => TryDetectConfidenceSupport());
         }
 
         protected override Point GetCoordinate(short linkCollection, Screen currentScr, IntPtr pRawDataPacket)
@@ -50,9 +50,10 @@ namespace GestureSign.Daemon.Input
                     double normalizedX = NormalizePhysicalCoordinate(physicalPoint.X, _physicalMin.X, _physicalMax.X);
                     double normalizedY = NormalizePhysicalCoordinate(physicalPoint.Y, _physicalMin.Y, _physicalMax.Y);
 
-                    ushort[] usageList = GetButtonList(_hPreparsedData.DangerousGetHandle(), pRawDataPacket,
+                    // Keep the proven legacy button-report path independent from optional metadata.
+                    ushort[] usageList = GetButtonList(_hPreparsedData.DangerousGetHandle(), _pRawData,
                         nodeIndex, _dwSizHid);
-                    bool tip = Array.IndexOf(usageList, NativeMethods.TipId) >= 0;
+                    bool tip = usageList.Length != 0 && usageList[0] == NativeMethods.TipId;
                     TouchpadContactConfidence confidence = ResolveConfidence(_supportsConfidence, usageList);
 
                     _outputTouchs.Add(new RawData(tip ? DeviceStates.Tip : DeviceStates.None,
@@ -61,6 +62,19 @@ namespace GestureSign.Daemon.Input
                     if (--requiringContactCount == 0) break;
                 }
                 if (requiringContactCount == 0) break;
+            }
+        }
+
+        private bool TryDetectConfidenceSupport()
+        {
+            try
+            {
+                return HasInputButtonUsage(NativeMethods.ConfidenceId);
+            }
+            catch
+            {
+                // Confidence is optional metadata; capability discovery must not block touch input.
+                return false;
             }
         }
 
