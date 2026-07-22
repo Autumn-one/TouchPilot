@@ -180,7 +180,10 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 };
                 WindowDragImplementationComboBox.SelectedValue = AppConfig.TouchpadWindowDragImplementation;
                 WindowDragSensitivitySlider.Value = AppConfig.TouchpadWindowDragSensitivityPercent;
-                EdgeZoneSlider.Value = AppConfig.TouchpadEdgeZonePercent;
+                LeftEdgeZoneSlider.Value = AppConfig.TouchpadLeftEdgeZonePercent;
+                RightEdgeZoneSlider.Value = AppConfig.TouchpadRightEdgeZonePercent;
+                TopEdgeZoneSlider.Value = AppConfig.TouchpadTopEdgeZonePercent;
+                BottomEdgeZoneSlider.Value = AppConfig.TouchpadBottomEdgeZonePercent;
                 EdgeActivationSlider.Value = AppConfig.TouchpadEdgeActivationPercent;
                 LoadActionChoicesCore();
             }
@@ -313,8 +316,18 @@ namespace GestureSign.ControlPanel.MainWindowControls
 
         private void EdgeZoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!_loading && IsLoaded)
-                AppConfig.TouchpadEdgeZonePercent = (int)Math.Round(e.NewValue);
+            if (_loading || !IsLoaded)
+                return;
+
+            int value = (int)Math.Round(e.NewValue);
+            if (ReferenceEquals(sender, LeftEdgeZoneSlider))
+                AppConfig.TouchpadLeftEdgeZonePercent = value;
+            else if (ReferenceEquals(sender, RightEdgeZoneSlider))
+                AppConfig.TouchpadRightEdgeZonePercent = value;
+            else if (ReferenceEquals(sender, TopEdgeZoneSlider))
+                AppConfig.TouchpadTopEdgeZonePercent = value;
+            else if (ReferenceEquals(sender, BottomEdgeZoneSlider))
+                AppConfig.TouchpadBottomEdgeZonePercent = value;
         }
 
         private void EdgeActivationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
