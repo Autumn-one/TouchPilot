@@ -331,6 +331,114 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void VisualizerRendersIndependentEdgeZones()
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    const int width = 200;
+                    const int height = 120;
+                    Color zoneColor = Color.FromRgb(200, 50, 25);
+                    var visualizer = new TouchpadVisualizer
+                    {
+                        Width = width,
+                        Height = height,
+                        SurfaceBrush = Brushes.Black,
+                        OutlineBrush = Brushes.Transparent,
+                        EdgeAreaBrush = new SolidColorBrush(zoneColor),
+                        EdgeBoundaryBrush = Brushes.Transparent,
+                        LeftEdgeZonePercent = 20,
+                        RightEdgeZonePercent = 5,
+                        TopEdgeZonePercent = 10,
+                        BottomEdgeZonePercent = 25,
+                        EmptyTextBrush = Brushes.Transparent,
+                        IsConnected = true
+                    };
+                    visualizer.Measure(new Size(width, height));
+                    visualizer.Arrange(new Rect(0, 0, width, height));
+                    visualizer.UpdateLayout();
+
+                    var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(visualizer);
+                    var pixels = new byte[width * height * 4];
+                    bitmap.CopyPixels(pixels, width * 4, 0);
+
+                    AssertPixelColor(pixels, width, 30, 60, zoneColor);
+                    AssertPixelColor(pixels, width, 194, 60, zoneColor);
+                    AssertPixelColor(pixels, width, 100, 8, zoneColor);
+                    AssertPixelColor(pixels, width, 100, 100, zoneColor);
+                    AssertPixelColor(pixels, width, 45, 60, Colors.Black);
+                    AssertPixelColor(pixels, width, 185, 60, Colors.Black);
+                    AssertPixelColor(pixels, width, 100, 20, Colors.Black);
+                    AssertPixelColor(pixels, width, 100, 80, Colors.Black);
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "The WPF edge-zone render test timed out.");
+            if (failure != null)
+                throw failure;
+        }
+
+        [Fact]
+        public void VisualizerUsesUniformEdgeZoneForUnsetSideValues()
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    const int size = 100;
+                    Color zoneColor = Color.FromRgb(30, 180, 90);
+                    var visualizer = new TouchpadVisualizer
+                    {
+                        Width = size,
+                        Height = size,
+                        SurfaceBrush = Brushes.Black,
+                        OutlineBrush = Brushes.Transparent,
+                        EdgeAreaBrush = new SolidColorBrush(zoneColor),
+                        EdgeBoundaryBrush = Brushes.Transparent,
+                        EdgeZonePercent = 15,
+                        EmptyTextBrush = Brushes.Transparent,
+                        IsConnected = true
+                    };
+                    visualizer.Measure(new Size(size, size));
+                    visualizer.Arrange(new Rect(0, 0, size, size));
+                    visualizer.UpdateLayout();
+
+                    var bitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(visualizer);
+                    var pixels = new byte[size * size * 4];
+                    bitmap.CopyPixels(pixels, size * 4, 0);
+
+                    AssertPixelColor(pixels, size, 10, 50, zoneColor);
+                    AssertPixelColor(pixels, size, 90, 50, zoneColor);
+                    AssertPixelColor(pixels, size, 50, 10, zoneColor);
+                    AssertPixelColor(pixels, size, 50, 90, zoneColor);
+                    AssertPixelColor(pixels, size, 20, 50, Colors.Black);
+                    AssertPixelColor(pixels, size, 80, 50, Colors.Black);
+                    AssertPixelColor(pixels, size, 50, 20, Colors.Black);
+                    AssertPixelColor(pixels, size, 50, 80, Colors.Black);
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            Assert.True(thread.Join(TimeSpan.FromSeconds(5)), "The WPF uniform edge-zone test timed out.");
+            if (failure != null)
+                throw failure;
+        }
+
+        [Fact]
         public void VisualizerDistinguishesLowConfidenceContact()
         {
             Exception failure = null;
@@ -398,6 +506,19 @@ namespace GestureSign.Tests
             {
                 new TouchpadContact(1, DeviceStates.Tip, normalizedX, 0.5)
             });
+        }
+
+        private static void AssertPixelColor(byte[] pixels, int width, int x, int y, Color expected)
+        {
+            int offset = (y * width + x) * 4;
+            byte blue = pixels[offset];
+            byte green = pixels[offset + 1];
+            byte red = pixels[offset + 2];
+            byte alpha = pixels[offset + 3];
+            Assert.True(blue == expected.B && green == expected.G && red == expected.R &&
+                        alpha == expected.A,
+                $"Pixel ({x},{y}) expected RGBA ({expected.R},{expected.G},{expected.B},{expected.A}) " +
+                $"but was ({red},{green},{blue},{alpha}).");
         }
 
         private sealed class FakeFrameSource : ITouchpadVisualizationFrameSource

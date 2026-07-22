@@ -69,6 +69,22 @@ namespace GestureSign.ControlPanel.UserControls
             nameof(EdgeZonePercent), typeof(double), typeof(TouchpadVisualizer),
             new FrameworkPropertyMetadata(12d, FrameworkPropertyMetadataOptions.AffectsRender));
 
+        public static readonly DependencyProperty LeftEdgeZonePercentProperty = DependencyProperty.Register(
+            nameof(LeftEdgeZonePercent), typeof(double), typeof(TouchpadVisualizer),
+            new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty RightEdgeZonePercentProperty = DependencyProperty.Register(
+            nameof(RightEdgeZonePercent), typeof(double), typeof(TouchpadVisualizer),
+            new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty TopEdgeZonePercentProperty = DependencyProperty.Register(
+            nameof(TopEdgeZonePercent), typeof(double), typeof(TouchpadVisualizer),
+            new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty BottomEdgeZonePercentProperty = DependencyProperty.Register(
+            nameof(BottomEdgeZonePercent), typeof(double), typeof(TouchpadVisualizer),
+            new FrameworkPropertyMetadata(double.NaN, FrameworkPropertyMetadataOptions.AffectsRender));
+
         public static readonly DependencyProperty IsConnectedProperty = DependencyProperty.Register(
             nameof(IsConnected), typeof(bool), typeof(TouchpadVisualizer),
             new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender,
@@ -106,6 +122,30 @@ namespace GestureSign.ControlPanel.UserControls
         {
             get => (double)GetValue(EdgeZonePercentProperty);
             set => SetValue(EdgeZonePercentProperty, value);
+        }
+
+        public double LeftEdgeZonePercent
+        {
+            get => (double)GetValue(LeftEdgeZonePercentProperty);
+            set => SetValue(LeftEdgeZonePercentProperty, value);
+        }
+
+        public double RightEdgeZonePercent
+        {
+            get => (double)GetValue(RightEdgeZonePercentProperty);
+            set => SetValue(RightEdgeZonePercentProperty, value);
+        }
+
+        public double TopEdgeZonePercent
+        {
+            get => (double)GetValue(TopEdgeZonePercentProperty);
+            set => SetValue(TopEdgeZonePercentProperty, value);
+        }
+
+        public double BottomEdgeZonePercent
+        {
+            get => (double)GetValue(BottomEdgeZonePercentProperty);
+            set => SetValue(BottomEdgeZonePercentProperty, value);
         }
 
         public bool IsConnected
@@ -206,12 +246,15 @@ namespace GestureSign.ControlPanel.UserControls
 
         private void DrawEdgeZones(DrawingContext drawingContext, Rect bounds)
         {
-            double ratio = Math.Max(0, Math.Min(0.49, EdgeZonePercent / 100d));
+            double leftRatio = GetEdgeZoneRatio(LeftEdgeZonePercent);
+            double rightRatio = GetEdgeZoneRatio(RightEdgeZonePercent);
+            double topRatio = GetEdgeZoneRatio(TopEdgeZonePercent);
+            double bottomRatio = GetEdgeZoneRatio(BottomEdgeZonePercent);
             var inner = new Rect(
-                bounds.Left + bounds.Width * ratio,
-                bounds.Top + bounds.Height * ratio,
-                bounds.Width * (1 - ratio * 2),
-                bounds.Height * (1 - ratio * 2));
+                bounds.Left + bounds.Width * leftRatio,
+                bounds.Top + bounds.Height * topRatio,
+                bounds.Width * (1 - leftRatio - rightRatio),
+                bounds.Height * (1 - topRatio - bottomRatio));
             var zone = new CombinedGeometry(GeometryCombineMode.Exclude,
                 new RectangleGeometry(bounds, 8, 8), new RectangleGeometry(inner));
             drawingContext.DrawGeometry(EdgeAreaBrush, null, zone);
@@ -225,6 +268,14 @@ namespace GestureSign.ControlPanel.UserControls
                 new Point(bounds.Left, inner.Top), new Point(bounds.Right, inner.Top));
             drawingContext.DrawLine(boundaryPen,
                 new Point(bounds.Left, inner.Bottom), new Point(bounds.Right, inner.Bottom));
+        }
+
+        private double GetEdgeZoneRatio(double edgeZonePercent)
+        {
+            double percent = double.IsNaN(edgeZonePercent) ? EdgeZonePercent : edgeZonePercent;
+            if (double.IsNaN(percent) || double.IsInfinity(percent))
+                return 0;
+            return Math.Max(0, Math.Min(0.49, percent / 100d));
         }
 
         private void DrawTrace(DrawingContext drawingContext, Rect bounds,
