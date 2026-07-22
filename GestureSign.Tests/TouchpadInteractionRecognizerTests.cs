@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GestureSign.Common.Input;
@@ -68,6 +69,67 @@ namespace GestureSign.Tests
 
             Assert.True(result.ClaimInput);
             Assert.Equal(gesture, Assert.Single(result.Events).EdgeGesture);
+        }
+
+        [Fact]
+        public void ZeroEdgeZonesAcceptContactOnPhysicalEdge()
+        {
+            var recognizer = new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
+            {
+                EdgeGesturesEnabled = true,
+                EnabledEdgeGestures = new HashSet<FixedEdgeGesture> { FixedEdgeGesture.LeftSwipeIn },
+                EdgeZone = 0,
+                LeftEdgeZone = 0,
+                RightEdgeZone = 0,
+                TopEdgeZone = 0,
+                BottomEdgeZone = 0
+            });
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0, 0.5)), 0);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.11, 0.5)), 100);
+
+            Assert.True(result.ClaimInput);
+            Assert.Equal(FixedEdgeGesture.LeftSwipeIn, Assert.Single(result.Events).EdgeGesture);
+        }
+
+        [Fact]
+        public void ZeroEdgeZoneRejectsContactInsideSurface()
+        {
+            var recognizer = new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
+            {
+                EdgeGesturesEnabled = true,
+                EnabledEdgeGestures = new HashSet<FixedEdgeGesture> { FixedEdgeGesture.LeftSwipeIn },
+                EdgeZone = 0
+            });
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.001, 0.5)), 0);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.12, 0.5)), 100);
+
+            Assert.False(result.ClaimInput);
+            Assert.Empty(result.Events);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        public void NegativeEdgeZonesAreRejected(int zoneIndex)
+        {
+            var options = new TouchpadInteractionOptions();
+            switch (zoneIndex)
+            {
+                case 0: options.EdgeZone = -0.01; break;
+                case 1: options.LeftEdgeZone = -0.01; break;
+                case 2: options.RightEdgeZone = -0.01; break;
+                case 3: options.TopEdgeZone = -0.01; break;
+                case 4: options.BottomEdgeZone = -0.01; break;
+            }
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new TouchpadInteractionRecognizer(options));
         }
 
         [Fact]

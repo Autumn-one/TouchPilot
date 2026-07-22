@@ -355,31 +355,31 @@ namespace GestureSign.Common.Configuration
         public static int TouchpadEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadEdgeZonePercent), 12); }
-            set { SetValue(nameof(TouchpadEdgeZonePercent), Math.Max(5, Math.Min(25, value))); }
+            set { SetValue(nameof(TouchpadEdgeZonePercent), Math.Max(0, Math.Min(25, value))); }
         }
 
         public static int TouchpadLeftEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadLeftEdgeZonePercent), TouchpadEdgeZonePercent); }
-            set { SetValue(nameof(TouchpadLeftEdgeZonePercent), Math.Max(5, Math.Min(25, value))); }
+            set { SetValue(nameof(TouchpadLeftEdgeZonePercent), Math.Max(0, Math.Min(25, value))); }
         }
 
         public static int TouchpadRightEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadRightEdgeZonePercent), TouchpadEdgeZonePercent); }
-            set { SetValue(nameof(TouchpadRightEdgeZonePercent), Math.Max(5, Math.Min(25, value))); }
+            set { SetValue(nameof(TouchpadRightEdgeZonePercent), Math.Max(0, Math.Min(25, value))); }
         }
 
         public static int TouchpadTopEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadTopEdgeZonePercent), TouchpadEdgeZonePercent); }
-            set { SetValue(nameof(TouchpadTopEdgeZonePercent), Math.Max(5, Math.Min(25, value))); }
+            set { SetValue(nameof(TouchpadTopEdgeZonePercent), Math.Max(0, Math.Min(25, value))); }
         }
 
         public static int TouchpadBottomEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadBottomEdgeZonePercent), TouchpadEdgeZonePercent); }
-            set { SetValue(nameof(TouchpadBottomEdgeZonePercent), Math.Max(5, Math.Min(25, value))); }
+            set { SetValue(nameof(TouchpadBottomEdgeZonePercent), Math.Max(0, Math.Min(25, value))); }
         }
 
         public static int TouchpadEdgeActivationPercent

@@ -1038,7 +1038,7 @@ namespace GestureSign.Common.Input
 
         private static void ValidateEdgeZone(double edgeZone, string parameterName)
         {
-            if (edgeZone <= 0 || edgeZone >= 0.5)
+            if (edgeZone < 0 || edgeZone >= 0.5)
                 throw new ArgumentOutOfRangeException(parameterName);
         }
 
