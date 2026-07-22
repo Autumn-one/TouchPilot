@@ -34,6 +34,42 @@ namespace GestureSign.Tests
             Assert.Empty(continued.Events);
         }
 
+        [Theory]
+        [InlineData(FixedEdgeGesture.LeftSwipeIn, 0.05, 0.5, 0.16, 0.5)]
+        [InlineData(FixedEdgeGesture.RightSwipeIn, 0.93, 0.5, 0.82, 0.5)]
+        [InlineData(FixedEdgeGesture.TopSwipeIn, 0.5, 0.09, 0.5, 0.20)]
+        [InlineData(FixedEdgeGesture.BottomSwipeIn, 0.5, 0.89, 0.5, 0.78)]
+        public void PerEdgeZonesRejectContactsOutsideThatSpecificEdge(FixedEdgeGesture gesture,
+            double startX, double startY, double endX, double endY)
+        {
+            var recognizer = CreateRecognizerWithPerEdgeZones(gesture);
+
+            recognizer.ProcessFrame(Frame(Contact(1, startX, startY)), 0);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, endX, endY)), 100);
+
+            Assert.False(result.ClaimInput);
+            Assert.Empty(result.Events);
+        }
+
+        [Theory]
+        [InlineData(FixedEdgeGesture.LeftSwipeIn, 0.03, 0.5, 0.14, 0.5)]
+        [InlineData(FixedEdgeGesture.RightSwipeIn, 0.95, 0.5, 0.84, 0.5)]
+        [InlineData(FixedEdgeGesture.TopSwipeIn, 0.5, 0.07, 0.5, 0.18)]
+        [InlineData(FixedEdgeGesture.BottomSwipeIn, 0.5, 0.91, 0.5, 0.80)]
+        public void PerEdgeZonesAcceptContactsInsideThatSpecificEdge(FixedEdgeGesture gesture,
+            double startX, double startY, double endX, double endY)
+        {
+            var recognizer = CreateRecognizerWithPerEdgeZones(gesture);
+
+            recognizer.ProcessFrame(Frame(Contact(1, startX, startY)), 0);
+            TouchpadInteractionFrameResult result = recognizer.ProcessFrame(
+                Frame(Contact(1, endX, endY)), 100);
+
+            Assert.True(result.ClaimInput);
+            Assert.Equal(gesture, Assert.Single(result.Events).EdgeGesture);
+        }
+
         [Fact]
         public void EdgeSlideRepeatsAndCanReverseDirection()
         {
@@ -322,6 +358,40 @@ namespace GestureSign.Tests
             Assert.False(stationary.ClaimInput);
             Assert.True(started.ClaimInput);
             Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
+        public void BottomAnchorUsesBottomSpecificEdgeZone()
+        {
+            var outsideRecognizer = new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
+            {
+                WindowDragMode = TouchpadWindowDragMode.BottomEdgeAnchor,
+                EdgeZone = 0.12,
+                BottomEdgeZone = 0.03
+            });
+            outsideRecognizer.ProcessFrame(Frame(Contact(1, 0.5, 0.96)), 0);
+            outsideRecognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.96), Contact(2, 0.5, 0.5)), 110);
+            TouchpadInteractionFrameResult outside = outsideRecognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.96), Contact(2, 0.53, 0.5)), 130);
+
+            var insideRecognizer = new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
+            {
+                WindowDragMode = TouchpadWindowDragMode.BottomEdgeAnchor,
+                EdgeZone = 0.12,
+                BottomEdgeZone = 0.03
+            });
+            insideRecognizer.ProcessFrame(Frame(Contact(1, 0.5, 0.98)), 0);
+            insideRecognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.98), Contact(2, 0.5, 0.5)), 110);
+            TouchpadInteractionFrameResult inside = insideRecognizer.ProcessFrame(
+                Frame(Contact(1, 0.5, 0.98), Contact(2, 0.53, 0.5)), 130);
+
+            Assert.False(outside.ClaimInput);
+            Assert.Empty(outside.Events);
+            Assert.True(inside.ClaimInput);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted,
+                Assert.Single(inside.Events).EventType);
         }
 
         [Fact]
@@ -787,6 +857,21 @@ namespace GestureSign.Tests
                 EdgeGesturesEnabled = enabled.Count != 0,
                 EnabledEdgeGestures = enabled,
                 WindowDragMode = windowDragMode
+            });
+        }
+
+        private static TouchpadInteractionRecognizer CreateRecognizerWithPerEdgeZones(
+            FixedEdgeGesture gesture)
+        {
+            return new TouchpadInteractionRecognizer(new TouchpadInteractionOptions
+            {
+                EdgeGesturesEnabled = true,
+                EnabledEdgeGestures = new HashSet<FixedEdgeGesture> { gesture },
+                EdgeZone = 0.12,
+                LeftEdgeZone = 0.04,
+                RightEdgeZone = 0.06,
+                TopEdgeZone = 0.08,
+                BottomEdgeZone = 0.10
             });
         }
 

@@ -142,6 +142,10 @@ namespace GestureSign.Daemon.Triggers
                 EnabledEdgeGestures = assignedGestures,
                 WindowDragMode = enabled ? windowDragMode : TouchpadWindowDragMode.Disabled,
                 EdgeZone = AppConfig.TouchpadEdgeZonePercent / 100d,
+                LeftEdgeZone = AppConfig.TouchpadLeftEdgeZonePercent / 100d,
+                RightEdgeZone = AppConfig.TouchpadRightEdgeZonePercent / 100d,
+                TopEdgeZone = AppConfig.TouchpadTopEdgeZonePercent / 100d,
+                BottomEdgeZone = AppConfig.TouchpadBottomEdgeZonePercent / 100d,
                 EdgeActivationDistance = activationDistance,
                 EdgeSlideStep = System.Math.Max(0.03, activationDistance * 0.625)
             });

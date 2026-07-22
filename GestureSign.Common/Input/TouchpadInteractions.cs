@@ -67,6 +67,10 @@ namespace GestureSign.Common.Input
         public ISet<FixedEdgeGesture> EnabledEdgeGestures { get; set; } = new HashSet<FixedEdgeGesture>();
         public TouchpadWindowDragMode WindowDragMode { get; set; }
         public double EdgeZone { get; set; } = 0.12;
+        public double? LeftEdgeZone { get; set; }
+        public double? RightEdgeZone { get; set; }
+        public double? TopEdgeZone { get; set; }
+        public double? BottomEdgeZone { get; set; }
         public double EdgeActivationDistance { get; set; } = 0.08;
         public double EdgeSlideStep { get; set; } = 0.05;
         public int EdgeGestureTimeoutMilliseconds { get; set; } = 800;
@@ -189,8 +193,11 @@ namespace GestureSign.Common.Input
         public TouchpadInteractionRecognizer(TouchpadInteractionOptions options)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
-            if (_options.EdgeZone <= 0 || _options.EdgeZone >= 0.5)
-                throw new ArgumentOutOfRangeException(nameof(options.EdgeZone));
+            ValidateEdgeZone(_options.EdgeZone, nameof(options.EdgeZone));
+            ValidateEdgeZone(_options.LeftEdgeZone, nameof(options.LeftEdgeZone));
+            ValidateEdgeZone(_options.RightEdgeZone, nameof(options.RightEdgeZone));
+            ValidateEdgeZone(_options.TopEdgeZone, nameof(options.TopEdgeZone));
+            ValidateEdgeZone(_options.BottomEdgeZone, nameof(options.BottomEdgeZone));
             if (_options.EdgeActivationDistance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.EdgeActivationDistance));
             if (_options.EdgeSlideStep <= 0)
@@ -760,7 +767,7 @@ namespace GestureSign.Common.Input
 
         private bool IsInBottomEdgeZone(TouchpadContact contact)
         {
-            return contact.NormalizedY >= 1 - _options.EdgeZone;
+            return contact.NormalizedY >= 1 - GetEdgeZone(TouchpadEdge.Bottom);
         }
 
         private void ProcessEdgeCandidate(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
@@ -883,7 +890,7 @@ namespace GestureSign.Common.Input
                 return;
 
             double maximumDistance = contacts.Max(contact => GetEdgeDistance(edge, contact));
-            if (maximumDistance <= _options.EdgeZone)
+            if (maximumDistance <= GetEdgeZone(edge))
             {
                 double averageDistance = contacts.Average(contact => GetEdgeDistance(edge, contact));
                 candidates.Add(new KeyValuePair<TouchpadEdge, double>(edge, averageDistance));
@@ -1009,6 +1016,30 @@ namespace GestureSign.Common.Input
                 case TouchpadEdge.Bottom: return 1 - contact.NormalizedY;
                 default: return 1;
             }
+        }
+
+        private double GetEdgeZone(TouchpadEdge edge)
+        {
+            switch (edge)
+            {
+                case TouchpadEdge.Left: return _options.LeftEdgeZone ?? _options.EdgeZone;
+                case TouchpadEdge.Right: return _options.RightEdgeZone ?? _options.EdgeZone;
+                case TouchpadEdge.Top: return _options.TopEdgeZone ?? _options.EdgeZone;
+                case TouchpadEdge.Bottom: return _options.BottomEdgeZone ?? _options.EdgeZone;
+                default: return _options.EdgeZone;
+            }
+        }
+
+        private static void ValidateEdgeZone(double? edgeZone, string parameterName)
+        {
+            if (edgeZone.HasValue)
+                ValidateEdgeZone(edgeZone.Value, parameterName);
+        }
+
+        private static void ValidateEdgeZone(double edgeZone, string parameterName)
+        {
+            if (edgeZone <= 0 || edgeZone >= 0.5)
+                throw new ArgumentOutOfRangeException(parameterName);
         }
 
         private void CloseEdgeCandidate()
