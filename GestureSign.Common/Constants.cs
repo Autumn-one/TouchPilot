@@ -16,5 +16,7 @@
         public const string TouchpadVisualizationPipe = ProductName + "TouchpadVisualization";
         public const string ControlPanelFileName = ProductName + ".ControlPanel.exe";
         public const string DaemonFileName = ProductName + ".exe";
+        public const string UpdaterFileName = ProductName + ".Updater.exe";
+        public const string DefaultGitHubRepository = "TransposonY/GestureSign";
     }
 }

@@ -10,6 +10,7 @@ using GestureSign.Common.Log;
 using GestureSign.Common.Plugins;
 using GestureSign.Daemon.Input;
 using GestureSign.Daemon.Triggers;
+using GestureSign.Daemon.Updates;
 using GestureSign.Daemon.Visualization;
 
 namespace GestureSign.Daemon
@@ -17,6 +18,7 @@ namespace GestureSign.Daemon
     static class Program
     {
         private static TouchpadVisualizationServer _touchpadVisualizationServer;
+        private static UpdateCoordinator _updateCoordinator;
 
         /// <summary>
         /// 应用程序的主入口点。
@@ -43,7 +45,8 @@ namespace GestureSign.Daemon
                         }
 
                         PointCapture.Instance.Load();
-                        SynchronizationContext uiContext = SynchronizationContext.Current;
+                        SynchronizationContext uiContext = SynchronizationContext.Current ??
+                                                           new WindowsFormsSynchronizationContext();
                         TriggerManager.Instance.Load();
                         _touchpadVisualizationServer = new TouchpadVisualizationServer(
                             new PointCaptureVisualizationFrameSource());
@@ -64,6 +67,8 @@ namespace GestureSign.Daemon
                         TrayManager.Instance.Load();
 
                         NamedPipe.Instance.RunNamedPipeServer(Constants.Daemon, new MessageProcessor(uiContext));
+                        _updateCoordinator = new UpdateCoordinator(uiContext);
+                        _updateCoordinator.ScheduleStartupCheck();
 
                         Application.ApplicationExit += Application_ApplicationExit;
 
@@ -86,6 +91,7 @@ namespace GestureSign.Daemon
 
         private static void Application_ApplicationExit(object sender, EventArgs e)
         {
+            _updateCoordinator?.Dispose();
             _touchpadVisualizationServer?.Dispose();
             NamedPipe.Instance.Dispose();
             PointCapture.Instance.Dispose();

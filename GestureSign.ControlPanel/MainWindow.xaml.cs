@@ -2,6 +2,7 @@
 using GestureSign.Common.Configuration;
 using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
+using GestureSign.Common.Updates;
 using GestureSign.ControlPanel.Common;
 using GestureSign.ControlPanel.Dialogs;
 using MahApps.Metro.Controls.Dialogs;
@@ -51,8 +52,7 @@ namespace GestureSign.ControlPanel
         private void SetAboutInfo()
         {
             string version = LocalizationProvider.Instance.GetTextValue("About.Version") +
-                             FileVersionInfo.GetVersionInfo(Application.ResourceAssembly.Location)
-                                 .FileVersion;
+                             UpdateInstallation.GetCurrentVersionText(Application.ResourceAssembly);
             string releaseDate = LocalizationProvider.Instance.GetTextValue("About.ReleaseDate") +
                                  new DateTime(2000, 1, 1).AddDays(Application.ResourceAssembly.GetName().Version.Build)
                                      .AddSeconds(Application.ResourceAssembly.GetName().Version.Revision * 2);

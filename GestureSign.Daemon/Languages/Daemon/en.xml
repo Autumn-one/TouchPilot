@@ -10,4 +10,9 @@
     <ControlPanel>Control Panel</ControlPanel>
     <Exit>Exit</Exit>
   </TrayMenu>
+  <Update>
+    <Title>GestureSign Update</Title>
+    <Available>GestureSign {0} is available. Download and install it now?</Available>
+    <FailedTitle>GestureSign Update Failed</FailedTitle>
+  </Update>
 </Language>

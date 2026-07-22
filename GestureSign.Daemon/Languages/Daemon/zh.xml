@@ -10,4 +10,9 @@
     <ControlPanel>设置</ControlPanel>
     <Exit>退出</Exit>
   </TrayMenu>
+  <Update>
+    <Title>GestureSign 更新</Title>
+    <Available>发现 GestureSign {0}，是否立即下载并安装？</Available>
+    <FailedTitle>GestureSign 更新失败</FailedTitle>
+  </Update>
 </Language>

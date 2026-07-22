@@ -18,5 +18,6 @@
     <ProjectReference Include="..\GestureSign.Common\GestureSign.Common.csproj" />
     <ProjectReference Include="..\GestureSign.ControlPanel\GestureSign.ControlPanel.csproj" />
     <ProjectReference Include="..\GestureSign.Daemon\GestureSign.Daemon.csproj" />
+    <ProjectReference Include="..\GestureSign.Updater\GestureSign.Updater.csproj" />
   </ItemGroup>
 </Project>

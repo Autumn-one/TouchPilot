@@ -34,6 +34,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextCopyer", "GestureSign.E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestureSign.Tests", "GestureSign.Tests\GestureSign.Tests.csproj", "{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestureSign.Updater", "GestureSign.Updater\GestureSign.Updater.csproj", "{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestureSign.ReleaseManager", "GestureSign.ReleaseManager\GestureSign.ReleaseManager.csproj", "{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Centennial|Any CPU = Centennial|Any CPU
@@ -142,6 +146,26 @@ Global
 		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.uiAccessRelease|Any CPU.ActiveCfg = uiAccessRelease|Any CPU
 		{C61AFBC8-EA65-463C-AA9F-BA834AE9C3B0}.uiAccessRelease|Any CPU.Build.0 = uiAccessRelease|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Centennial|Any CPU.ActiveCfg = Centennial|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Centennial|Any CPU.Build.0 = Centennial|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Portable|Any CPU.ActiveCfg = Portable|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Portable|Any CPU.Build.0 = Portable|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.uiAccessRelease|Any CPU.ActiveCfg = uiAccessRelease|Any CPU
+		{3D03E101-84DD-4FB0-9AB7-058DEE8B429B}.uiAccessRelease|Any CPU.Build.0 = uiAccessRelease|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Centennial|Any CPU.ActiveCfg = Centennial|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Centennial|Any CPU.Build.0 = Centennial|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Portable|Any CPU.ActiveCfg = Portable|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Portable|Any CPU.Build.0 = Portable|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.uiAccessRelease|Any CPU.ActiveCfg = uiAccessRelease|Any CPU
+		{4271C3D5-D003-45F4-BAE9-66F0DBAEA8BA}.uiAccessRelease|Any CPU.Build.0 = uiAccessRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
