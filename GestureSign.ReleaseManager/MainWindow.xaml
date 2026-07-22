@@ -171,21 +171,39 @@
                            VerticalAlignment="Center"
                            Foreground="{StaticResource MutedBrush}"
                            Text="就绪" />
-                <Button x:Name="PublishButton"
-                        HorizontalAlignment="Right"
-                        Background="{StaticResource AccentBrush}"
-                        BorderBrush="{StaticResource AccentBrush}"
-                        Foreground="White"
-                        Click="PublishButton_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconLucide Width="17"
-                                                  Height="17"
-                                                  Margin="0,0,8,0"
-                                                  VerticalAlignment="Center"
-                                                  Kind="Upload" />
-                        <TextBlock VerticalAlignment="Center" Foreground="White" Text="打包并发布" />
-                    </StackPanel>
-                </Button>
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button x:Name="DeleteReleaseButton"
+                            Margin="0,0,10,0"
+                            Background="White"
+                            BorderBrush="{StaticResource DangerBrush}"
+                            Foreground="{StaticResource DangerBrush}"
+                            Click="DeleteReleaseButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconLucide Width="17"
+                                                      Height="17"
+                                                      Margin="0,0,8,0"
+                                                      VerticalAlignment="Center"
+                                                      Kind="Trash2" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Foreground="{StaticResource DangerBrush}"
+                                       Text="删除 Release" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="PublishButton"
+                            Background="{StaticResource AccentBrush}"
+                            BorderBrush="{StaticResource AccentBrush}"
+                            Foreground="White"
+                            Click="PublishButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconLucide Width="17"
+                                                      Height="17"
+                                                      Margin="0,0,8,0"
+                                                      VerticalAlignment="Center"
+                                                      Kind="Upload" />
+                            <TextBlock VerticalAlignment="Center" Foreground="White" Text="打包并发布" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

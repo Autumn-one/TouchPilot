@@ -14,6 +14,7 @@ using GestureSign.Common;
 [assembly: AssemblyCopyright("Copyright ©  TransposonY 2022")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
+[assembly: InternalsVisibleTo("GestureSign.Tests")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
 // to COM components.  If you need to access a type in this assembly from 

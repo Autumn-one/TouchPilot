@@ -50,7 +50,7 @@ namespace GestureSign.ReleaseManager
             try
             {
                 PublishRequest request = ValidateRequest();
-                SetPublishingState(true, "正在构建发布包...");
+                SetBusyState(true, "正在构建发布包...");
                 LogTextBox.Clear();
 
                 var progress = new Progress<string>(AppendLog);
@@ -59,7 +59,7 @@ namespace GestureSign.ReleaseManager
                     CancellationToken.None);
 
                 AppendLog("Build and package completed.");
-                SetPublishingState(true, "正在上传 GitHub Release...");
+                SetBusyState(true, "正在上传 GitHub Release...");
                 using var publisher = new GitHubReleasePublisher(request.Repository, request.Token);
                 GitHubReleaseInfo release = await publisher.PublishAsync("v" + request.Version,
                     request.ReleaseTitle, request.ReleaseNotes, request.Draft, request.Prerelease,
@@ -79,19 +79,51 @@ namespace GestureSign.ReleaseManager
             }
             finally
             {
-                SetPublishingState(false, StatusTextBlock.Text);
+                SetBusyState(false, StatusTextBlock.Text);
+            }
+        }
+
+        private async void DeleteReleaseButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ReleaseIdentity identity = ValidateReleaseIdentity();
+                string tagName = "v" + identity.Version;
+                MessageBoxResult confirmation = MessageBox.Show(this,
+                    $"确认删除 {identity.Repository.Slug} 中的 Release {tagName}？\n\n" +
+                    $"Release 资产也会删除，但 Git 标签 {tagName} 会保留。此操作不可撤销。",
+                    "确认删除 Release", MessageBoxButton.YesNo, MessageBoxImage.Warning,
+                    MessageBoxResult.No);
+                if (confirmation != MessageBoxResult.Yes)
+                    return;
+
+                SetBusyState(true, "正在删除 GitHub Release...");
+                LogTextBox.Clear();
+                var progress = new Progress<string>(AppendLog);
+                using var publisher = new GitHubReleasePublisher(identity.Repository, identity.Token);
+                await publisher.DeleteAsync(tagName, progress, CancellationToken.None);
+
+                StatusTextBlock.Text = "已删除：" + tagName;
+                MessageBox.Show(this, $"Release {tagName} 已删除。\n\nGit 标签 {tagName} 已保留。",
+                    "删除完成", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception exception)
+            {
+                AppendLog("FAILED: " + exception);
+                StatusTextBlock.Text = "删除失败";
+                MessageBox.Show(this, exception.Message, "删除失败", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                SetBusyState(false, StatusTextBlock.Text);
             }
         }
 
         private PublishRequest ValidateRequest()
         {
-            GitHubRepository repository = GitHubRepository.Parse(RepositoryTextBox.Text);
-            string token = TokenPasswordBox.Password;
-            if (string.IsNullOrWhiteSpace(token))
-                throw new InvalidOperationException("请填写 GitHub 授权密钥。");
+            ReleaseIdentity identity = ValidateReleaseIdentity();
 
-            Version version = ReleaseVersion.Parse(VersionTextBox.Text);
-            string releaseVersion = ReleaseVersion.ToReleaseString(version);
             string sourceDirectory = Path.GetFullPath(SourceDirectoryTextBox.Text.Trim());
             if (!File.Exists(Path.Combine(sourceDirectory, "publish.ps1")))
                 throw new InvalidOperationException("源码目录中没有 publish.ps1。");
@@ -100,19 +132,19 @@ namespace GestureSign.ReleaseManager
             string configuration = GetSelectedValue(ConfigurationComboBox);
             string packageDirectory = Path.Combine(sourceDirectory, "artifacts", "release-manager", "packages");
             string packagePath = Path.Combine(packageDirectory,
-                UpdatePackageNaming.GetAssetName(releaseVersion, runtime));
+                UpdatePackageNaming.GetAssetName(identity.Version, runtime));
 
             return new PublishRequest
             {
-                Repository = repository,
-                Token = token,
+                Repository = identity.Repository,
+                Token = identity.Token,
                 SourceDirectory = sourceDirectory,
-                Version = releaseVersion,
+                Version = identity.Version,
                 Runtime = runtime,
                 Configuration = configuration,
                 PackagePath = packagePath,
                 ReleaseTitle = string.IsNullOrWhiteSpace(ReleaseTitleTextBox.Text)
-                    ? "GestureSign " + releaseVersion
+                    ? "GestureSign " + identity.Version
                     : ReleaseTitleTextBox.Text.Trim(),
                 ReleaseNotes = ReleaseNotesTextBox.Text,
                 Draft = DraftCheckBox.IsChecked == true,
@@ -120,10 +152,27 @@ namespace GestureSign.ReleaseManager
             };
         }
 
-        private void SetPublishingState(bool publishing, string status)
+        private ReleaseIdentity ValidateReleaseIdentity()
         {
-            PublishButton.IsEnabled = !publishing;
-            PublishProgressBar.Visibility = publishing ? Visibility.Visible : Visibility.Collapsed;
+            GitHubRepository repository = GitHubRepository.Parse(RepositoryTextBox.Text);
+            string token = TokenPasswordBox.Password;
+            if (string.IsNullOrWhiteSpace(token))
+                throw new InvalidOperationException("请填写 GitHub 授权密钥。");
+
+            Version version = ReleaseVersion.Parse(VersionTextBox.Text);
+            return new ReleaseIdentity
+            {
+                Repository = repository,
+                Token = token,
+                Version = ReleaseVersion.ToReleaseString(version)
+            };
+        }
+
+        private void SetBusyState(bool busy, string status)
+        {
+            PublishButton.IsEnabled = !busy;
+            DeleteReleaseButton.IsEnabled = !busy;
+            PublishProgressBar.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
             StatusTextBlock.Text = status;
         }
 
@@ -178,6 +227,13 @@ namespace GestureSign.ReleaseManager
             public string ReleaseNotes { get; set; }
             public bool Draft { get; set; }
             public bool Prerelease { get; set; }
+        }
+
+        private sealed class ReleaseIdentity
+        {
+            public GitHubRepository Repository { get; set; }
+            public string Token { get; set; }
+            public string Version { get; set; }
         }
     }
 }

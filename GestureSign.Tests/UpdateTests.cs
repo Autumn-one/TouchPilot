@@ -4,7 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace GestureSign.Tests
@@ -57,6 +62,31 @@ namespace GestureSign.Tests
             Assert.NotNull(UpdatePackageNaming.FindAsset(release, name));
             Assert.Equal(name + ".sha256",
                 UpdatePackageNaming.GetChecksumAssetName("8.2.0", "win-x64"));
+        }
+
+        [Fact]
+        public async Task ReleasePublisherDeletesReleaseByResolvedId()
+        {
+            var handler = new ReleaseDeletionHandler();
+            using var client = new HttpClient(handler);
+            using var publisher = new GitHubReleasePublisher(
+                GitHubRepository.Parse("TransposonY/GestureSign"), client);
+
+            GitHubReleaseInfo deleted = await publisher.DeleteAsync("v8.2.0", null,
+                CancellationToken.None);
+
+            Assert.Equal(42, deleted.Id);
+            Assert.Collection(handler.Requests,
+                request =>
+                {
+                    Assert.Equal(HttpMethod.Get, request.Method);
+                    Assert.EndsWith("/releases/tags/v8.2.0", request.Url);
+                },
+                request =>
+                {
+                    Assert.Equal(HttpMethod.Delete, request.Method);
+                    Assert.EndsWith("/releases/42", request.Url);
+                });
         }
 
         [Fact]
@@ -218,6 +248,31 @@ namespace GestureSign.Tests
                 catch
                 {
                 }
+            }
+        }
+
+        private sealed class ReleaseDeletionHandler : HttpMessageHandler
+        {
+            public List<(HttpMethod Method, string Url)> Requests { get; } =
+                new List<(HttpMethod Method, string Url)>();
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                Requests.Add((request.Method, request.RequestUri.ToString()));
+                if (request.Method == HttpMethod.Get)
+                {
+                    const string releaseJson =
+                        "{\"id\":42,\"tag_name\":\"v8.2.0\",\"name\":\"GestureSign 8.2.0\"," +
+                        "\"html_url\":\"https://github.com/TransposonY/GestureSign/releases/tag/v8.2.0\"," +
+                        "\"assets\":[]}";
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(releaseJson, Encoding.UTF8, "application/json")
+                    });
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
             }
         }
     }

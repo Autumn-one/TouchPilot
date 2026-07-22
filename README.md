@@ -42,4 +42,6 @@ dotnet run --project GestureSign.ReleaseManager/GestureSign.ReleaseManager.cspro
 
 Enter the GitHub repository, source directory, personal access token, version, build configuration, runtime, and release notes, then select **Build and publish**. The manager runs `publish.ps1`, creates the ZIP and checksum in `artifacts/release-manager/packages`, creates or updates the matching GitHub Release, and replaces assets with the same names.
 
+To remove a Release, enter its repository, token, and version, then select **Delete Release** and confirm the destructive action. This removes the GitHub Release and its assets but preserves the matching Git tag.
+
 Use a fine-grained GitHub personal access token scoped to the target repository with **Contents: Read and write** permission. The token is kept in memory only and is not saved or passed to the build process. Publish a non-draft, non-prerelease Release when it should be offered to existing installations.

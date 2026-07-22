@@ -9,6 +9,7 @@
         <SolidColorBrush x:Key="TextBrush" Color="#17202A" />
         <SolidColorBrush x:Key="MutedBrush" Color="#65717E" />
         <SolidColorBrush x:Key="AccentBrush" Color="#167D4E" />
+        <SolidColorBrush x:Key="DangerBrush" Color="#B42318" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />

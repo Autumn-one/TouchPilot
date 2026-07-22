@@ -15,24 +15,21 @@ namespace GestureSign.Common.Updates
     public sealed class GitHubReleasePublisher : IDisposable
     {
         private readonly HttpClient _httpClient;
+        private readonly bool _ownsHttpClient;
         private readonly GitHubRepository _repository;
 
         public GitHubReleasePublisher(GitHubRepository repository, string token)
+            : this(repository ?? throw new ArgumentNullException(nameof(repository)),
+                CreateHttpClient(token), true)
+        {
+        }
+
+        internal GitHubReleasePublisher(GitHubRepository repository, HttpClient httpClient,
+            bool ownsHttpClient = false)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-            if (string.IsNullOrWhiteSpace(token))
-                throw new ArgumentException("A GitHub personal access token is required.", nameof(token));
-
-            _httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromMinutes(10)
-            };
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("GestureSign-ReleaseManager");
-            _httpClient.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token.Trim());
-            _httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _ownsHttpClient = ownsHttpClient;
         }
 
         public async Task<GitHubReleaseInfo> PublishAsync(string tagName, string releaseName, string body,
@@ -80,9 +77,28 @@ namespace GestureSign.Common.Updates
             return release;
         }
 
+        public async Task<GitHubReleaseInfo> DeleteAsync(string tagName, IProgress<string> progress,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(tagName))
+                throw new ArgumentException("A release tag is required.", nameof(tagName));
+            tagName = tagName.Trim();
+
+            GitHubReleaseInfo release = await GetReleaseByTagAsync(tagName, cancellationToken)
+                .ConfigureAwait(false);
+            if (release == null)
+                throw new InvalidOperationException("GitHub release " + tagName + " was not found.");
+
+            progress?.Report("Deleting GitHub release " + tagName + "...");
+            await DeleteReleaseAsync(release.Id, cancellationToken).ConfigureAwait(false);
+            progress?.Report("GitHub release deleted: " + tagName);
+            return release;
+        }
+
         public void Dispose()
         {
-            _httpClient.Dispose();
+            if (_ownsHttpClient)
+                _httpClient.Dispose();
         }
 
         private async Task<GitHubReleaseInfo> GetReleaseByTagAsync(string tagName,
@@ -141,6 +157,13 @@ namespace GestureSign.Common.Updates
             await EnsureSuccessAsync(response).ConfigureAwait(false);
         }
 
+        private async Task DeleteReleaseAsync(long releaseId, CancellationToken cancellationToken)
+        {
+            using HttpResponseMessage response = await _httpClient.DeleteAsync(
+                ApiUrl("releases/" + releaseId), cancellationToken).ConfigureAwait(false);
+            await EnsureSuccessAsync(response).ConfigureAwait(false);
+        }
+
         private async Task UploadAssetAsync(long releaseId, string path, CancellationToken cancellationToken)
         {
             string assetName = Path.GetFileName(path);
@@ -160,6 +183,24 @@ namespace GestureSign.Common.Updates
         private string ApiUrl(string suffix)
         {
             return $"https://api.github.com/repos/{_repository.Owner}/{_repository.Name}/{suffix}";
+        }
+
+        private static HttpClient CreateHttpClient(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                throw new ArgumentException("A GitHub personal access token is required.", nameof(token));
+
+            var client = new HttpClient
+            {
+                Timeout = TimeSpan.FromMinutes(10)
+            };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("GestureSign-ReleaseManager");
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token.Trim());
+            client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
+            return client;
         }
 
         private static async Task<GitHubReleaseInfo> ReadReleaseAsync(HttpResponseMessage response,
