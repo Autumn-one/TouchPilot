@@ -265,6 +265,12 @@ QQ交流群：576981420
     <Unassigned>未设置</Unassigned>
     <Tuning>识别参数</Tuning>
     <EdgeZone>边缘区域 {0:F0}%</EdgeZone>
+    <AllEdgeZone>统一边缘区域 {0:F0}%</AllEdgeZone>
+    <PerEdgeZones>分别调整每条边</PerEdgeZones>
+    <LeftEdgeSummary>左 {0:F0}%</LeftEdgeSummary>
+    <RightEdgeSummary>右 {0:F0}%</RightEdgeSummary>
+    <TopEdgeSummary>上 {0:F0}%</TopEdgeSummary>
+    <BottomEdgeSummary>下 {0:F0}%</BottomEdgeSummary>
     <LeftEdgeZone>左边缘区域 {0:F0}%</LeftEdgeZone>
     <RightEdgeZone>右边缘区域 {0:F0}%</RightEdgeZone>
     <TopEdgeZone>顶部边缘区域 {0:F0}%</TopEdgeZone>

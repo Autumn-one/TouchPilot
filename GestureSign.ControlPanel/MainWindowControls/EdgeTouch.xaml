@@ -40,6 +40,28 @@
             <Setter Property="HorizontalAlignment"
                     Value="Stretch" />
         </Style>
+        <Style x:Key="EdgeTouch.EdgeZoneSummary"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource V2.Text.Caption}">
+            <Setter Property="HorizontalAlignment"
+                    Value="Center" />
+            <Setter Property="TextAlignment"
+                    Value="Center" />
+            <Setter Property="TextWrapping"
+                    Value="Wrap" />
+        </Style>
+        <Style x:Key="EdgeTouch.EdgeZoneExpander"
+               TargetType="Expander"
+               BasedOn="{StaticResource {x:Type Expander}}">
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Stretch" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource V2.Brush.Text}" />
+            <Setter Property="FontFamily"
+                    Value="{StaticResource V2.FontFamily}" />
+            <Setter Property="FontSize"
+                    Value="14" />
+        </Style>
         <SolidColorBrush x:Key="EdgeTouch.VisualizerEdgeArea"
                          Color="{StaticResource V2.Color.Accent}"
                          Opacity="0.16" />
@@ -122,79 +144,145 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="280" />
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <TextBlock Margin="0,0,20,0"
                                Style="{StaticResource V2.Settings.Label}"
-                               Text="{Binding ElementName=LeftEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.LeftEdgeZone}}" />
-                    <Slider x:Name="LeftEdgeZoneSlider"
+                               Text="{Binding ElementName=AllEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.AllEdgeZone}}" />
+                    <Slider x:Name="AllEdgeZoneSlider"
                             Grid.Column="1"
                             Style="{StaticResource V2.Settings.Slider}"
-                            Minimum="5"
+                            Minimum="0"
                             Maximum="25"
                             TickFrequency="1"
+                            SmallChange="1"
+                            LargeChange="1"
                             IsSnapToTickEnabled="True"
                             common:SliderTools.MoveToPointOnDrag="True"
-                            ValueChanged="EdgeZoneSlider_ValueChanged" />
+                            AutomationProperties.Name="{Binding ElementName=AllEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.AllEdgeZone}}"
+                            PreviewMouseLeftButtonUp="AllEdgeZoneSlider_PreviewMouseLeftButtonUp"
+                            ValueChanged="AllEdgeZoneSlider_ValueChanged" />
+                    <UniformGrid Grid.Row="1"
+                                 Grid.ColumnSpan="2"
+                                 Margin="0,10,0,0"
+                                 Columns="4">
+                        <TextBlock Style="{StaticResource EdgeTouch.EdgeZoneSummary}"
+                                   Text="{Binding ElementName=LeftEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.LeftEdgeSummary}}" />
+                        <TextBlock Style="{StaticResource EdgeTouch.EdgeZoneSummary}"
+                                   Text="{Binding ElementName=RightEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.RightEdgeSummary}}" />
+                        <TextBlock Style="{StaticResource EdgeTouch.EdgeZoneSummary}"
+                                   Text="{Binding ElementName=TopEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.TopEdgeSummary}}" />
+                        <TextBlock Style="{StaticResource EdgeTouch.EdgeZoneSummary}"
+                                   Text="{Binding ElementName=BottomEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.BottomEdgeSummary}}" />
+                    </UniformGrid>
                 </Grid>
             </Border>
             <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="280" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Margin="0,0,20,0"
-                               Style="{StaticResource V2.Settings.Label}"
-                               Text="{Binding ElementName=RightEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.RightEdgeZone}}" />
-                    <Slider x:Name="RightEdgeZoneSlider"
-                            Grid.Column="1"
-                            Style="{StaticResource V2.Settings.Slider}"
-                            Minimum="5"
-                            Maximum="25"
-                            TickFrequency="1"
-                            IsSnapToTickEnabled="True"
-                            common:SliderTools.MoveToPointOnDrag="True"
-                            ValueChanged="EdgeZoneSlider_ValueChanged" />
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="280" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Margin="0,0,20,0"
-                               Style="{StaticResource V2.Settings.Label}"
-                               Text="{Binding ElementName=TopEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.TopEdgeZone}}" />
-                    <Slider x:Name="TopEdgeZoneSlider"
-                            Grid.Column="1"
-                            Style="{StaticResource V2.Settings.Slider}"
-                            Minimum="5"
-                            Maximum="25"
-                            TickFrequency="1"
-                            IsSnapToTickEnabled="True"
-                            common:SliderTools.MoveToPointOnDrag="True"
-                            ValueChanged="EdgeZoneSlider_ValueChanged" />
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="280" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Margin="0,0,20,0"
-                               Style="{StaticResource V2.Settings.Label}"
-                               Text="{Binding ElementName=BottomEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.BottomEdgeZone}}" />
-                    <Slider x:Name="BottomEdgeZoneSlider"
-                            Grid.Column="1"
-                            Style="{StaticResource V2.Settings.Slider}"
-                            Minimum="5"
-                            Maximum="25"
-                            TickFrequency="1"
-                            IsSnapToTickEnabled="True"
-                            common:SliderTools.MoveToPointOnDrag="True"
-                            ValueChanged="EdgeZoneSlider_ValueChanged" />
-                </Grid>
+                <Expander x:Name="PerEdgeZoneExpander"
+                          Style="{StaticResource EdgeTouch.EdgeZoneExpander}"
+                          IsExpanded="False"
+                          AutomationProperties.Name="{localization:LocalisedText EdgeTouch.PerEdgeZones}">
+                    <Expander.Header>
+                        <TextBlock Style="{StaticResource V2.Settings.Label}"
+                                   Text="{localization:LocalisedText EdgeTouch.PerEdgeZones}" />
+                    </Expander.Header>
+                    <StackPanel Margin="24,8,0,0">
+                        <Border Style="{StaticResource V2.Settings.Row}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="280" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Margin="0,0,20,0"
+                                           Style="{StaticResource V2.Settings.Label}"
+                                           Text="{Binding ElementName=LeftEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.LeftEdgeZone}}" />
+                                <Slider x:Name="LeftEdgeZoneSlider"
+                                        Grid.Column="1"
+                                        Style="{StaticResource V2.Settings.Slider}"
+                                        Minimum="0"
+                                        Maximum="25"
+                                        TickFrequency="1"
+                                        SmallChange="1"
+                                        LargeChange="1"
+                                        IsSnapToTickEnabled="True"
+                                        common:SliderTools.MoveToPointOnDrag="True"
+                                        AutomationProperties.Name="{Binding ElementName=LeftEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.LeftEdgeZone}}"
+                                        ValueChanged="EdgeZoneSlider_ValueChanged" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource V2.Settings.Row}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="280" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Margin="0,0,20,0"
+                                           Style="{StaticResource V2.Settings.Label}"
+                                           Text="{Binding ElementName=RightEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.RightEdgeZone}}" />
+                                <Slider x:Name="RightEdgeZoneSlider"
+                                        Grid.Column="1"
+                                        Style="{StaticResource V2.Settings.Slider}"
+                                        Minimum="0"
+                                        Maximum="25"
+                                        TickFrequency="1"
+                                        SmallChange="1"
+                                        LargeChange="1"
+                                        IsSnapToTickEnabled="True"
+                                        common:SliderTools.MoveToPointOnDrag="True"
+                                        AutomationProperties.Name="{Binding ElementName=RightEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.RightEdgeZone}}"
+                                        ValueChanged="EdgeZoneSlider_ValueChanged" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource V2.Settings.Row}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="280" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Margin="0,0,20,0"
+                                           Style="{StaticResource V2.Settings.Label}"
+                                           Text="{Binding ElementName=TopEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.TopEdgeZone}}" />
+                                <Slider x:Name="TopEdgeZoneSlider"
+                                        Grid.Column="1"
+                                        Style="{StaticResource V2.Settings.Slider}"
+                                        Minimum="0"
+                                        Maximum="25"
+                                        TickFrequency="1"
+                                        SmallChange="1"
+                                        LargeChange="1"
+                                        IsSnapToTickEnabled="True"
+                                        common:SliderTools.MoveToPointOnDrag="True"
+                                        AutomationProperties.Name="{Binding ElementName=TopEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.TopEdgeZone}}"
+                                        ValueChanged="EdgeZoneSlider_ValueChanged" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource V2.Settings.Row}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="280" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Margin="0,0,20,0"
+                                           Style="{StaticResource V2.Settings.Label}"
+                                           Text="{Binding ElementName=BottomEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.BottomEdgeZone}}" />
+                                <Slider x:Name="BottomEdgeZoneSlider"
+                                        Grid.Column="1"
+                                        Style="{StaticResource V2.Settings.Slider}"
+                                        Minimum="0"
+                                        Maximum="25"
+                                        TickFrequency="1"
+                                        SmallChange="1"
+                                        LargeChange="1"
+                                        IsSnapToTickEnabled="True"
+                                        common:SliderTools.MoveToPointOnDrag="True"
+                                        AutomationProperties.Name="{Binding ElementName=BottomEdgeZoneSlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.BottomEdgeZone}}"
+                                        ValueChanged="EdgeZoneSlider_ValueChanged" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Expander>
             </Border>
             <Border Style="{StaticResource V2.Settings.Row}">
                 <Grid>

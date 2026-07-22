@@ -261,6 +261,12 @@ Email: ccfyzh@gmail.com
     <Unassigned>Not assigned</Unassigned>
     <Tuning>Recognition</Tuning>
     <EdgeZone>Edge zone {0:F0}%</EdgeZone>
+    <AllEdgeZone>All edge zones {0:F0}%</AllEdgeZone>
+    <PerEdgeZones>Adjust each edge</PerEdgeZones>
+    <LeftEdgeSummary>Left {0:F0}%</LeftEdgeSummary>
+    <RightEdgeSummary>Right {0:F0}%</RightEdgeSummary>
+    <TopEdgeSummary>Top {0:F0}%</TopEdgeSummary>
+    <BottomEdgeSummary>Bottom {0:F0}%</BottomEdgeSummary>
     <LeftEdgeZone>Left edge zone {0:F0}%</LeftEdgeZone>
     <RightEdgeZone>Right edge zone {0:F0}%</RightEdgeZone>
     <TopEdgeZone>Top edge zone {0:F0}%</TopEdgeZone>
