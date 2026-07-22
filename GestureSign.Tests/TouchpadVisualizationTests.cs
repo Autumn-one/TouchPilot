@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -180,6 +181,32 @@ namespace GestureSign.Tests
 
             TouchpadContactTrace trace = Assert.Single(state.Traces);
             Assert.Equal(TouchpadContactConfidence.LowConfidence, trace.LastPoint.Confidence);
+        }
+
+        [Fact]
+        public void VisualizationStateKeepsStationaryFiveFingerContactsVisible()
+        {
+            var state = new TouchpadVisualizationState();
+            var contacts = Enumerable.Range(1, 5)
+                .Select(identifier => new TouchpadContact(identifier, DeviceStates.Tip,
+                    identifier / 6d, 0.5))
+                .ToArray();
+            const long initialTimestamp = 100;
+            state.ApplyFrame(new TouchpadVisualizationFrame(initialTimestamp, contacts));
+
+            long inactiveFrameTimestamp = initialTimestamp +
+                TouchpadVisualizationState.TrailLifetimeMilliseconds + 1;
+            state.Advance(inactiveFrameTimestamp);
+
+            Assert.Equal(5, state.ActiveContactCount);
+            Assert.Equal(5, state.Traces.Count);
+            Assert.All(state.Traces, trace => Assert.Single(trace.Points));
+
+            state.ApplyFrame(new TouchpadVisualizationFrame(inactiveFrameTimestamp,
+                Array.Empty<TouchpadContact>()));
+            state.Advance(inactiveFrameTimestamp +
+                TouchpadVisualizationState.TrailLifetimeMilliseconds);
+            Assert.Empty(state.Traces);
         }
 
         [Fact]

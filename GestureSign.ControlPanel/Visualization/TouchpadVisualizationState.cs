@@ -62,7 +62,8 @@ namespace GestureSign.ControlPanel.Visualization
         public void PrunePointsBefore(long timestampMilliseconds)
         {
             int removeCount = 0;
-            while (removeCount < _points.Count &&
+            int retainedPointCount = IsActive ? 1 : 0;
+            while (removeCount < _points.Count - retainedPointCount &&
                    _points[removeCount].TimestampMilliseconds < timestampMilliseconds)
             {
                 removeCount++;
