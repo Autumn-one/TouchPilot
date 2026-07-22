@@ -25,14 +25,6 @@
             <Setter Property="common:DragScrolling.IsEnabled"
                     Value="True" />
         </Style>
-        <Style x:Key="CommandDialog.DropDownScrollViewer"
-               TargetType="ScrollViewer"
-               BasedOn="{StaticResource {x:Type ScrollViewer}}">
-            <Setter Property="common:DragScrolling.IsEnabled"
-                    Value="False" />
-            <Setter Property="common:PrecisionScrolling.IsEnabled"
-                    Value="True" />
-        </Style>
     </controls:MetroWindow.Resources>
 
     <controls:MetroWindow.Flyouts>
@@ -67,14 +59,9 @@
             <ComboBox x:Name="cmbPlugins"
                       Margin="0,6,0,0"
                       Style="{StaticResource V2.Settings.ComboBox}"
-                      ScrollViewer.CanContentScroll="False"
                       MaxDropDownHeight="300"
                       AutomationProperties.Name="{localization:LocalisedText CommandDialog.SelectCommand}"
                       SelectionChanged="cmbPlugins_SelectionChanged">
-                <ComboBox.Resources>
-                    <Style TargetType="ScrollViewer"
-                           BasedOn="{StaticResource CommandDialog.DropDownScrollViewer}" />
-                </ComboBox.Resources>
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <Grid MinHeight="34">

@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro">
+                    xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+                    xmlns:common="clr-namespace:GestureSign.ControlPanel.Common">
     <Style x:Key="V2.Settings.SectionTitle"
            TargetType="TextBlock"
            BasedOn="{StaticResource V2.Text.SectionTitle}">
@@ -104,6 +105,8 @@
         <Setter Property="FontFamily" Value="{StaticResource V2.FontFamily}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel" />
+        <Setter Property="common:PrecisionScrolling.IsEnabled" Value="True" />
     </Style>
 
     <Style x:Key="V2.Settings.SegmentedTabItem"

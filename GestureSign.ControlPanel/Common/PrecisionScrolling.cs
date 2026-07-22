@@ -19,6 +19,8 @@ namespace GestureSign.ControlPanel.Common
 
         private static readonly ConditionalWeakTable<ScrollViewer, InputState> InputStates =
             new ConditionalWeakTable<ScrollViewer, InputState>();
+        private static readonly ConditionalWeakTable<ComboBox, ComboBoxState> ComboBoxStates =
+            new ConditionalWeakTable<ComboBox, ComboBoxState>();
         private static readonly Dictionary<ScrollViewer, AnimationState> ActiveAnimations =
             new Dictionary<ScrollViewer, AnimationState>();
 
@@ -127,6 +129,12 @@ namespace GestureSign.ControlPanel.Common
                 element.PreviewKeyDown += OnPreviewKeyDown;
                 if (element is FrameworkElement frameworkElement)
                     frameworkElement.Unloaded += OnHostUnloaded;
+                if (element is ComboBox comboBox)
+                {
+                    comboBox.DropDownOpened += OnComboBoxDropDownOpened;
+                    if (comboBox.IsDropDownOpen)
+                        AttachComboBoxDropDown(comboBox);
+                }
             }
             else
             {
@@ -135,8 +143,73 @@ namespace GestureSign.ControlPanel.Common
                 element.PreviewKeyDown -= OnPreviewKeyDown;
                 if (element is FrameworkElement frameworkElement)
                     frameworkElement.Unloaded -= OnHostUnloaded;
+                if (element is ComboBox comboBox)
+                {
+                    comboBox.DropDownOpened -= OnComboBoxDropDownOpened;
+                    DetachComboBoxDropDown(comboBox);
+                }
                 CancelAnimationsWithin(element);
             }
+        }
+
+        private static void OnComboBoxDropDownOpened(object sender, EventArgs e)
+        {
+            AttachComboBoxDropDown((ComboBox)sender);
+        }
+
+        private static void AttachComboBoxDropDown(ComboBox comboBox)
+        {
+            comboBox.ApplyTemplate();
+            ScrollViewer scrollViewer = FindComboBoxDropDownScrollViewer(comboBox);
+            if (scrollViewer == null)
+                return;
+
+            ComboBoxState state = ComboBoxStates.GetOrCreateValue(comboBox);
+            if (state.DropDownScrollViewer != null &&
+                !ReferenceEquals(state.DropDownScrollViewer, scrollViewer))
+            {
+                SetIsEnabled(state.DropDownScrollViewer, false);
+            }
+
+            state.DropDownScrollViewer = scrollViewer;
+            SetPixelsPerNotch(scrollViewer, GetPixelsPerNotch(comboBox));
+            SetDiscreteAnimationMilliseconds(scrollViewer,
+                GetDiscreteAnimationMilliseconds(comboBox));
+            SetIsEnabled(scrollViewer, true);
+        }
+
+        private static void DetachComboBoxDropDown(ComboBox comboBox)
+        {
+            if (!ComboBoxStates.TryGetValue(comboBox, out ComboBoxState state))
+                return;
+
+            if (state.DropDownScrollViewer != null)
+                SetIsEnabled(state.DropDownScrollViewer, false);
+            ComboBoxStates.Remove(comboBox);
+        }
+
+        internal static ScrollViewer FindComboBoxDropDownScrollViewer(ComboBox comboBox)
+        {
+            var popup = comboBox?.Template?.FindName("PART_Popup", comboBox) as Popup;
+            return FindVisualDescendant<ScrollViewer>(popup?.Child);
+        }
+
+        private static T FindVisualDescendant<T>(DependencyObject root) where T : DependencyObject
+        {
+            if (root == null)
+                return null;
+            if (root is T result)
+                return result;
+
+            int childCount = VisualTreeHelper.GetChildrenCount(root);
+            for (int index = 0; index < childCount; index++)
+            {
+                result = FindVisualDescendant<T>(VisualTreeHelper.GetChild(root, index));
+                if (result != null)
+                    return result;
+            }
+
+            return null;
         }
 
         private static void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -401,6 +474,11 @@ namespace GestureSign.ControlPanel.Common
         private sealed class InputState
         {
             public long HighResolutionUntilTimestamp { get; set; }
+        }
+
+        private sealed class ComboBoxState
+        {
+            public ScrollViewer DropDownScrollViewer { get; set; }
         }
 
         private sealed class AnimationState

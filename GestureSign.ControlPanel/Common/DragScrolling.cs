@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace GestureSign.ControlPanel.Common
 {
@@ -62,6 +64,7 @@ namespace GestureSign.ControlPanel.Common
         {
             var target = sender as ScrollViewer;
             if (target == null) return;
+            if (IsScrollBarInteraction(e.OriginalSource as DependencyObject, target)) return;
             _verticalOffset = target.VerticalOffset;
             _downPoint = e.GetPosition(target);
             target.CaptureMouse();
@@ -70,7 +73,7 @@ namespace GestureSign.ControlPanel.Common
         static void target_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             var target = sender as ScrollViewer;
-            if (target == null) return;
+            if (target == null || !target.IsMouseCaptured) return;
 
             if (Math.Abs(e.GetPosition(target).Y - _downPoint.Y) > 20)
             {
@@ -93,6 +96,36 @@ namespace GestureSign.ControlPanel.Common
 
             var dy = point.Y - _downPoint.Y;
             target.ScrollToVerticalOffset(_verticalOffset - dy);
+        }
+
+        internal static bool IsScrollBarInteraction(DependencyObject source, DependencyObject boundary)
+        {
+            DependencyObject current = source;
+            while (current != null && !ReferenceEquals(current, boundary))
+            {
+                if (current is ScrollBar)
+                    return true;
+                current = GetParent(current);
+            }
+
+            return false;
+        }
+
+        private static DependencyObject GetParent(DependencyObject target)
+        {
+            if (target is Visual || target is System.Windows.Media.Media3D.Visual3D)
+                return VisualTreeHelper.GetParent(target);
+
+            if (target is ContentElement contentElement)
+            {
+                DependencyObject parent = ContentOperations.GetParent(contentElement);
+                if (parent != null)
+                    return parent;
+                if (contentElement is FrameworkContentElement frameworkContentElement)
+                    return frameworkContentElement.Parent;
+            }
+
+            return LogicalTreeHelper.GetParent(target);
         }
     }
 }

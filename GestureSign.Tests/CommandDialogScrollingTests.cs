@@ -17,21 +17,28 @@ namespace GestureSign.Tests
     public class CommandDialogScrollingTests
     {
         [Fact]
-        public void CommandDropDownUsesNativePixelPrecisionScrolling()
+        public void CommandAndHotKeyDropDownsUseSharedPrecisionScrolling()
         {
             Exception failure = null;
             var thread = new Thread(() =>
             {
-                GestureSign.ControlPanel.App app = null;
+                Application app = null;
                 CommandDialog dialog = null;
                 try
                 {
                     Assert.Null(Application.Current);
-                    app = new GestureSign.ControlPanel.App
+                    app = new Application
                     {
                         ShutdownMode = ShutdownMode.OnExplicitShutdown
                     };
-                    app.InitializeComponent();
+                    LoadApplicationResources(app);
+
+                    var edgeTouch = new GestureSign.ControlPanel.MainWindowControls.EdgeTouch();
+                    var edgeActionComboBox = Assert.IsType<ComboBox>(
+                        edgeTouch.FindName("LeftSwipeInComboBox"));
+                    Assert.True(PrecisionScrolling.GetIsEnabled(edgeActionComboBox));
+                    Assert.Equal(ScrollUnit.Pixel,
+                        VirtualizingPanel.GetScrollUnit(edgeActionComboBox));
 
                     dialog = (CommandDialog)Activator.CreateInstance(
                         typeof(CommandDialog),
@@ -46,35 +53,21 @@ namespace GestureSign.Tests
                     comboBox.ItemsSource = Enumerable.Range(1, 80)
                         .Select(index => new DropDownItem { DisplayText = $"Command {index}" })
                         .ToArray();
-                    comboBox.ApplyTemplate();
-                    comboBox.IsDropDownOpen = true;
-                    dialog.Dispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+                    AssertDropDownScrolling(dialog.Dispatcher, comboBox);
+                    comboBox.IsDropDownOpen = false;
+
+                    var settingsContent = Assert.IsType<ContentControl>(dialog.FindName("SettingsContent"));
+                    var hotKeyControl = new GestureSign.CorePlugins.HotKey.HotKey();
+                    settingsContent.Content = hotKeyControl;
+                    settingsContent.Height = 220;
+                    settingsContent.Visibility = Visibility.Visible;
                     dialog.UpdateLayout();
 
-                    var popup = Assert.IsType<Popup>(comboBox.Template.FindName("PART_Popup", comboBox));
-                    Assert.True(popup.IsOpen);
-                    var scrollViewer = Assert.IsType<ScrollViewer>(FindVisualChild<ScrollViewer>(popup.Child));
-
-                    Assert.False(DragScrolling.GetIsEnabled(scrollViewer));
-                    Assert.True(PrecisionScrolling.GetIsEnabled(scrollViewer));
-                    Assert.False(scrollViewer.CanContentScroll);
-                    Assert.True(scrollViewer.ScrollableHeight > 0);
-
-                    PrecisionScrolling.SetDiscreteAnimationMilliseconds(scrollViewer, 0);
-                    scrollViewer.ScrollToVerticalOffset(scrollViewer.ScrollableHeight / 2);
-                    FlushPopupLayout(dialog.Dispatcher, popup.Child, scrollViewer);
-                    double middleOffset = scrollViewer.VerticalOffset;
-
-                    RaiseWheel(scrollViewer, -120);
-                    FlushPopupLayout(dialog.Dispatcher, popup.Child, scrollViewer);
-                    double downOffset = scrollViewer.VerticalOffset;
-                    Assert.True(downOffset > middleOffset,
-                        $"Expected wheel-down to increase the offset, but it changed from {middleOffset} to {downOffset}.");
-
-                    RaiseWheel(scrollViewer, 120);
-                    FlushPopupLayout(dialog.Dispatcher, popup.Child, scrollViewer);
-                    Assert.True(scrollViewer.VerticalOffset < downOffset,
-                        $"Expected wheel-up to decrease the offset, but it changed from {downOffset} to {scrollViewer.VerticalOffset}.");
+                    var extraKeysComboBox = Assert.IsType<ComboBox>(
+                        hotKeyControl.FindName("ExtraKeysComboBox"));
+                    extraKeysComboBox.MaxDropDownHeight = 180;
+                    Assert.True(extraKeysComboBox.Items.Count > 0);
+                    AssertDropDownScrolling(dialog.Dispatcher, extraKeysComboBox);
                 }
                 catch (Exception exception)
                 {
@@ -96,6 +89,81 @@ namespace GestureSign.Tests
                 throw failure;
         }
 
+        private static void LoadApplicationResources(Application app)
+        {
+            app.Resources["DefaultFlowDirection"] = FlowDirection.LeftToRight;
+            string[] resourceUris =
+            {
+                "pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml",
+                "pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml",
+                "pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml",
+                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Tokens.xaml",
+                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Typography.xaml",
+                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Controls.xaml",
+                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Shell.xaml",
+                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Settings.xaml",
+                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Dialogs.xaml"
+            };
+
+            foreach (string resourceUri in resourceUris)
+            {
+                app.Resources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri(resourceUri, UriKind.Absolute)
+                });
+            }
+        }
+
+        private static void AssertDropDownScrolling(Dispatcher dispatcher, ComboBox comboBox)
+        {
+            comboBox.ApplyTemplate();
+            comboBox.IsDropDownOpen = true;
+            dispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+
+            var popup = Assert.IsType<Popup>(comboBox.Template.FindName("PART_Popup", comboBox));
+            Assert.True(popup.IsOpen);
+            popup.Child.UpdateLayout();
+            var scrollViewer = Assert.IsType<ScrollViewer>(
+                PrecisionScrolling.FindComboBoxDropDownScrollViewer(comboBox));
+
+            Assert.True(PrecisionScrolling.GetIsEnabled(comboBox));
+            Assert.True(PrecisionScrolling.GetIsEnabled(scrollViewer));
+            Assert.True(DragScrolling.GetIsEnabled(scrollViewer));
+            Assert.True(VirtualizingPanel.GetIsVirtualizing(comboBox));
+            Assert.Equal(ScrollUnit.Pixel, VirtualizingPanel.GetScrollUnit(comboBox));
+            Assert.True(scrollViewer.CanContentScroll);
+            Assert.True(scrollViewer.ScrollableHeight > 0);
+
+            var verticalScrollBar = Assert.IsType<ScrollBar>(FindVisualChild<ScrollBar>(
+                scrollViewer,
+                scrollBar => scrollBar.Orientation == Orientation.Vertical));
+            verticalScrollBar.ApplyTemplate();
+            verticalScrollBar.UpdateLayout();
+            var thumb = Assert.IsAssignableFrom<Thumb>(FindVisualChild<Thumb>(verticalScrollBar));
+            Assert.True(DragScrolling.IsScrollBarInteraction(thumb, scrollViewer));
+
+            var item = Assert.IsType<ComboBoxItem>(FindVisualChild<ComboBoxItem>(popup.Child));
+            Assert.False(DragScrolling.IsScrollBarInteraction(item, scrollViewer));
+
+            int selectedIndex = comboBox.SelectedIndex;
+            PrecisionScrolling.SetDiscreteAnimationMilliseconds(scrollViewer, 0);
+            scrollViewer.ScrollToVerticalOffset(scrollViewer.ScrollableHeight / 2);
+            FlushPopupLayout(dispatcher, popup.Child, scrollViewer);
+            double middleOffset = scrollViewer.VerticalOffset;
+
+            RaiseWheel(scrollViewer, -120);
+            FlushPopupLayout(dispatcher, popup.Child, scrollViewer);
+            double downOffset = scrollViewer.VerticalOffset;
+            Assert.True(downOffset > middleOffset,
+                $"Expected wheel-down to increase the offset, but it changed from {middleOffset} to {downOffset}.");
+
+            RaiseWheel(scrollViewer, 120);
+            FlushPopupLayout(dispatcher, popup.Child, scrollViewer);
+            Assert.True(scrollViewer.VerticalOffset < downOffset,
+                $"Expected wheel-up to decrease the offset, but it changed from {downOffset} to {scrollViewer.VerticalOffset}.");
+            Assert.Equal(selectedIndex, comboBox.SelectedIndex);
+        }
+
         private static void RaiseWheel(UIElement target, int delta)
         {
             var args = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, delta)
@@ -115,7 +183,8 @@ namespace GestureSign.Tests
             scrollViewer.UpdateLayout();
         }
 
-        private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        private static T FindVisualChild<T>(DependencyObject parent,
+            Func<T, bool> predicate = null) where T : DependencyObject
         {
             if (parent == null)
                 return null;
@@ -123,10 +192,10 @@ namespace GestureSign.Tests
             for (int index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
             {
                 DependencyObject child = VisualTreeHelper.GetChild(parent, index);
-                if (child is T result)
+                if (child is T result && (predicate == null || predicate(result)))
                     return result;
 
-                result = FindVisualChild<T>(child);
+                result = FindVisualChild(child, predicate);
                 if (result != null)
                     return result;
             }
