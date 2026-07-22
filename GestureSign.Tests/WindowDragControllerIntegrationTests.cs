@@ -163,15 +163,18 @@ namespace GestureSign.Tests
 
                     var firstWindow = new SystemWindow(firstForm.Handle);
                     var secondWindow = new SystemWindow(secondForm.Handle);
+                    ActivateForm(secondForm);
+                    Assert.Equal(secondWindow.HWnd, SystemWindow.ForegroundWindow.HWnd);
                     RECT firstInitialRectangle = firstWindow.Rectangle;
                     Point firstCursor = new Point(firstInitialRectangle.Left + 80, firstInitialRectangle.Top + 60);
                     Cursor.Position = firstCursor;
 
                     Assert.True(controller.Begin(firstWindow, 0.50, 0.50,
-                        TouchpadWindowDragImplementation.DirectSetWindowPos));
+                        TouchpadWindowDragImplementation.DirectSetWindowPos, true));
                     Thread.Sleep(25);
                     Assert.True(controller.Update(0.52, 0.51, 1));
                     PumpWindowMessages();
+                    Assert.Equal(firstWindow.HWnd, SystemWindow.ForegroundWindow.HWnd);
 
                     controller.Pause();
                     RECT firstPausedRectangle = firstWindow.Rectangle;
@@ -187,6 +190,7 @@ namespace GestureSign.Tests
                     Thread.Sleep(25);
                     Assert.True(controller.Update(0.55, 0.53, 1));
                     PumpWindowMessages();
+                    Assert.Equal(secondWindow.HWnd, SystemWindow.ForegroundWindow.HWnd);
 
                     RECT firstFinalRectangle = firstWindow.Rectangle;
                     RECT secondFinalRectangle = secondWindow.Rectangle;
@@ -208,6 +212,73 @@ namespace GestureSign.Tests
                     Cursor.Position = originalCursor;
                     secondForm.Close();
                     firstForm.Close();
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerKeepsForegroundWindowWhenBringToFrontIsDisabled()
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    RunWindowDragWithoutActivationTest();
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+
+            Assert.True(thread.Join(TimeSpan.FromSeconds(10)),
+                "The disabled bring-to-front integration test timed out.");
+            if (failure != null)
+                ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
+        private static void RunWindowDragWithoutActivationTest()
+        {
+            Point originalCursor = Cursor.Position;
+            var controller = new WindowDragController();
+            Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
+            int width = Math.Min(320, workingArea.Width / 3);
+            int height = Math.Min(220, workingArea.Height / 2);
+            using (var targetForm = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Left + 40, workingArea.Top + 80, width, height), "inactive target"))
+            using (var foregroundForm = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Right - width - 40, workingArea.Top + 80, width, height), "foreground"))
+            {
+                try
+                {
+                    targetForm.Show();
+                    foregroundForm.Show();
+                    Application.DoEvents();
+
+                    var targetWindow = new SystemWindow(targetForm.Handle);
+                    var foregroundWindow = new SystemWindow(foregroundForm.Handle);
+                    ActivateForm(foregroundForm);
+                    Assert.Equal(foregroundWindow.HWnd, SystemWindow.ForegroundWindow.HWnd);
+
+                    RECT targetRectangle = targetWindow.Rectangle;
+                    Cursor.Position = new Point(targetRectangle.Left + 80, targetRectangle.Top + 60);
+                    Assert.True(controller.Begin(targetWindow, 0.50, 0.50,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos, false));
+                    PumpWindowMessages();
+
+                    Assert.Equal(foregroundWindow.HWnd, SystemWindow.ForegroundWindow.HWnd);
+                }
+                finally
+                {
+                    controller.End();
+                    Cursor.Position = originalCursor;
+                    foregroundForm.Close();
+                    targetForm.Close();
                     Application.DoEvents();
                 }
             }
@@ -355,6 +426,16 @@ namespace GestureSign.Tests
                 TopMost = true,
                 Text = $"GestureSign direct drag {label} window"
             };
+        }
+
+        private static void ActivateForm(Form form)
+        {
+            Point activationPoint = form.PointToScreen(new Point(
+                Math.Max(1, form.ClientSize.Width - 20),
+                Math.Max(1, form.ClientSize.Height - 20)));
+            Cursor.Position = activationPoint;
+            new InputSimulator().Mouse.LeftButtonClick();
+            PumpWindowMessages();
         }
 
         private static void PumpWindowMessages()

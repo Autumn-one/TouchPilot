@@ -22,6 +22,7 @@ namespace GestureSign.Daemon.Triggers
         private bool _active;
         private bool _failureLogged;
         private bool _simulatedLeftButtonDown;
+        private bool _bringToForeground;
         private TouchpadWindowDragImplementation _implementation;
         private int _anchorX;
         private int _anchorY;
@@ -36,7 +37,7 @@ namespace GestureSign.Daemon.Triggers
         internal string LastFailure { get; private set; }
 
         public bool Begin(SystemWindow window, double normalizedX, double normalizedY,
-            TouchpadWindowDragImplementation implementation)
+            TouchpadWindowDragImplementation implementation, bool bringToForeground = false)
         {
             End();
             if (!IsMovableWindow(window))
@@ -45,14 +46,21 @@ namespace GestureSign.Daemon.Triggers
             _window = window;
             Point cursor = Cursor.Position;
             _implementation = implementation;
+            _bringToForeground = bringToForeground;
             _failureLogged = false;
             LastFailure = null;
+
+            if (!PrepareWindowForDrag())
+            {
+                End();
+                return false;
+            }
 
             if (UsesSimulatedMouseDrag(implementation))
             {
                 if (!TryStartSimulatedMouseDrag())
                 {
-                    _window = null;
+                    End();
                     return false;
                 }
             }
@@ -148,6 +156,12 @@ namespace GestureSign.Daemon.Triggers
             }
 
             _window = window;
+            if (!PrepareWindowForDrag())
+            {
+                End();
+                return false;
+            }
+
             if (UsesSimulatedMouseDrag(_implementation))
             {
                 if (!TryStartSimulatedMouseDrag())
@@ -181,6 +195,7 @@ namespace GestureSign.Daemon.Triggers
             ReleaseSimulatedLeftButton();
             _active = false;
             _window = null;
+            _bringToForeground = false;
             _hasPendingPosition = false;
             _anchorX = 0;
             _anchorY = 0;
@@ -228,12 +243,6 @@ namespace GestureSign.Daemon.Triggers
 
         private bool TryStartSimulatedMouseDrag()
         {
-            if (IsLeftButtonDown())
-            {
-                LogFailureOnce("start the simulated mouse drag because the left button is already down", 0);
-                return false;
-            }
-
             try
             {
                 _inputSimulator.Mouse.LeftButtonDown();
@@ -246,6 +255,39 @@ namespace GestureSign.Daemon.Triggers
                 TryReleaseLeftButtonAfterFailure();
                 return false;
             }
+        }
+
+        private bool PrepareWindowForDrag()
+        {
+            if (UsesSimulatedMouseDrag(_implementation) && IsLeftButtonDown())
+            {
+                LogFailureOnce("start the simulated mouse drag because the left button is already down", 0);
+                return false;
+            }
+
+            BringWindowToForegroundIfRequested();
+            return true;
+        }
+
+        private void BringWindowToForegroundIfRequested()
+        {
+            if (!_bringToForeground || SystemWindow.ForegroundWindow.HWnd == _window.HWnd)
+                return;
+
+            if (NativeMethods.SetForegroundWindow(_window.HWnd))
+                return;
+
+            NativeMethods.SWP flags = NativeMethods.SWP.SWP_NOMOVE |
+                                      NativeMethods.SWP.SWP_NOSIZE |
+                                      NativeMethods.SWP.SWP_SHOWWINDOW |
+                                      NativeMethods.SWP.SWP_ASYNCWINDOWPOS;
+            if (!NativeMethods.SetWindowPos(_window.HWnd, IntPtr.Zero, 0, 0, 0, 0, flags))
+            {
+                LogFailureOnce("bring the window to the foreground", Marshal.GetLastWin32Error());
+                return;
+            }
+
+            NativeMethods.SetForegroundWindow(_window.HWnd);
         }
 
         private static bool IsLeftButtonDown()
