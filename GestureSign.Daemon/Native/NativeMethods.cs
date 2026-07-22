@@ -211,6 +211,15 @@ namespace GestureSign.Daemon.Native
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        [DllImport(User32Dll, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AttachThreadInput(int idAttach, int idAttachTo,
+            [MarshalAs(UnmanagedType.Bool)] bool attach);
+
+        [DllImport(User32Dll, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool BringWindowToTop(IntPtr hWnd);
+
         [DllImport(User32Dll)]
         public static extern short GetAsyncKeyState(int virtualKey);
 

@@ -3,8 +3,11 @@ using GestureSign.Daemon.Triggers;
 using ManagedWinapi.Windows;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using WindowsInput;
@@ -13,6 +16,13 @@ using NativeMethods = GestureSign.Daemon.Native.NativeMethods;
 
 namespace GestureSign.Tests
 {
+    [CollectionDefinition(Name, DisableParallelization = true)]
+    public sealed class DesktopInputIntegrationCollection
+    {
+        public const string Name = "Desktop input integration";
+    }
+
+    [Collection(DesktopInputIntegrationCollection.Name)]
     public class WindowDragControllerIntegrationTests
     {
         [Fact]
@@ -286,6 +296,114 @@ namespace GestureSign.Tests
 
         [Fact]
         [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerActivatesWindowAcrossTheForegroundLock()
+        {
+            RunInStaThread(() => RunExternalForegroundWindowDragTest(true),
+                "The cross-process foreground activation test timed out.");
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerKeepsExternalForegroundWindowWhenBringToFrontIsDisabled()
+        {
+            RunInStaThread(() => RunExternalForegroundWindowDragTest(false),
+                "The cross-process disabled foreground activation test timed out.");
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerPreservesHeldModifierAcrossForegroundActivation()
+        {
+            RunInStaThread(() => RunExternalForegroundWindowDragTest(true, true),
+                "The held-modifier foreground activation test timed out.");
+        }
+
+        private static void RunExternalForegroundWindowDragTest(bool bringToForeground, bool holdControl = false)
+        {
+            Point originalCursor = Cursor.Position;
+            bool controlInitiallyDown = holdControl && IsControlKeyDown();
+            var controller = new WindowDragController();
+            Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
+            int width = Math.Min(360, Math.Max(240, workingArea.Width / 4));
+            int height = Math.Min(240, Math.Max(180, workingArea.Height / 3));
+            var targetBounds = new Rectangle(workingArea.Left + 40, workingArea.Top + 80, width, height);
+            var foregroundBounds = new Rectangle(workingArea.Right - width - 40,
+                workingArea.Top + 80, width, height);
+
+            using (var targetForm = new Form
+            {
+                Bounds = targetBounds,
+                FormBorderStyle = FormBorderStyle.FixedToolWindow,
+                ShowInTaskbar = false,
+                StartPosition = FormStartPosition.Manual,
+                TopMost = false,
+                Text = "GestureSign cross-process drag target"
+            })
+            {
+                ExternalForegroundWindow foregroundWindow = null;
+                try
+                {
+                    if (holdControl)
+                        Assert.False(controlInitiallyDown, "Ctrl was already pressed before the integration test.");
+
+                    targetForm.Show();
+                    Application.DoEvents();
+
+                    var targetWindow = new SystemWindow(targetForm.Handle);
+                    foregroundWindow = ExternalForegroundWindow.Start(foregroundBounds, holdControl);
+                    Assert.True(WaitForForegroundWindow(foregroundWindow.Handle),
+                        foregroundWindow.Diagnostics ?? "The external window did not become foreground.");
+                    if (holdControl)
+                        Assert.True(IsControlKeyDown(), "The external process did not hold Ctrl down.");
+
+                    RECT targetRectangle = targetWindow.Rectangle;
+                    Point targetCursor = new Point(targetRectangle.Left + 80, targetRectangle.Top + 60);
+                    Cursor.Position = targetCursor;
+                    Assert.Equal(foregroundWindow.Handle, SystemWindow.ForegroundWindow.HWnd);
+                    Assert.False(targetWindow.TopMost);
+                    bool foregroundLockObserved = !NativeMethods.SetForegroundWindow(targetWindow.HWnd);
+                    if (!foregroundLockObserved)
+                    {
+                        Assert.True(NativeMethods.SetForegroundWindow(foregroundWindow.Handle));
+                        Assert.True(WaitForForegroundWindow(foregroundWindow.Handle),
+                            "The external foreground test window could not be reactivated.");
+                    }
+
+                    Assert.True(controller.Begin(targetWindow, 0.50, 0.50,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos, bringToForeground),
+                        controller.LastFailure);
+                    PumpWindowMessages();
+
+                    if (bringToForeground)
+                    {
+                        Assert.True(WaitForForegroundWindow(targetWindow.HWnd), controller.LastFailure);
+                        Assert.Null(controller.LastFailure);
+                    }
+                    else
+                    {
+                        Assert.Equal(foregroundWindow.Handle, SystemWindow.ForegroundWindow.HWnd);
+                    }
+
+                    Assert.Equal(targetCursor, Cursor.Position);
+                    Assert.False(targetWindow.TopMost);
+                    if (holdControl)
+                        Assert.True(IsControlKeyDown(), "Foreground activation released the held Ctrl key.");
+                }
+                finally
+                {
+                    controller.End();
+                    Cursor.Position = originalCursor;
+                    foregroundWindow?.Dispose();
+                    if (holdControl && !controlInitiallyDown)
+                        new InputSimulator().Keyboard.KeyUp(WindowsInput.Native.VirtualKeyCode.CONTROL);
+                    targetForm.Close();
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
         public void InteriorThreeFingerReleaseDoesNotDriveARealWindow()
         {
             Exception failure = null;
@@ -444,6 +562,230 @@ namespace GestureSign.Tests
             {
                 Application.DoEvents();
                 Thread.Sleep(20);
+            }
+        }
+
+        private static void RunInStaThread(Action test, string timeoutMessage)
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    test();
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+
+            Assert.True(thread.Join(TimeSpan.FromSeconds(15)), timeoutMessage);
+            if (failure != null)
+                ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
+        private static bool WaitForForegroundWindow(IntPtr windowHandle)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            while (stopwatch.Elapsed < TimeSpan.FromSeconds(3))
+            {
+                if (SystemWindow.ForegroundWindow.HWnd == windowHandle)
+                    return true;
+
+                Application.DoEvents();
+                Thread.Sleep(20);
+            }
+
+            return SystemWindow.ForegroundWindow.HWnd == windowHandle;
+        }
+
+        private static bool IsControlKeyDown()
+        {
+            return (NativeMethods.GetAsyncKeyState(0x11) & 0x8000) != 0;
+        }
+
+        private sealed class ExternalForegroundWindow : IDisposable
+        {
+            private const string WindowTitle = "GestureSign external foreground integration test";
+            private readonly Process _process;
+
+            private ExternalForegroundWindow(Process process, IntPtr handle, string diagnostics)
+            {
+                _process = process;
+                Handle = handle;
+                Diagnostics = diagnostics;
+            }
+
+            public IntPtr Handle { get; }
+            public string Diagnostics { get; }
+
+            public static ExternalForegroundWindow Start(Rectangle bounds, bool holdControl = false)
+            {
+                string script = CreateScript(bounds, holdControl);
+                string encodedScript = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+                string powershellPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    @"WindowsPowerShell\v1.0\powershell.exe");
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = powershellPath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+                startInfo.ArgumentList.Add("-NoLogo");
+                startInfo.ArgumentList.Add("-NoProfile");
+                startInfo.ArgumentList.Add("-NonInteractive");
+                startInfo.ArgumentList.Add("-Sta");
+                startInfo.ArgumentList.Add("-ExecutionPolicy");
+                startInfo.ArgumentList.Add("Bypass");
+                startInfo.ArgumentList.Add("-EncodedCommand");
+                startInfo.ArgumentList.Add(encodedScript);
+
+                Process process = Process.Start(startInfo);
+                if (process == null)
+                    return new ExternalForegroundWindow(null, IntPtr.Zero,
+                        "The external foreground test process could not be started.");
+
+                var readHandle = process.StandardOutput.ReadLineAsync();
+                if (!readHandle.Wait(TimeSpan.FromSeconds(8)))
+                {
+                    string error = process.HasExited ? process.StandardError.ReadToEnd() : null;
+                    StopProcess(process);
+                    return new ExternalForegroundWindow(null, IntPtr.Zero,
+                        "The external foreground test window did not start. " + error);
+                }
+
+                string handleText = readHandle.Result;
+                string[] activationState = handleText?.Split('|') ?? Array.Empty<string>();
+                if (activationState.Length == 0 || !long.TryParse(activationState[0], out long handleValue) ||
+                    handleValue == 0)
+                {
+                    string error = process.HasExited ? process.StandardError.ReadToEnd() : null;
+                    StopProcess(process);
+                    return new ExternalForegroundWindow(null, IntPtr.Zero,
+                        $"The external foreground test returned an invalid handle '{handleText}'. {error}");
+                }
+
+                return new ExternalForegroundWindow(process, new IntPtr(handleValue),
+                    $"External activation state: {handleText}");
+            }
+
+            public void Dispose()
+            {
+                if (_process == null)
+                    return;
+
+                if (!_process.HasExited && Handle != IntPtr.Zero)
+                    NativeMethods.PostMessage(new System.Runtime.InteropServices.HandleRef(this, Handle),
+                        NativeMethods.WmClose, 0, 0);
+
+                StopProcess(_process);
+            }
+
+            private static void StopProcess(Process process)
+            {
+                if (process == null)
+                    return;
+
+                try
+                {
+                    if (!process.HasExited && !process.WaitForExit(3000))
+                        process.Kill(true);
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+
+            private static string CreateScript(Rectangle bounds, bool holdControl)
+            {
+                const string template = @"
+Add-Type -AssemblyName System.Windows.Forms
+$nativeSource = @'
+using System;
+using System.Runtime.InteropServices;
+public static class GestureSignForegroundTestNative
+{
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Point
+    {
+        public int X;
+        public int Y;
+        public Point(int x, int y) { X = x; Y = y; }
+    }
+
+    [DllImport(""user32.dll"")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport(""user32.dll"")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+    [DllImport(""user32.dll"")] public static extern IntPtr WindowFromPoint(Point point);
+    [DllImport(""user32.dll"")] public static extern IntPtr GetAncestor(IntPtr window, uint flags);
+    [DllImport(""user32.dll"")] public static extern IntPtr GetForegroundWindow();
+    [DllImport(""user32.dll"")] public static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport(""user32.dll"")] public static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extra);
+}
+'@
+Add-Type -TypeDefinition $nativeSource
+$holdControl = __HOLD_CONTROL__
+$form = New-Object System.Windows.Forms.Form
+$form.Text = ""__TITLE__""
+$form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+$form.Bounds = [System.Drawing.Rectangle]::new(__X__, __Y__, __WIDTH__, __HEIGHT__)
+$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedToolWindow
+$form.ShowInTaskbar = $false
+$form.TopMost = $true
+$form.Add_FormClosed({
+    if ($holdControl) {
+        [GestureSignForegroundTestNative]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
+    }
+})
+$form.Add_Shown({
+    $form.BeginInvoke([Action]{
+        [System.Windows.Forms.Application]::DoEvents()
+        $point = [GestureSignForegroundTestNative+Point]::new(__CURSOR_X__, __CURSOR_Y__)
+        $hitWindow = [IntPtr]::Zero
+        for ($attempt = 0; $attempt -lt 10; $attempt++) {
+            [GestureSignForegroundTestNative]::SetCursorPos(__CURSOR_X__, __CURSOR_Y__) | Out-Null
+            [System.Windows.Forms.Application]::DoEvents()
+            $hitWindow = [GestureSignForegroundTestNative]::GetAncestor(
+                [GestureSignForegroundTestNative]::WindowFromPoint($point), 2)
+            if ($hitWindow -eq $form.Handle) { break }
+            Start-Sleep -Milliseconds 20
+        }
+        [GestureSignForegroundTestNative]::mouse_event(2, 0, 0, 0, [UIntPtr]::Zero)
+        [GestureSignForegroundTestNative]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)
+        [System.Windows.Forms.Application]::DoEvents()
+        [GestureSignForegroundTestNative]::SetForegroundWindow($form.Handle) | Out-Null
+        [System.Windows.Forms.Application]::DoEvents()
+        $foregroundWindow = [GestureSignForegroundTestNative]::GetForegroundWindow()
+        if ($holdControl) {
+            [GestureSignForegroundTestNative]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)
+            [System.Windows.Forms.Application]::DoEvents()
+        }
+        if ($foregroundWindow -eq $form.Handle) {
+            $form.TopMost = $false
+            [System.Windows.Forms.Application]::DoEvents()
+        }
+        [Console]::WriteLine(""$($form.Handle.ToInt64())|$($hitWindow.ToInt64())|$($foregroundWindow.ToInt64())"")
+        [Console]::Out.Flush()
+    }) | Out-Null
+})
+[System.Windows.Forms.Application]::Run($form)
+";
+
+                int cursorX = bounds.Right - 30;
+                int cursorY = bounds.Top + Math.Min(80, bounds.Height - 30);
+                return template
+                    .Replace("__TITLE__", WindowTitle)
+                    .Replace("__X__", bounds.X.ToString())
+                    .Replace("__Y__", bounds.Y.ToString())
+                    .Replace("__WIDTH__", bounds.Width.ToString())
+                    .Replace("__HEIGHT__", bounds.Height.ToString())
+                    .Replace("__CURSOR_X__", cursorX.ToString())
+                    .Replace("__CURSOR_Y__", cursorY.ToString())
+                    .Replace("__HOLD_CONTROL__", holdControl ? "$true" : "$false");
             }
         }
 

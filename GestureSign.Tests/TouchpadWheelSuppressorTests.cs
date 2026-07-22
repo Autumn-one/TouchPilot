@@ -9,6 +9,7 @@ using Xunit;
 
 namespace GestureSign.Tests
 {
+    [Collection(DesktopInputIntegrationCollection.Name)]
     public class TouchpadWheelSuppressorTests
     {
         [Theory]

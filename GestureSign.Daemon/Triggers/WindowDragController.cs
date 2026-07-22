@@ -274,6 +274,89 @@ namespace GestureSign.Daemon.Triggers
             if (!_bringToForeground || SystemWindow.ForegroundWindow.HWnd == _window.HWnd)
                 return;
 
+            if (_implementation == TouchpadWindowDragImplementation.DirectSetWindowPos)
+            {
+                if (TryActivateDirectDragWindow(out string failureDetail))
+                    return;
+
+                BringWindowToForegroundUsingLegacyFallback(failureDetail);
+                return;
+            }
+
+            BringWindowToForegroundUsingLegacyFallback(null);
+        }
+
+        private bool TryActivateDirectDragWindow(out string failureDetail)
+        {
+            IntPtr targetWindow = _window.HWnd;
+            bool initialSetForeground = NativeMethods.SetForegroundWindow(targetWindow);
+            if (SystemWindow.ForegroundWindow.HWnd == targetWindow)
+            {
+                failureDetail = null;
+                return true;
+            }
+
+            IntPtr foregroundWindow = SystemWindow.ForegroundWindow.HWnd;
+            int currentThreadId = NativeMethods.GetCurrentThreadId();
+            int foregroundThreadId = foregroundWindow == IntPtr.Zero
+                ? 0
+                : NativeMethods.GetWindowThreadProcessId(new HandleRef(this, foregroundWindow), out _);
+            bool attachRequired = foregroundThreadId != 0 && foregroundThreadId != currentThreadId;
+            bool attached = false;
+            bool attachSucceeded = !attachRequired;
+            bool detachSucceeded = true;
+            bool broughtToTop = false;
+            bool attachedSetForeground = false;
+            int attachError = 0;
+            int detachError = 0;
+
+            // A background raw-input process is subject to the foreground lock. Temporarily
+            // sharing the foreground queue grants the same activation path as a normal drag.
+            try
+            {
+                if (attachRequired)
+                {
+                    attached = NativeMethods.AttachThreadInput(currentThreadId, foregroundThreadId, true);
+                    attachSucceeded = attached;
+                    if (!attached)
+                        attachError = Marshal.GetLastWin32Error();
+                }
+
+                if (attachSucceeded)
+                {
+                    broughtToTop = NativeMethods.BringWindowToTop(targetWindow);
+                    attachedSetForeground = NativeMethods.SetForegroundWindow(targetWindow);
+                }
+            }
+            finally
+            {
+                if (attached)
+                {
+                    detachSucceeded = NativeMethods.AttachThreadInput(currentThreadId, foregroundThreadId, false);
+                    if (!detachSucceeded)
+                        detachError = Marshal.GetLastWin32Error();
+                }
+            }
+
+            IntPtr actualForegroundWindow = SystemWindow.ForegroundWindow.HWnd;
+            if (detachSucceeded && actualForegroundWindow == targetWindow)
+            {
+                failureDetail = null;
+                return true;
+            }
+
+            failureDetail = $"InitialSetForeground={initialSetForeground}, " +
+                            $"ForegroundBeforeAttach=0x{foregroundWindow.ToInt64():X}, " +
+                            $"CurrentThread={currentThreadId}, ForegroundThread={foregroundThreadId}, " +
+                            $"AttachRequired={attachRequired}, AttachSucceeded={attachSucceeded}, AttachError={attachError}, " +
+                            $"BringWindowToTop={broughtToTop}, AttachedSetForeground={attachedSetForeground}, " +
+                            $"DetachSucceeded={detachSucceeded}, DetachError={detachError}, " +
+                            $"ActualForeground=0x{actualForegroundWindow.ToInt64():X}";
+            return false;
+        }
+
+        private void BringWindowToForegroundUsingLegacyFallback(string priorFailureDetail)
+        {
             if (NativeMethods.SetForegroundWindow(_window.HWnd))
                 return;
 
@@ -283,11 +366,22 @@ namespace GestureSign.Daemon.Triggers
                                       NativeMethods.SWP.SWP_ASYNCWINDOWPOS;
             if (!NativeMethods.SetWindowPos(_window.HWnd, IntPtr.Zero, 0, 0, 0, 0, flags))
             {
-                LogFailureOnce("bring the window to the foreground", Marshal.GetLastWin32Error());
+                int error = Marshal.GetLastWin32Error();
+                string detail = priorFailureDetail == null
+                    ? $"Win32Error={error}"
+                    : $"{priorFailureDetail}, LegacySetWindowPosError={error}";
+                LogFailureOnce("bring the window to the foreground", detail);
                 return;
             }
 
-            NativeMethods.SetForegroundWindow(_window.HWnd);
+            bool finalSetForeground = NativeMethods.SetForegroundWindow(_window.HWnd);
+            if (priorFailureDetail != null && SystemWindow.ForegroundWindow.HWnd != _window.HWnd)
+            {
+                LogFailureOnce("bring the window to the foreground",
+                    $"{priorFailureDetail}, LegacySetWindowPosQueued=True, " +
+                    $"LegacySetForeground={finalSetForeground}, " +
+                    $"ActualForeground=0x{SystemWindow.ForegroundWindow.HWnd.ToInt64():X}");
+            }
         }
 
         private static bool IsLeftButtonDown()
