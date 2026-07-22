@@ -244,6 +244,7 @@ QQ交流群：576981420
     <WindowDrag>窗口拖动</WindowDrag>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
     <WindowDragEnabled>启用拖移</WindowDragEnabled>
+    <WindowDragBringToFront>拖移时将窗口置前</WindowDragBringToFront>
     <WindowDragImplementation>拖移方式</WindowDragImplementation>
     <DirectSetWindowPos>底部锚点：直接移动窗口 (SetWindowPos)</DirectSetWindowPos>
     <SimulatedMouseDrag>底部锚点：模拟鼠标按住</SimulatedMouseDrag>

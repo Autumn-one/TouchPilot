@@ -19,6 +19,7 @@ namespace GestureSign.Daemon.Triggers
         private readonly ITouchpadContactFilter _confidenceFilter;
         private Point _sessionStartPoint;
         private TouchpadWindowDragImplementation _sessionWindowDragImplementation;
+        private bool _sessionWindowDragBringToFront;
 
         public TouchpadInteractionTrigger() : this(new TouchpadConfidenceContactFilter())
         {
@@ -28,6 +29,7 @@ namespace GestureSign.Daemon.Triggers
         {
             _confidenceFilter = confidenceFilter ?? throw new ArgumentNullException(nameof(confidenceFilter));
             _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
+            _sessionWindowDragBringToFront = AppConfig.TouchpadWindowDragBringToFront;
             _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
             PointCapture.Instance.TouchpadFrame += PointCapture_TouchpadFrame;
         }
@@ -47,6 +49,7 @@ namespace GestureSign.Daemon.Triggers
             if (!_recognizer.SessionActive)
             {
                 _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
+                _sessionWindowDragBringToFront = AppConfig.TouchpadWindowDragBringToFront;
                 _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
                 _sessionStartPoint = Cursor.Position;
             }
@@ -81,7 +84,7 @@ namespace GestureSign.Daemon.Triggers
                     if (!_wheelSuppressor.IsMonitoring && !_wheelSuppressor.StartMonitoring())
                         break;
                     _windowDragController.Begin(GetWindowUnderCursor(), interactionEvent.NormalizedX, interactionEvent.NormalizedY,
-                        _sessionWindowDragImplementation);
+                        _sessionWindowDragImplementation, _sessionWindowDragBringToFront);
                     break;
                 case TouchpadInteractionEventType.WindowDragMoved:
                     _windowDragController.Update(interactionEvent.NormalizedX, interactionEvent.NormalizedY, AppConfig.TouchpadWindowDragSensitivityPercent / 100d);

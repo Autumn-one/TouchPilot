@@ -352,6 +352,12 @@ namespace GestureSign.Common.Configuration
             }
         }
 
+        public static bool TouchpadWindowDragBringToFront
+        {
+            get { return GetValue(nameof(TouchpadWindowDragBringToFront), true); }
+            set { SetValue(nameof(TouchpadWindowDragBringToFront), value); }
+        }
+
         public static int TouchpadEdgeZonePercent
         {
             get { return GetValue(nameof(TouchpadEdgeZonePercent), 12); }

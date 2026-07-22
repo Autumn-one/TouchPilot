@@ -162,6 +162,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 EdgeTouchSwitch.IsOn = AppConfig.TouchpadEdgeGesturesEnabled;
                 ConfidenceFilterSwitch.IsOn = AppConfig.TouchpadEdgeConfidenceFilteringEnabled;
                 WindowDragSwitch.IsOn = AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled;
+                WindowDragBringToFrontSwitch.IsOn = AppConfig.TouchpadWindowDragBringToFront;
                 WindowDragImplementationComboBox.ItemsSource = new[]
                 {
                     new WindowDragImplementationChoice
@@ -271,6 +272,12 @@ namespace GestureSign.ControlPanel.MainWindowControls
             AppConfig.TouchpadWindowDragImplementation = implementation;
             if (WindowDragSwitch.IsOn)
                 AppConfig.TouchpadWindowDragMode = GetWindowDragMode(implementation);
+        }
+
+        private void WindowDragBringToFrontSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (!_loading)
+                AppConfig.TouchpadWindowDragBringToFront = WindowDragBringToFrontSwitch.IsOn;
         }
 
         private TouchpadWindowDragMode GetSelectedWindowDragMode()

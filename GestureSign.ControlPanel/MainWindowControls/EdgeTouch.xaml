@@ -425,6 +425,23 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource V2.Settings.Label}"
+                               Text="{localization:LocalisedText EdgeTouch.WindowDragBringToFront}" />
+                    <controls:ToggleSwitch x:Name="WindowDragBringToFrontSwitch"
+                                           Grid.Column="1"
+                                           Style="{StaticResource V2.Settings.ToggleSwitch}"
+                                           OnContent="{localization:LocalisedText Options.OnLabel}"
+                                           OffContent="{localization:LocalisedText Options.OffLabel}"
+                                           AutomationProperties.Name="{localization:LocalisedText EdgeTouch.WindowDragBringToFront}"
+                                           Toggled="WindowDragBringToFrontSwitch_Toggled" />
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource V2.Settings.Row}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="420" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Margin="0,0,20,0"

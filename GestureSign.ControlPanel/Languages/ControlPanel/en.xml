@@ -240,6 +240,7 @@ Email: ccfyzh@gmail.com
     <WindowDrag>Window dragging</WindowDrag>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
     <WindowDragEnabled>Enable dragging</WindowDragEnabled>
+    <WindowDragBringToFront>Bring dragged window to front</WindowDragBringToFront>
     <WindowDragImplementation>Dragging method</WindowDragImplementation>
     <DirectSetWindowPos>Bottom anchor: direct window movement (SetWindowPos)</DirectSetWindowPos>
     <SimulatedMouseDrag>Bottom anchor: simulated mouse hold</SimulatedMouseDrag>
