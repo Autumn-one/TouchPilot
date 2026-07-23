@@ -113,6 +113,83 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public async Task MetadataClientSelectsHighestTrustedVersionAcrossProxies()
+        {
+            using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            string stale = UpdateMetadataSignature.Sign(
+                CreateUpdateMetadata(DateTimeOffset.UtcNow.AddDays(-1), "8.3.0-beta.1"), signingKey);
+            string current = UpdateMetadataSignature.Sign(
+                CreateUpdateMetadata(DateTimeOffset.UtcNow, "8.3.0-beta.2"), signingKey);
+            var handler = new MetadataHandler(new Dictionary<string, string>
+            {
+                ["stale.invalid"] = stale,
+                ["current.invalid"] = current
+            });
+            using var httpClient = new HttpClient(handler);
+            using var client = new UpdateMetadataClient(
+                GitHubRepository.Parse("Autumn-one/TouchPilot"), signingKey, httpClient,
+                new[]
+                {
+                    new UpdateSource("stale", "https://stale.invalid/"),
+                    new UpdateSource("current", "https://current.invalid/")
+                }, TimeSpan.FromSeconds(1), () => DateTimeOffset.UnixEpoch);
+
+            UpdateMetadataResult result = await client.GetLatestAsync(CancellationToken.None);
+
+            Assert.Equal("8.3.0-beta.2", result.Metadata.Version);
+            Assert.Equal("current", result.SourceName);
+            Assert.Equal(2, result.ValidSourceCount);
+            Assert.All(handler.Requests, request =>
+            {
+                Assert.Contains("/releases/latest/download/TouchPilot-update.json", request.Url);
+                Assert.True(request.NoCache);
+                Assert.Null(request.Authorization);
+            });
+        }
+
+        [Fact]
+        public async Task MetadataClientRejectsUnsignedProxyResponse()
+        {
+            using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            using ECDsa untrustedKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            string untrusted = UpdateMetadataSignature.Sign(
+                CreateUpdateMetadata(DateTimeOffset.UtcNow, "99.0.0"), untrustedKey);
+            var handler = new MetadataHandler(new Dictionary<string, string>
+            {
+                ["untrusted.invalid"] = untrusted
+            });
+            using var httpClient = new HttpClient(handler);
+            using var client = new UpdateMetadataClient(
+                GitHubRepository.Parse("Autumn-one/TouchPilot"), signingKey, httpClient,
+                new[] { new UpdateSource("untrusted", "https://untrusted.invalid/") },
+                TimeSpan.FromSeconds(1), () => DateTimeOffset.UnixEpoch);
+
+            await Assert.ThrowsAsync<UpdateMetadataUnavailableException>(() =>
+                client.GetLatestAsync(CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task MetadataClientRejectsOversizedProxyResponse()
+        {
+            using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var handler = new MetadataHandler(new Dictionary<string, string>
+            {
+                ["oversized.invalid"] = new string('x', 65 * 1024)
+            });
+            using var httpClient = new HttpClient(handler);
+            using var client = new UpdateMetadataClient(
+                GitHubRepository.Parse("Autumn-one/TouchPilot"), signingKey, httpClient,
+                new[] { new UpdateSource("oversized", "https://oversized.invalid/") },
+                TimeSpan.FromSeconds(1), () => DateTimeOffset.UnixEpoch);
+
+            UpdateMetadataUnavailableException exception =
+                await Assert.ThrowsAsync<UpdateMetadataUnavailableException>(() =>
+                    client.GetLatestAsync(CancellationToken.None));
+
+            Assert.Contains("size limit", exception.Message);
+        }
+
+        [Fact]
         public async Task ReleasePublisherDeletesReleaseByResolvedId()
         {
             var handler = new ReleaseDeletionHandler();
@@ -262,9 +339,9 @@ namespace GestureSign.Tests
             return packagePath;
         }
 
-        private static UpdateMetadata CreateUpdateMetadata(DateTimeOffset builtAt)
+        private static UpdateMetadata CreateUpdateMetadata(DateTimeOffset builtAt,
+            string version = "8.3.0-beta.1")
         {
-            const string version = "8.3.0-beta.1";
             return new UpdateMetadata
             {
                 Repository = "Autumn-one/TouchPilot",
@@ -293,6 +370,35 @@ namespace GestureSign.Tests
                     }
                 }
             };
+        }
+
+        private sealed class MetadataHandler : HttpMessageHandler
+        {
+            private readonly IReadOnlyDictionary<string, string> _responses;
+
+            public MetadataHandler(IReadOnlyDictionary<string, string> responses)
+            {
+                _responses = responses;
+            }
+
+            public List<(string Url, bool NoCache, string Authorization)> Requests { get; } =
+                new List<(string Url, bool NoCache, string Authorization)>();
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                Requests.Add((request.RequestUri.ToString(), request.Headers.CacheControl?.NoCache == true,
+                    request.Headers.Authorization?.ToString()));
+                if (_responses.TryGetValue(request.RequestUri.Host, out string json))
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(json, Encoding.UTF8, "application/json")
+                    });
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }
         }
 
         private static string ComputeSha256(string path)
