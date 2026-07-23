@@ -102,12 +102,12 @@ Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.Updater\Ges
 
 $pluginOutput = Join-Path $root "GestureSign.ExtraPlugins"
 $pluginSources = @(
-    (Join-Path $pluginOutput "ClipboardMatch\bin\Release\net10.0-windows10.0.19041.0\GestureSign.ClipboardMatch.Plugin.dll"),
-    (Join-Path $pluginOutput "TextCopyer\bin\Release\net10.0-windows10.0.19041.0\GestureSign.ExtraPlugins.TextCopyer.dll")
+    (Join-Path $pluginOutput "ClipboardMatch\bin\$Configuration\net10.0-windows10.0.19041.0\GestureSign.ClipboardMatch.Plugin.dll"),
+    (Join-Path $pluginOutput "TextCopyer\bin\$Configuration\net10.0-windows10.0.19041.0\GestureSign.ExtraPlugins.TextCopyer.dll")
 )
 if ($pluginSources.Where({ -not (Test-Path -LiteralPath $_ -PathType Leaf) }).Count -ne 0) {
-    Invoke-DotNet -Arguments @("build", (Join-Path $pluginOutput "ClipboardMatch\ClipboardMatch.csproj"), "-c", "Release", "--no-incremental")
-    Invoke-DotNet -Arguments @("build", (Join-Path $pluginOutput "TextCopyer\TextCopyer.csproj"), "-c", "Release", "--no-incremental")
+    Invoke-DotNet -Arguments @("build", (Join-Path $pluginOutput "ClipboardMatch\ClipboardMatch.csproj"), "-c", $Configuration, "--no-incremental")
+    Invoke-DotNet -Arguments @("build", (Join-Path $pluginOutput "TextCopyer\TextCopyer.csproj"), "-c", $Configuration, "--no-incremental")
 }
 $pluginDirectory = Join-Path $output "Plugins"
 [void](New-Item -ItemType Directory -Path $pluginDirectory)
