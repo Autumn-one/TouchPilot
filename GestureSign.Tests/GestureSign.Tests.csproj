@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DesktopHost\**\*.cs" />
+
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -20,5 +22,19 @@
     <ProjectReference Include="..\GestureSign.Daemon\GestureSign.Daemon.csproj" />
     <ProjectReference Include="..\GestureSign.ReleaseManager\GestureSign.ReleaseManager.csproj" />
     <ProjectReference Include="..\GestureSign.Updater\GestureSign.Updater.csproj" />
+    <ProjectReference Include="DesktopHost\GestureSign.Tests.DesktopHost.csproj"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <Target Name="CopyDesktopTestHost" AfterTargets="Build">
+    <ItemGroup>
+      <_DesktopTestHostFiles Include="$(MSBuildProjectDirectory)\DesktopHost\bin\$(Configuration)\$(TargetFramework)\GestureSign.Tests.DesktopHost.exe" />
+      <_DesktopTestHostFiles Include="$(MSBuildProjectDirectory)\DesktopHost\bin\$(Configuration)\$(TargetFramework)\GestureSign.Tests.DesktopHost.dll" />
+      <_DesktopTestHostFiles Include="$(MSBuildProjectDirectory)\DesktopHost\bin\$(Configuration)\$(TargetFramework)\GestureSign.Tests.DesktopHost.deps.json" />
+      <_DesktopTestHostFiles Include="$(MSBuildProjectDirectory)\DesktopHost\bin\$(Configuration)\$(TargetFramework)\GestureSign.Tests.DesktopHost.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_DesktopTestHostFiles)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
