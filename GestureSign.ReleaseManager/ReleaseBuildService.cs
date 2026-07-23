@@ -171,6 +171,7 @@ namespace GestureSign.ReleaseManager
 
             if (!process.Start())
                 throw new InvalidOperationException("Unable to start release command " + command.FileName + ".");
+            using ReleaseProcessJob job = ReleaseProcessJob.TryAssign(process);
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
@@ -180,7 +181,8 @@ namespace GestureSign.ReleaseManager
             }
             catch (OperationCanceledException)
             {
-                TryKillProcessTree(process);
+                if (job == null || !job.TryTerminate())
+                    TryKillProcessTree(process);
                 await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
                 throw;
             }

@@ -56,32 +56,99 @@ namespace GestureSign.Tests
             Assert.Equal(new[] { "identity", "command:dotnet" }, events);
         }
 
-        [Fact]
-        public async Task ReleaseCommandRunnerCancelsAndTerminatesItsProcess()
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public async Task ReleaseCommandRunnerCancelsAndTerminatesItsProcessTree(int iteration)
         {
             const string installedPowerShell = @"C:\Program Files\PowerShell\7\pwsh.exe";
             string executable = File.Exists(installedPowerShell) ? installedPowerShell : "pwsh.exe";
+            string markerPath = Path.Combine(Path.GetTempPath(),
+                "TouchPilot.ReleaseCommand." + iteration + "." + Guid.NewGuid().ToString("N") + ".txt");
+            string escapedExecutable = executable.Replace("'", "''");
+            string escapedMarkerPath = markerPath.Replace("'", "''");
+            string script = "$child = Start-Process -FilePath '" + escapedExecutable + "' " +
+                            "-ArgumentList @('-NoLogo','-NoProfile','-Command'," +
+                            "'Start-Sleep -Seconds 30') -PassThru;" +
+                            "[IO.File]::WriteAllText('" + escapedMarkerPath +
+                            "', \"$PID,$($child.Id)\");Start-Sleep -Seconds 30";
             var runner = new ProcessReleaseCommandRunner();
             using var cancellation = new CancellationTokenSource();
             long canceledTimestamp = 0;
+            Process[] trackedProcesses = null;
+            Exception monitorException = null;
             var cancelThread = new Thread(() =>
             {
-                Thread.Sleep(300);
-                Interlocked.Exchange(ref canceledTimestamp, Stopwatch.GetTimestamp());
-                cancellation.Cancel();
+                try
+                {
+                    var markerWait = Stopwatch.StartNew();
+                    while (!File.Exists(markerPath) && markerWait.Elapsed < TimeSpan.FromSeconds(60))
+                        Thread.Sleep(20);
+                    if (!File.Exists(markerPath))
+                        throw new TimeoutException("The release command did not create its process marker.");
+
+                    string[] processIds = File.ReadAllText(markerPath).Split(',');
+                    if (processIds.Length != 2)
+                        throw new InvalidDataException("The release command process marker is invalid.");
+                    var processes = new[]
+                    {
+                        Process.GetProcessById(int.Parse(processIds[0])),
+                        Process.GetProcessById(int.Parse(processIds[1]))
+                    };
+                    Volatile.Write(ref trackedProcesses, processes);
+                    Interlocked.Exchange(ref canceledTimestamp, Stopwatch.GetTimestamp());
+                    cancellation.Cancel();
+                }
+                catch (Exception exception)
+                {
+                    Volatile.Write(ref monitorException, exception);
+                    cancellation.Cancel();
+                }
             });
             cancelThread.Start();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runner.RunAsync(
-                new ReleaseCommand(executable, Environment.CurrentDirectory,
-                    new[] { "-NoLogo", "-NoProfile", "-Command", "Start-Sleep -Seconds 30" }),
-                null, cancellation.Token));
-            cancelThread.Join();
+            try
+            {
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runner.RunAsync(
+                    new ReleaseCommand(executable, Environment.CurrentDirectory,
+                        new[] { "-NoLogo", "-NoProfile", "-Command", script }),
+                    null, cancellation.Token));
+                Assert.True(cancelThread.Join(1000), "The cancellation monitor did not exit.");
+                Assert.Null(Volatile.Read(ref monitorException));
 
-            TimeSpan cancellationLatency = Stopwatch.GetElapsedTime(
-                Interlocked.Read(ref canceledTimestamp));
-            Assert.True(cancellationLatency < TimeSpan.FromSeconds(10),
-                "The canceled release process did not terminate promptly.");
+                TimeSpan cancellationLatency = Stopwatch.GetElapsedTime(
+                    Interlocked.Read(ref canceledTimestamp));
+                Assert.True(cancellationLatency < TimeSpan.FromSeconds(10),
+                    "The canceled release process tree did not terminate promptly.");
+                foreach (Process process in Volatile.Read(ref trackedProcesses))
+                    Assert.True(process.WaitForExit(5000),
+                        "A canceled release child process remained alive.");
+            }
+            finally
+            {
+                cancellation.Cancel();
+                if (cancelThread.IsAlive)
+                    cancelThread.Join(1000);
+                Process[] processes = Volatile.Read(ref trackedProcesses);
+                if (processes != null)
+                {
+                    foreach (Process process in processes)
+                    {
+                        try
+                        {
+                            if (!process.HasExited)
+                                process.Kill();
+                        }
+                        catch (InvalidOperationException)
+                        {
+                        }
+                        process.Dispose();
+                    }
+                }
+                if (File.Exists(markerPath))
+                    File.Delete(markerPath);
+            }
         }
 
         [Fact]
