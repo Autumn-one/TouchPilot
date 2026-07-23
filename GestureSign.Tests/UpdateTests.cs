@@ -190,6 +190,92 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void MandatoryUpdatePolicyPreservesFirstDetectionAcrossNewerReleases()
+        {
+            var state = new MandatoryUpdateState();
+            DateTimeOffset firstSeen = new DateTimeOffset(2026, 7, 23, 1, 0, 0, TimeSpan.Zero);
+
+            MandatoryUpdatePolicy.RecordSuccessfulCheck(state, ReleaseVersion.Parse("8.2.0"),
+                ReleaseVersion.Parse("8.3.0-beta.1"), firstSeen);
+            MandatoryUpdateDecision decision = MandatoryUpdatePolicy.RecordSuccessfulCheck(state,
+                ReleaseVersion.Parse("8.2.0"), ReleaseVersion.Parse("8.3.0-beta.2"),
+                firstSeen.AddDays(2));
+
+            Assert.Equal(firstSeen, state.FirstSeenUtc);
+            Assert.Equal("8.3.0-beta.2", state.PendingVersion);
+            Assert.False(decision.MustUpdate);
+            Assert.Equal(TimeSpan.FromDays(1), decision.Remaining);
+        }
+
+        [Fact]
+        public void MandatoryUpdatePolicyBlocksAfterThreeDaysAndResistsClockRollback()
+        {
+            var state = new MandatoryUpdateState();
+            DateTimeOffset firstSeen = new DateTimeOffset(2026, 7, 23, 1, 0, 0, TimeSpan.Zero);
+            MandatoryUpdatePolicy.RecordSuccessfulCheck(state, ReleaseVersion.Parse("8.2.0"),
+                ReleaseVersion.Parse("8.3.0-beta.1"), firstSeen);
+
+            MandatoryUpdateDecision expired = MandatoryUpdatePolicy.ObserveOffline(state,
+                firstSeen.AddDays(3).AddSeconds(1));
+            MandatoryUpdateDecision rolledBack = MandatoryUpdatePolicy.ObserveOffline(state,
+                firstSeen.AddDays(1));
+
+            Assert.True(expired.MustUpdate);
+            Assert.True(rolledBack.MustUpdate);
+            Assert.Equal(TimeSpan.Zero, rolledBack.Remaining);
+        }
+
+        [Fact]
+        public void MandatoryUpdatePolicyClearsWhenCurrentVersionCatchesUp()
+        {
+            var state = new MandatoryUpdateState();
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            MandatoryUpdatePolicy.RecordSuccessfulCheck(state, ReleaseVersion.Parse("8.2.0"),
+                ReleaseVersion.Parse("8.3.0-beta.1"), now);
+
+            MandatoryUpdateDecision decision = MandatoryUpdatePolicy.RecordSuccessfulCheck(state,
+                ReleaseVersion.Parse("8.3.0"), ReleaseVersion.Parse("8.3.0"), now.AddHours(1));
+
+            Assert.False(decision.UpdatePending);
+            Assert.Null(state.PendingVersion);
+            Assert.Null(state.FirstSeenUtc);
+        }
+
+        [Fact]
+        public void MandatoryUpdateStateStoreRoundTripsAtomically()
+        {
+            using var directory = new TemporaryDirectory();
+            var store = new MandatoryUpdateStateStore(
+                Path.Combine(directory.Path, "state", "update-state.dat"), new PassthroughProtector());
+            var state = new MandatoryUpdateState();
+            DateTimeOffset now = new DateTimeOffset(2026, 7, 23, 1, 0, 0, TimeSpan.Zero);
+            MandatoryUpdatePolicy.RecordSuccessfulCheck(state, ReleaseVersion.Parse("8.2.0"),
+                ReleaseVersion.Parse("8.3.0-beta.1"), now);
+
+            store.Save(state);
+            MandatoryUpdateState restored = store.Load();
+
+            Assert.Equal(state.PendingVersion, restored.PendingVersion);
+            Assert.Equal(state.FirstSeenUtc, restored.FirstSeenUtc);
+            Assert.Equal(state.LastObservedUtc, restored.LastObservedUtc);
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(
+                Path.Combine(directory.Path, "state", "update-state.dat")), "*.tmp"));
+        }
+
+        [Fact]
+        public void MandatoryUpdateStateUsesMachineDpapiProtection()
+        {
+            var protector = new DpapiUpdateStateProtector();
+            byte[] value = Encoding.UTF8.GetBytes("TouchPilot update state");
+
+            byte[] protectedValue = protector.Protect(value);
+            byte[] restored = protector.Unprotect(protectedValue);
+
+            Assert.NotEqual(value, protectedValue);
+            Assert.Equal(value, restored);
+        }
+
+        [Fact]
         public async Task ReleasePublisherDeletesReleaseByResolvedId()
         {
             var handler = new ReleaseDeletionHandler();
@@ -398,6 +484,19 @@ namespace GestureSign.Tests
                 }
 
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }
+        }
+
+        private sealed class PassthroughProtector : IUpdateStateProtector
+        {
+            public byte[] Protect(byte[] value)
+            {
+                return value;
+            }
+
+            public byte[] Unprotect(byte[] value)
+            {
+                return value;
             }
         }
 
