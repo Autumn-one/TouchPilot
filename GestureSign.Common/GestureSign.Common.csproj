@@ -7,6 +7,14 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TouchPilotBuildBuiltAtUtcTicks)' == '' And '$(TouchPilotBuildExpiresAtUtcTicks)' == ''">
+    <DefineConstants>$(DefineConstants);TOUCHPILOT_BUILD_LIFETIME_UNRESTRICTED</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TouchPilotBuildBuiltAtUtcTicks)' != '' And '$(TouchPilotBuildExpiresAtUtcTicks)' != ''">
+    <DefineConstants>$(DefineConstants);TOUCHPILOT_BUILD_LIFETIME_ENFORCED</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NuGet.Versioning" Version="7.6.0" />
@@ -22,4 +30,27 @@
     <EmbeddedResource Include="Updates\TouchPilot-update-public.pem"
                       LogicalName="TouchPilot.UpdatePublicKey" />
   </ItemGroup>
+
+  <Target Name="GenerateTouchPilotBuildLifecycleMetadata"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TouchPilotBuildBuiltAtUtcTicks)' != '' Or '$(TouchPilotBuildExpiresAtUtcTicks)' != ''">
+    <Error Condition="'$(TouchPilotBuildBuiltAtUtcTicks)' == '' Or '$(TouchPilotBuildExpiresAtUtcTicks)' == ''"
+           Text="TouchPilot build lifecycle metadata requires both build and expiry ticks." />
+    <ItemGroup>
+      <_TouchPilotBuildLifecycleAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>TouchPilot.BuiltAtUtcTicks</_Parameter1>
+        <_Parameter2>$(TouchPilotBuildBuiltAtUtcTicks)</_Parameter2>
+      </_TouchPilotBuildLifecycleAttribute>
+      <_TouchPilotBuildLifecycleAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>TouchPilot.ExpiresAtUtcTicks</_Parameter1>
+        <_Parameter2>$(TouchPilotBuildExpiresAtUtcTicks)</_Parameter2>
+      </_TouchPilotBuildLifecycleAttribute>
+    </ItemGroup>
+    <WriteCodeFragment AssemblyAttributes="@(_TouchPilotBuildLifecycleAttribute)"
+                       Language="C#"
+                       OutputFile="$(IntermediateOutputPath)TouchPilot.BuildLifecycle.g.cs">
+      <Output TaskParameter="OutputFile" ItemName="Compile" />
+      <Output TaskParameter="OutputFile" ItemName="FileWrites" />
+    </WriteCodeFragment>
+  </Target>
 </Project>

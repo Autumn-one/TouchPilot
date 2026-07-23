@@ -3,6 +3,7 @@ using GestureSign.Common.Applications;
 using GestureSign.Common.Configuration;
 using GestureSign.Common.Gestures;
 using GestureSign.Common.InterProcessCommunication;
+using GestureSign.Common.Lifecycle;
 using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
 using GestureSign.ControlPanel.Localization;
@@ -24,9 +25,19 @@ namespace GestureSign.ControlPanel
     public partial class App : Application
     {
         Mutex mutex;
+        private BuildLifetimeMonitor _buildLifetimeMonitor;
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            if (!BuildLifetime.Evaluate(DateTimeOffset.UtcNow).CanRun)
+            {
+                Shutdown();
+                return;
+            }
+
+            _buildLifetimeMonitor = new BuildLifetimeMonitor(() =>
+                Dispatcher.InvokeAsync(Shutdown, DispatcherPriority.Send));
+            _buildLifetimeMonitor.Start();
             Logging.LoggedExceptionOccurred += (o, ex) => ShowException(ex);
             Logging.OpenLogFile();
             LoadLanguageData();
@@ -139,6 +150,7 @@ namespace GestureSign.ControlPanel
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
+            _buildLifetimeMonitor?.Dispose();
             if (mutex != null)
             {
                 NamedPipe.Instance.Dispose();

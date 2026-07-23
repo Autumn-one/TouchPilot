@@ -14,7 +14,9 @@ param(
     [ValidatePattern('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')]
     [string]$Repository,
 
-    [string]$PackagePath
+    [string]$PackagePath,
+
+    [DateTimeOffset]$BuiltAtUtc = [DateTimeOffset]::UtcNow
 )
 
 Set-StrictMode -Version Latest
@@ -34,6 +36,12 @@ if ($relativeOutput -eq "." -or [IO.Path]::IsPathRooted($relativeOutput) -or
     $relativeOutput.StartsWith("..", [StringComparison]::Ordinal)) {
     throw "The publish output must remain inside the repository root."
 }
+$builtAt = $BuiltAtUtc.ToUniversalTime()
+$expiresAt = $builtAt.AddMonths(3)
+$lifecycleProperties = @(
+    "-p:TouchPilotBuildBuiltAtUtcTicks=$($builtAt.UtcDateTime.Ticks)",
+    "-p:TouchPilotBuildExpiresAtUtcTicks=$($expiresAt.UtcDateTime.Ticks)"
+)
 
 $resolvedPackagePath = $null
 if (-not [string]::IsNullOrWhiteSpace($PackagePath)) {
@@ -76,7 +84,8 @@ if (Test-Path -LiteralPath $output) {
 }
 [void](New-Item -ItemType Directory -Path $output)
 
-Invoke-DotNet -Arguments @("build", (Join-Path $root "GestureSign.sln"), "-c", $Configuration, "--no-incremental")
+Invoke-DotNet -Arguments (@("build", (Join-Path $root "GestureSign.sln"), "-c", $Configuration,
+    "--no-incremental") + $lifecycleProperties)
 
 $publishOptions = @(
     "-c", $Configuration,
@@ -85,7 +94,7 @@ $publishOptions = @(
     "--output", $output,
     "-p:DebugType=None",
     "-p:DebugSymbols=false"
-)
+) + $lifecycleProperties
 
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.ControlPanel\GestureSign.ControlPanel.csproj")) + $publishOptions)
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.Daemon\GestureSign.Daemon.csproj")) + $publishOptions)
@@ -97,7 +106,7 @@ $updaterPublishOptions = @(
     "--output", $output,
     "-p:DebugType=None",
     "-p:DebugSymbols=false"
-)
+) + $lifecycleProperties
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.Updater\GestureSign.Updater.csproj")) + $updaterPublishOptions)
 
 $pluginOutput = Join-Path $root "GestureSign.ExtraPlugins"

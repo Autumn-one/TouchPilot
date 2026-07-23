@@ -5,6 +5,7 @@ using GestureSign.Common;
 using GestureSign.Common.Applications;
 using GestureSign.Common.Gestures;
 using GestureSign.Common.InterProcessCommunication;
+using GestureSign.Common.Lifecycle;
 using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
 using GestureSign.Common.Plugins;
@@ -19,6 +20,7 @@ namespace GestureSign.Daemon
     {
         private static TouchpadVisualizationServer _touchpadVisualizationServer;
         private static UpdateCoordinator _updateCoordinator;
+        private static BuildLifetimeMonitor _buildLifetimeMonitor;
 
         /// <summary>
         /// 应用程序的主入口点。
@@ -26,6 +28,9 @@ namespace GestureSign.Daemon
         [STAThread]
         static void Main()
         {
+            if (!BuildLifetime.Evaluate(DateTimeOffset.UtcNow).CanRun)
+                return;
+
             bool createdNew;
             using (new Mutex(true, Constants.Daemon, out createdNew))
             {
@@ -47,6 +52,9 @@ namespace GestureSign.Daemon
                         PointCapture.Instance.Load();
                         SynchronizationContext uiContext = SynchronizationContext.Current ??
                                                            new WindowsFormsSynchronizationContext();
+                        _buildLifetimeMonitor = new BuildLifetimeMonitor(() =>
+                            uiContext.Post(_ => Application.Exit(), null));
+                        _buildLifetimeMonitor.Start();
                         TriggerManager.Instance.Load();
                         _touchpadVisualizationServer = new TouchpadVisualizationServer(
                             new PointCaptureVisualizationFrameSource());
@@ -92,6 +100,7 @@ namespace GestureSign.Daemon
         private static void Application_ApplicationExit(object sender, EventArgs e)
         {
             _updateCoordinator?.Dispose();
+            _buildLifetimeMonitor?.Dispose();
             _touchpadVisualizationServer?.Dispose();
             NamedPipe.Instance.Dispose();
             PointCapture.Instance.Dispose();

@@ -66,7 +66,7 @@ function Invoke-Publish {
     )
 
     & (Join-Path $root "publish.ps1") -Runtime win-x64 -Configuration $Configuration `
-        -OutputDirectory $Destination
+        -OutputDirectory $Destination -BuiltAtUtc $builtAt
     if ($LASTEXITCODE -ne 0) {
         throw "Publishing the $Configuration distribution failed with exit code $LASTEXITCODE."
     }
