@@ -18,7 +18,7 @@
 #endif
 
 #define AppName "TouchPilot"
-#define AppExecutable "GestureSign.exe"
+#define AppExecutable "TouchPilot.exe"
 
 [Setup]
 AppId={{6E5935F1-FF63-4DD2-BD7B-8144A8E21637}

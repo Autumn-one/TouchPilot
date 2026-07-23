@@ -85,7 +85,7 @@ namespace GestureSign.Tests
 
             string packageRoot = Path.Combine(directory, "package-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(packageRoot);
-            string executablePath = Path.Combine(packageRoot, "GestureSign.exe");
+            string executablePath = Path.Combine(packageRoot, "TouchPilot.exe");
             File.WriteAllText(executablePath, "portable payload");
             new ReleaseManifest
             {
@@ -99,7 +99,7 @@ namespace GestureSign.Tests
                 {
                     new ReleaseFileEntry
                     {
-                        Path = "GestureSign.exe",
+                        Path = "TouchPilot.exe",
                         Size = new FileInfo(executablePath).Length,
                         Sha256 = new string('a', 64)
                     }

@@ -76,9 +76,10 @@ function Assert-ReleaseContents {
     param([Parameter(Mandatory)][string]$Directory)
 
     $requiredFiles = @(
+        "TouchPilot.exe",
+        "TouchPilot.ControlPanel.exe",
+        "TouchPilot.Updater.exe",
         "GestureSign.exe",
-        "GestureSign.ControlPanel.exe",
-        "GestureSign.Updater.exe",
         "GestureSign.CorePlugins.dll",
         "Defaults\Actions.gsa",
         "Defaults\Gestures.gest",

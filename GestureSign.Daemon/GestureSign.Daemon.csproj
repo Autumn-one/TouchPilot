@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>GestureSign.Daemon</RootNamespace>
-    <AssemblyName>GestureSign</AssemblyName>
+    <AssemblyName>TouchPilot</AssemblyName>
     <ApplicationIcon>Resources\normal.ico</ApplicationIcon>
     <ApplicationManifest Condition="'$(Configuration)' != 'uiAccessRelease'">Properties\app.common.manifest</ApplicationManifest>
     <ApplicationManifest Condition="'$(Configuration)' == 'uiAccessRelease'">Properties\app.uiAccessRelease.manifest</ApplicationManifest>

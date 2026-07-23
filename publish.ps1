@@ -99,6 +99,13 @@ $publishOptions = @(
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.ControlPanel\GestureSign.ControlPanel.csproj")) + $publishOptions)
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.Daemon\GestureSign.Daemon.csproj")) + $publishOptions)
 
+$daemonPath = Join-Path $output "TouchPilot.exe"
+if (-not (Test-Path -LiteralPath $daemonPath -PathType Leaf)) {
+    throw "The TouchPilot executable was not published."
+}
+# One transition alias lets existing GestureSign startup entries and updaters launch the renamed binary.
+Copy-Item -LiteralPath $daemonPath -Destination (Join-Path $output "GestureSign.exe") -Force
+
 $updaterPublishOptions = @(
     "-c", "Release",
     "-r", $Runtime,
@@ -125,9 +132,10 @@ foreach ($plugin in $pluginSources) {
 }
 
 $requiredFiles = @(
+    "TouchPilot.exe",
+    "TouchPilot.ControlPanel.exe",
+    "TouchPilot.Updater.exe",
     "GestureSign.exe",
-    "GestureSign.ControlPanel.exe",
-    "GestureSign.Updater.exe",
     "GestureSign.CorePlugins.dll",
     "Plugins\GestureSign.ClipboardMatch.Plugin.dll",
     "Plugins\GestureSign.ExtraPlugins.TextCopyer.dll",
@@ -182,5 +190,5 @@ if ($resolvedPackagePath) {
 }
 
 Write-Host "Published self-contained $Runtime artifacts to $output"
-Get-Item -LiteralPath (Join-Path $output "GestureSign.exe"), (Join-Path $output "GestureSign.ControlPanel.exe") |
+Get-Item -LiteralPath (Join-Path $output "TouchPilot.exe"), (Join-Path $output "TouchPilot.ControlPanel.exe") |
     Select-Object Name, Length

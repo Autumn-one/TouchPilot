@@ -2,7 +2,7 @@
 {
     public class Constants
     {
-        public const string ProductName = "GestureSign";
+        public const string ProductName = "TouchPilot";
         public const string GesturesFileName = "Gestures.gest";
         public const string GesturesExtension = ".gest";
         public const string ActionFileName = "Actions.gsa";
@@ -17,6 +17,6 @@
         public const string ControlPanelFileName = ProductName + ".ControlPanel.exe";
         public const string DaemonFileName = ProductName + ".exe";
         public const string UpdaterFileName = ProductName + ".Updater.exe";
-        public const string DefaultGitHubRepository = "TransposonY/GestureSign";
+        public const string DefaultGitHubRepository = "Autumn-one/TouchPilot";
     }
 }

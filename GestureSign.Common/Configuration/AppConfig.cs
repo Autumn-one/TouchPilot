@@ -412,14 +412,55 @@ namespace GestureSign.Common.Configuration
             ApplicationDataPath = Path.Combine(CurrentFolderPath, "AppData");
             LocalApplicationDataPath = ApplicationDataPath;
 
-            ConfigPath = Path.Combine(ApplicationDataPath, Constants.ConfigFileName);
+            try
+            {
+                ProductDataMigration.MigratePortableData(ApplicationDataPath);
+            }
+            catch
+            {
+            }
+            string portableConfigPath = Path.Combine(ApplicationDataPath, Constants.ConfigFileName);
+            string legacyPortableConfigPath = Path.Combine(ApplicationDataPath,
+                ProductDataMigration.LegacyConfigFileName);
+            ConfigPath = File.Exists(portableConfigPath) || !File.Exists(legacyPortableConfigPath)
+                ? portableConfigPath
+                : legacyPortableConfigPath;
             BackupPath = Path.Combine(LocalApplicationDataPath, "Backup");
 #else
-            ApplicationDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GestureSign");
-            LocalApplicationDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GestureSign");
+            string roamingRoot = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string localRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string legacyApplicationDataPath = Path.Combine(roamingRoot,
+                ProductDataMigration.LegacyProductName);
+            string legacyLocalApplicationDataPath = Path.Combine(localRoot,
+                ProductDataMigration.LegacyProductName);
+            string currentApplicationDataPath = Path.Combine(roamingRoot,
+                ProductDataMigration.CurrentProductName);
+            string currentLocalApplicationDataPath = Path.Combine(localRoot,
+                ProductDataMigration.CurrentProductName);
+            bool migrationFailed = false;
+            try
+            {
+                ProductDataMigration.MigrateInstalledData(legacyApplicationDataPath,
+                    currentApplicationDataPath, legacyLocalApplicationDataPath,
+                    currentLocalApplicationDataPath);
+            }
+            catch
+            {
+                migrationFailed = true;
+            }
 
-            ConfigPath = Path.Combine(ApplicationDataPath, Constants.ConfigFileName);
-            BackupPath = LocalApplicationDataPath + "\\Backup";
+            bool useLegacyData = migrationFailed && Directory.Exists(legacyApplicationDataPath);
+            ApplicationDataPath = useLegacyData ? legacyApplicationDataPath : currentApplicationDataPath;
+            LocalApplicationDataPath = useLegacyData && Directory.Exists(legacyLocalApplicationDataPath)
+                ? legacyLocalApplicationDataPath
+                : currentLocalApplicationDataPath;
+            string currentConfigPath = Path.Combine(ApplicationDataPath, Constants.ConfigFileName);
+            string legacyConfigPath = Path.Combine(ApplicationDataPath,
+                ProductDataMigration.LegacyConfigFileName);
+            ConfigPath = File.Exists(currentConfigPath) || !File.Exists(legacyConfigPath)
+                ? currentConfigPath
+                : legacyConfigPath;
+            BackupPath = Path.Combine(LocalApplicationDataPath, "Backup");
 
 #endif
             ExeMap = new ExeConfigurationFileMap

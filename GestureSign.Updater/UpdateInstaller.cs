@@ -24,7 +24,7 @@ namespace GestureSign.Updater
         {
             _backupRootDirectory = backupRootDirectory ?? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "GestureSign", "UpdateBackups");
+                "TouchPilot", "UpdateBackups");
         }
 
         public void Install(string packagePath, string targetDirectory, string expectedVersion,
@@ -33,7 +33,8 @@ namespace GestureSign.Updater
             ValidateInstallationInputs(packagePath, targetDirectory, expectedPackageSha256);
             RecoverInterruptedTransactions(targetDirectory);
 
-            string workDirectory = Path.Combine(Path.GetTempPath(), "GestureSign.Update." + Guid.NewGuid().ToString("N"));
+            string workDirectory = Path.Combine(Path.GetTempPath(), "TouchPilot.Update." +
+                Guid.NewGuid().ToString("N"));
             string stagingDirectory = Path.Combine(workDirectory, "staging");
             Directory.CreateDirectory(stagingDirectory);
 
@@ -62,9 +63,10 @@ namespace GestureSign.Updater
                     StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("The update package failed SHA-256 verification.");
             if (!Directory.Exists(targetDirectory))
-                throw new DirectoryNotFoundException("The GestureSign installation directory was not found.");
-            if (!File.Exists(Path.Combine(targetDirectory, "GestureSign.exe")))
-                throw new InvalidDataException("The target directory is not a GestureSign installation.");
+                throw new DirectoryNotFoundException("The TouchPilot installation directory was not found.");
+            if (!File.Exists(Path.Combine(targetDirectory, "TouchPilot.exe")) &&
+                !File.Exists(Path.Combine(targetDirectory, "GestureSign.exe")))
+                throw new InvalidDataException("The target directory is not a TouchPilot installation.");
         }
 
         private static ReleaseManifest LoadAndValidateManifest(string stagingDirectory, string expectedVersion)

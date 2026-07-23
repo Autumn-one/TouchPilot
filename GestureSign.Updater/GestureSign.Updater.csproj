@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>GestureSign.Updater</RootNamespace>
-    <AssemblyName>GestureSign.Updater</AssemblyName>
+    <AssemblyName>TouchPilot.Updater</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <PublishSingleFile>true</PublishSingleFile>

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>GestureSign.ControlPanel</RootNamespace>
-    <AssemblyName>GestureSign.ControlPanel</AssemblyName>
+    <AssemblyName>TouchPilot.ControlPanel</AssemblyName>
     <ApplicationIcon>Resources\normal.ico</ApplicationIcon>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <UseWPF>true</UseWPF>

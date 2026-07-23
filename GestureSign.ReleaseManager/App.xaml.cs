@@ -84,12 +84,12 @@ namespace GestureSign.ReleaseManager
         private static void WriteCommandLineUsage()
         {
             Console.Error.WriteLine(
-                "Usage: GestureSign.ReleaseManager.exe --initialize-signing-key <source-directory>");
+                "Usage: TouchPilot.ReleaseManager.exe --initialize-signing-key <source-directory>");
             Console.Error.WriteLine(
-                "   or: GestureSign.ReleaseManager.exe --generate-update-metadata " +
+                "   or: TouchPilot.ReleaseManager.exe --generate-update-metadata " +
                 "<source-directory> <output-directory> <version> <repository> [release-notes-file]");
             Console.Error.WriteLine(
-                "   or: GestureSign.ReleaseManager.exe --validate-user-config <source-directory>");
+                "   or: TouchPilot.ReleaseManager.exe --validate-user-config <source-directory>");
         }
     }
 }

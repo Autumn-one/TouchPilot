@@ -423,16 +423,16 @@ namespace GestureSign.Tests
             string targetDirectory = directory.CreateDirectory("target");
             string packagePath = CreatePackage(directory.Path, "8.2.0", new Dictionary<string, string>
             {
-                ["GestureSign.exe"] = "new executable",
+                ["TouchPilot.exe"] = "new executable",
                 ["Languages/en.xml"] = "new language"
             });
-            File.WriteAllText(Path.Combine(targetDirectory, "GestureSign.exe"), "old executable");
+            File.WriteAllText(Path.Combine(targetDirectory, "TouchPilot.exe"), "old executable");
             File.WriteAllText(Path.Combine(targetDirectory, "user.settings"), "keep me");
 
             new UpdateInstaller(directory.CreateDirectory("backups"))
                 .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath));
 
-            Assert.Equal("new executable", File.ReadAllText(Path.Combine(targetDirectory, "GestureSign.exe")));
+            Assert.Equal("new executable", File.ReadAllText(Path.Combine(targetDirectory, "TouchPilot.exe")));
             Assert.Equal("new language", File.ReadAllText(Path.Combine(targetDirectory, "Languages", "en.xml")));
             Assert.Equal("keep me", File.ReadAllText(Path.Combine(targetDirectory, "user.settings")));
             Assert.True(File.Exists(Path.Combine(targetDirectory, ReleaseManifest.FileName)));
