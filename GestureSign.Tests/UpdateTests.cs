@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NuGet.Versioning;
 using Xunit;
 
 namespace GestureSign.Tests
@@ -36,13 +37,19 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void ReleaseVersionNormalizesTagsAndComparesNumerically()
+        public void ReleaseVersionPreservesSemVerAndComparesReleaseOrder()
         {
-            Version current = ReleaseVersion.Parse("8.1.9");
-            Version release = ReleaseVersion.Parse("v8.2.0-beta.1+build.7");
+            NuGetVersion current = ReleaseVersion.Parse("8.1.9");
+            NuGetVersion beta1 = ReleaseVersion.Parse("v8.2.0-beta.1+build.7");
+            NuGetVersion beta2 = ReleaseVersion.Parse("8.2.0-beta.2");
+            NuGetVersion release = ReleaseVersion.Parse("8.2.0");
+            NuGetVersion nextBeta = ReleaseVersion.Parse("8.3.0-beta.1");
 
-            Assert.True(release > current);
-            Assert.Equal("8.2.0", ReleaseVersion.ToReleaseString(release));
+            Assert.True(VersionComparer.VersionRelease.Compare(beta1, current) > 0);
+            Assert.True(VersionComparer.VersionRelease.Compare(beta2, beta1) > 0);
+            Assert.True(VersionComparer.VersionRelease.Compare(release, beta2) > 0);
+            Assert.True(VersionComparer.VersionRelease.Compare(nextBeta, release) > 0);
+            Assert.Equal("8.2.0-beta.1+build.7", ReleaseVersion.ToReleaseString(beta1));
         }
 
         [Fact]

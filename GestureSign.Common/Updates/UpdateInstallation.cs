@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using NuGet.Versioning;
 
 namespace GestureSign.Common.Updates
 {
@@ -22,14 +23,15 @@ namespace GestureSign.Common.Updates
             return ReleaseManifest.TryLoadFromDirectory(AppContext.BaseDirectory);
         }
 
-        public static Version GetCurrentVersion(Assembly entryAssembly)
+        public static NuGetVersion GetCurrentVersion(Assembly entryAssembly)
         {
             ReleaseManifest manifest = GetCurrentManifest();
-            if (manifest != null && ReleaseVersion.TryParse(manifest.Version, out Version manifestVersion))
+            if (manifest != null && ReleaseVersion.TryParse(manifest.Version, out NuGetVersion manifestVersion))
                 return manifestVersion;
 
             Version assemblyVersion = entryAssembly?.GetName().Version ?? new Version(0, 0);
-            return new Version(Math.Max(0, assemblyVersion.Major), Math.Max(0, assemblyVersion.Minor), 0, 0);
+            return new NuGetVersion(Math.Max(0, assemblyVersion.Major),
+                Math.Max(0, assemblyVersion.Minor), 0);
         }
 
         public static string GetCurrentVersionText(Assembly entryAssembly)

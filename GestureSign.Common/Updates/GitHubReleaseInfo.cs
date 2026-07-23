@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NuGet.Versioning;
 
 namespace GestureSign.Common.Updates
 {
@@ -19,7 +20,7 @@ namespace GestureSign.Common.Updates
 
         public IReadOnlyList<GitHubReleaseAsset> Assets { get; set; } = Array.Empty<GitHubReleaseAsset>();
 
-        public Version Version => ReleaseVersion.Parse(TagName);
+        public NuGetVersion Version => ReleaseVersion.Parse(TagName);
     }
 
     public sealed class GitHubReleaseAsset

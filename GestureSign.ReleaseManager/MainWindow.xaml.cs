@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using NuGet.Versioning;
 using Forms = System.Windows.Forms;
 
 namespace GestureSign.ReleaseManager
@@ -159,7 +160,7 @@ namespace GestureSign.ReleaseManager
             if (string.IsNullOrWhiteSpace(token))
                 throw new InvalidOperationException("请填写 GitHub 授权密钥。");
 
-            Version version = ReleaseVersion.Parse(VersionTextBox.Text);
+            NuGetVersion version = ReleaseVersion.Parse(VersionTextBox.Text);
             return new ReleaseIdentity
             {
                 Repository = repository,

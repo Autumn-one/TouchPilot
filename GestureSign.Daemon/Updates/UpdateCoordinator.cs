@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using NuGet.Versioning;
 
 namespace GestureSign.Daemon.Updates
 {
@@ -60,12 +61,12 @@ namespace GestureSign.Daemon.Updates
             bool updateAccepted = false;
             try
             {
-                Version currentVersion = UpdateInstallation.GetCurrentVersion(Assembly.GetEntryAssembly());
+                NuGetVersion currentVersion = UpdateInstallation.GetCurrentVersion(Assembly.GetEntryAssembly());
                 GitHubRepository repository = UpdateInstallation.GetRepository();
 
                 using var client = new GitHubReleaseClient(repository);
                 GitHubReleaseInfo release = await client.GetLatestReleaseAsync(cancellationToken).ConfigureAwait(false);
-                if (release.Version <= currentVersion)
+                if (VersionComparer.VersionRelease.Compare(release.Version, currentVersion) <= 0)
                     return;
 
                 string releaseVersion = ReleaseVersion.ToReleaseString(release.Version);
