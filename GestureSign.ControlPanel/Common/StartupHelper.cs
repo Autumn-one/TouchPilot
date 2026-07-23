@@ -265,6 +265,71 @@ namespace GestureSign.ControlPanel.Common
             return process.ExitCode == 0;
         }
 
+        private static bool IsStartupTaskForCurrentInstallation(string taskName)
+        {
+            string schedulerPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe");
+            var startInfo = new ProcessStartInfo(schedulerPath)
+            {
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            startInfo.ArgumentList.Add("/Query");
+            startInfo.ArgumentList.Add("/TN");
+            startInfo.ArgumentList.Add(taskName);
+            startInfo.ArgumentList.Add("/XML");
+
+            try
+            {
+                using Process process = Process.Start(startInfo);
+                if (process == null)
+                    return false;
+                Task<string> output = process.StandardOutput.ReadToEndAsync();
+                Task<string> error = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(5000))
+                {
+                    process.Kill(true);
+                    return false;
+                }
+                Task.WaitAll(output, error);
+                if (process.ExitCode != 0)
+                    return false;
+
+                XDocument document = XDocument.Parse(output.Result);
+                XNamespace taskNamespace = document.Root?.Name.Namespace ?? XNamespace.None;
+                return document.Descendants(taskNamespace + "Command").Any(command =>
+                    IsStartupTargetForDirectory(command.Value,
+                        AppDomain.CurrentDomain.BaseDirectory));
+            }
+            catch (Exception exception)
+            {
+                GestureSign.Common.Log.Logging.LogException(exception);
+                return false;
+            }
+        }
+
+        internal static bool ShouldUseHighPrivilegeStartup(bool configured,
+            bool currentTaskRegistered, bool legacyTaskRegistered)
+        {
+            return configured && (currentTaskRegistered || legacyTaskRegistered);
+        }
+
+        public static bool GetHighPrivilegeStartupStatus()
+        {
+            if (!IsRunAsAdmin)
+                return false;
+
+            bool currentTaskRegistered =
+                IsStartupTaskForCurrentInstallation(CurrentTaskName);
+            bool legacyTaskRegistered = !currentTaskRegistered &&
+                IsStartupTaskForCurrentInstallation(LegacyTaskName);
+            return ShouldUseHighPrivilegeStartup(true, currentTaskRegistered,
+                legacyTaskRegistered);
+        }
+
         public static bool GetStartupStatus()
         {
             try

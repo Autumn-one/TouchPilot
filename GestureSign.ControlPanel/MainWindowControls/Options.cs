@@ -293,7 +293,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
 
         private void CheckStartupStatus()
         {
-            if (StartupHelper.IsRunAsAdmin)
+            if (StartupHelper.GetHighPrivilegeStartupStatus())
             {
                 StartupHelper.TryMigrateHighPrivilegeStartup();
                 SetSwitchState(StartupSwitch, true);
@@ -301,6 +301,8 @@ namespace GestureSign.ControlPanel.MainWindowControls
             }
             else
             {
+                if (StartupHelper.IsRunAsAdmin)
+                    AppConfig.RunAsAdmin = false;
                 RunAsAdminCheckBox.IsChecked = false;
 
                 SetSwitchState(StartupSwitch, StartupHelper.GetStartupStatus());

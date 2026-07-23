@@ -61,6 +61,20 @@ namespace GestureSign.Tests
             Assert.False(StartupHelper.IsStartupTargetForDirectory(null, directory));
         }
 
+        [Theory]
+        [InlineData(false, false, false, false)]
+        [InlineData(false, true, true, false)]
+        [InlineData(true, false, false, false)]
+        [InlineData(true, true, false, true)]
+        [InlineData(true, false, true, true)]
+        public void ElevatedStartupRequiresConfigurationAndARegisteredTask(
+            bool configured, bool currentTaskRegistered, bool legacyTaskRegistered,
+            bool expected)
+        {
+            Assert.Equal(expected, StartupHelper.ShouldUseHighPrivilegeStartup(configured,
+                currentTaskRegistered, legacyTaskRegistered));
+        }
+
         [Fact]
         public void ElevatedStartupScriptsTreatMissingLegacyTasksAsAlreadyClean()
         {
