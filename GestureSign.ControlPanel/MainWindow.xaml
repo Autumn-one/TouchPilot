@@ -89,19 +89,12 @@
                                 <ColumnDefinition Width="64" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Border Width="56"
-                                    Height="56"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    Background="{StaticResource V2.Brush.Accent}"
-                                    CornerRadius="{StaticResource V2.Corner.Medium}">
-                                <iconPacks:PackIconLucide Width="30"
-                                                          Height="30"
-                                                          HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"
-                                                          Foreground="White"
-                                                          Kind="MousePointer2" />
-                            </Border>
+                            <Image Width="56"
+                                   Height="56"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   Source="/TouchPilot.ControlPanel;component/Resources/normal.ico"
+                                   Stretch="Uniform" />
                             <StackPanel Grid.Column="1"
                                         Margin="12,0,0,0"
                                         VerticalAlignment="Center">
