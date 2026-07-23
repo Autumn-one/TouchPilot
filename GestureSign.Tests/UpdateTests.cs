@@ -20,9 +20,9 @@ namespace GestureSign.Tests
     public class UpdateTests
     {
         [Theory]
-        [InlineData("TransposonY/GestureSign", "TransposonY/GestureSign")]
-        [InlineData("https://github.com/TransposonY/GestureSign", "TransposonY/GestureSign")]
-        [InlineData("https://www.github.com/TransposonY/GestureSign.git/", "TransposonY/GestureSign")]
+        [InlineData("Autumn-one/TouchPilot", "Autumn-one/TouchPilot")]
+        [InlineData("https://github.com/Autumn-one/TouchPilot", "Autumn-one/TouchPilot")]
+        [InlineData("https://www.github.com/Autumn-one/TouchPilot.git/", "Autumn-one/TouchPilot")]
         public void GitHubRepositoryParsesSlugAndUrl(string value, string expectedSlug)
         {
             Assert.Equal(expectedSlug, GitHubRepository.Parse(value).Slug);
@@ -52,25 +52,6 @@ namespace GestureSign.Tests
             Assert.True(VersionComparer.VersionRelease.Compare(release, beta2) > 0);
             Assert.True(VersionComparer.VersionRelease.Compare(nextBeta, release) > 0);
             Assert.Equal("8.2.0-beta.1+build.7", ReleaseVersion.ToReleaseString(beta1));
-        }
-
-        [Fact]
-        public void UpdatePackageNamingFindsRuntimeAssetCaseInsensitively()
-        {
-            var release = new GitHubReleaseInfo
-            {
-                Assets = new List<GitHubReleaseAsset>
-                {
-                    new GitHubReleaseAsset { Name = "gesturesign-8.2.0-WIN-X64.ZIP" }
-                }
-            };
-
-            string name = UpdatePackageNaming.GetAssetName("8.2.0", "win-x64");
-
-            Assert.Equal("GestureSign-8.2.0-win-x64.zip", name);
-            Assert.NotNull(UpdatePackageNaming.FindAsset(release, name));
-            Assert.Equal(name + ".sha256",
-                UpdatePackageNaming.GetChecksumAssetName("8.2.0", "win-x64"));
         }
 
         [Fact]

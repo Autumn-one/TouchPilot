@@ -49,51 +49,6 @@ namespace GestureSign.Common.Updates
             _ownsTrustedKey = ownsTrustedKey;
         }
 
-        public async Task<GitHubReleaseInfo> PublishAsync(string tagName, string releaseName, string body,
-            bool draft, bool prerelease, IReadOnlyList<string> assetPaths, IProgress<string> progress,
-            CancellationToken cancellationToken)
-        {
-            if (assetPaths == null || assetPaths.Count == 0)
-                throw new ArgumentException("At least one release asset is required.", nameof(assetPaths));
-            foreach (string path in assetPaths)
-            {
-                if (!File.Exists(path))
-                    throw new FileNotFoundException("Release asset not found.", path);
-            }
-
-            GitHubReleaseInfo release = await GetReleaseByTagAsync(tagName, cancellationToken).ConfigureAwait(false);
-            if (release == null)
-            {
-                progress?.Report("Creating GitHub release " + tagName + "...");
-                release = await CreateReleaseAsync(tagName, releaseName, body, draft, prerelease,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                progress?.Report("Updating GitHub release " + tagName + "...");
-                release = await UpdateReleaseAsync(release.Id, tagName, releaseName, body, draft, prerelease,
-                    cancellationToken).ConfigureAwait(false);
-            }
-
-            foreach (string path in assetPaths)
-            {
-                string assetName = Path.GetFileName(path);
-                GitHubReleaseAsset existing = release.Assets.FirstOrDefault(asset =>
-                    string.Equals(asset.Name, assetName, StringComparison.OrdinalIgnoreCase));
-                if (existing != null)
-                {
-                    progress?.Report("Replacing existing asset " + assetName + "...");
-                    await DeleteAssetAsync(existing.Id, cancellationToken).ConfigureAwait(false);
-                }
-
-                progress?.Report("Uploading " + assetName + "...");
-                await UploadAssetAsync(release.Id, path, cancellationToken).ConfigureAwait(false);
-            }
-
-            progress?.Report("GitHub release published: " + release.HtmlUrl);
-            return release;
-        }
-
         public async Task<GitHubReleaseInfo> EnsureCanPublishAsync(string tagName,
             CancellationToken cancellationToken)
         {

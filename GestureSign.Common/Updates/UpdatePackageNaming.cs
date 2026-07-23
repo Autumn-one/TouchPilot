@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace GestureSign.Common.Updates
@@ -24,16 +23,6 @@ namespace GestureSign.Common.Updates
             }
         }
 
-        public static string GetAssetName(string version, string runtimeIdentifier)
-        {
-            return $"GestureSign-{version}-{runtimeIdentifier}.zip";
-        }
-
-        public static string GetChecksumAssetName(string version, string runtimeIdentifier)
-        {
-            return GetAssetName(version, runtimeIdentifier) + ".sha256";
-        }
-
         public static string GetInstallerAssetName(string version)
         {
             return $"TouchPilot-{version}-{WindowsX64Runtime}-setup.exe";
@@ -50,13 +39,5 @@ namespace GestureSign.Common.Updates
                    string.Equals(distribution, PortableDistribution, StringComparison.Ordinal);
         }
 
-        public static GitHubReleaseAsset FindAsset(GitHubReleaseInfo release, string assetName)
-        {
-            if (release == null)
-                throw new ArgumentNullException(nameof(release));
-
-            return release.Assets.FirstOrDefault(asset =>
-                string.Equals(asset.Name, assetName, StringComparison.OrdinalIgnoreCase));
-        }
     }
 }
