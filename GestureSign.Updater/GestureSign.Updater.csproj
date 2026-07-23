@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>GestureSign.Updater</RootNamespace>
     <AssemblyName>TouchPilot.Updater</AssemblyName>
+    <ApplicationIcon>..\GestureSign.Daemon\Resources\normal.ico</ApplicationIcon>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <PublishSingleFile>true</PublishSingleFile>

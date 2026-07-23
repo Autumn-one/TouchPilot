@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">TouchPilot logo</title>
+  <desc id="desc">A touchpad-shaped app icon containing a continuous P-shaped gesture trail, touch point, and navigation pointer.</desc>
+
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="#18211F"/>
+  <rect x="82" y="82" width="860" height="860" rx="190" fill="none" stroke="#2A3834" stroke-width="20"/>
+
+  <path
+    d="M334 744V346C334 294 376 252 428 252H604C738 252 822 331 822 444C822 557 738 636 604 636H510"
+    fill="none"
+    stroke="#F4F7F6"
+    stroke-width="116"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <circle cx="334" cy="744" r="78" fill="#35D0A5"/>
+  <circle cx="334" cy="744" r="24" fill="#18211F"/>
+
+  <path
+    d="M566 528L600 352L720 480L650 489L608 555Z"
+    fill="#35D0A5"
+    stroke="#18211F"
+    stroke-width="18"
+    stroke-linejoin="round"/>
+</svg>

@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>GestureSign.ReleaseManager</RootNamespace>
     <AssemblyName>TouchPilot.ReleaseManager</AssemblyName>
+    <ApplicationIcon>..\GestureSign.Daemon\Resources\normal.ico</ApplicationIcon>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
