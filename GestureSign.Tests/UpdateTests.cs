@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -276,6 +277,40 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public async Task PackageDownloaderResumesThroughFastestHealthyProxy()
+        {
+            using var directory = new TemporaryDirectory();
+            byte[] package = Encoding.UTF8.GetBytes(new string('a', 20000));
+            string destination = Path.Combine(directory.Path, "TouchPilot.zip");
+            File.WriteAllBytes(destination + ".download", package.Take(3000).ToArray());
+            var handler = new PackageHandler(package);
+            using var httpClient = new HttpClient(handler);
+            using var downloader = new UpdatePackageDownloader(httpClient,
+                new[]
+                {
+                    new UpdateSource("failed", "https://failed.invalid/"),
+                    new UpdateSource("healthy", "https://healthy.invalid/")
+                });
+            var asset = new UpdateAssetMetadata
+            {
+                Distribution = UpdatePackageNaming.PortableDistribution,
+                Runtime = UpdatePackageNaming.WindowsX64Runtime,
+                Name = UpdatePackageNaming.GetPortableAssetName("8.3.0-beta.1"),
+                Size = package.Length,
+                Sha256 = Convert.ToHexString(SHA256.HashData(package)).ToLowerInvariant()
+            };
+
+            await downloader.DownloadAsync(GitHubRepository.Parse("Autumn-one/TouchPilot"),
+                "v8.3.0-beta.1", asset, destination, null, CancellationToken.None);
+
+            Assert.Equal(package, File.ReadAllBytes(destination));
+            Assert.False(File.Exists(destination + ".download"));
+            Assert.Contains(handler.Requests, request => request.Host == "healthy.invalid" &&
+                                                        request.RangeStart == 3000);
+            Assert.All(handler.Requests, request => Assert.Null(request.Authorization));
+        }
+
+        [Fact]
         public async Task ReleasePublisherDeletesReleaseByResolvedId()
         {
             var handler = new ReleaseDeletionHandler();
@@ -497,6 +532,49 @@ namespace GestureSign.Tests
             public byte[] Unprotect(byte[] value)
             {
                 return value;
+            }
+        }
+
+        private sealed class PackageHandler : HttpMessageHandler
+        {
+            private readonly byte[] _package;
+
+            public PackageHandler(byte[] package)
+            {
+                _package = package;
+            }
+
+            public List<(string Host, long? RangeStart, string Authorization)> Requests { get; } =
+                new List<(string Host, long? RangeStart, string Authorization)>();
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                long? start = request.Headers.Range?.Ranges.FirstOrDefault()?.From;
+                Requests.Add((request.RequestUri.Host, start, request.Headers.Authorization?.ToString()));
+                if (request.RequestUri.Host == "failed.invalid")
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadGateway));
+
+                long offset = start.GetValueOrDefault();
+                byte[] contentBytes = _package.Skip((int)offset).ToArray();
+                var content = new ByteArrayContent(contentBytes);
+                HttpStatusCode status = request.Headers.Range == null
+                    ? HttpStatusCode.OK
+                    : HttpStatusCode.PartialContent;
+                if (status == HttpStatusCode.PartialContent)
+                {
+                    long end = offset + contentBytes.Length - 1;
+                    if (request.Headers.Range.Ranges.First().To == 0)
+                    {
+                        contentBytes = new[] { _package[0] };
+                        content = new ByteArrayContent(contentBytes);
+                        end = 0;
+                    }
+                    content.Headers.ContentRange = new System.Net.Http.Headers.ContentRangeHeaderValue(
+                        offset, end, _package.Length);
+                }
+
+                return Task.FromResult(new HttpResponseMessage(status) { Content = content });
             }
         }
 

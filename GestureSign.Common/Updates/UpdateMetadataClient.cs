@@ -17,17 +17,6 @@ namespace GestureSign.Common.Updates
         private const int MaximumMetadataBytes = 64 * 1024;
         private static readonly TimeSpan DefaultSourceTimeout = TimeSpan.FromSeconds(6);
 
-        private static readonly IReadOnlyList<UpdateSource> DefaultSources = new[]
-        {
-            new UpdateSource("gitwarp", "https://proxy.gitwarp.top/"),
-            new UpdateSource("ghfast", "https://ghfast.top/"),
-            new UpdateSource("gh-proxy", "https://gh-proxy.org/"),
-            new UpdateSource("gh-proxy-v4", "https://v4.gh-proxy.org/"),
-            new UpdateSource("gh-proxy-v6", "https://v6.gh-proxy.org/"),
-            new UpdateSource("gh-proxy-cdn", "https://cdn.gh-proxy.org/"),
-            new UpdateSource("direct", string.Empty)
-        };
-
         private readonly GitHubRepository _repository;
         private readonly ECDsa _trustedKey;
         private readonly HttpClient _httpClient;
@@ -37,7 +26,7 @@ namespace GestureSign.Common.Updates
         private readonly Func<DateTimeOffset> _utcNow;
 
         public UpdateMetadataClient(GitHubRepository repository, ECDsa trustedKey)
-            : this(repository, trustedKey, CreateHttpClient(), DefaultSources, DefaultSourceTimeout,
+            : this(repository, trustedKey, CreateHttpClient(), UpdateSource.CreateDefaults(), DefaultSourceTimeout,
                 () => DateTimeOffset.UtcNow, true)
         {
         }
@@ -238,6 +227,20 @@ namespace GestureSign.Common.Updates
         public string Name { get; }
 
         public string Prefix { get; }
+
+        public static IReadOnlyList<UpdateSource> CreateDefaults()
+        {
+            return new[]
+            {
+                new UpdateSource("gitwarp", "https://proxy.gitwarp.top/"),
+                new UpdateSource("ghfast", "https://ghfast.top/"),
+                new UpdateSource("gh-proxy", "https://gh-proxy.org/"),
+                new UpdateSource("gh-proxy-v4", "https://v4.gh-proxy.org/"),
+                new UpdateSource("gh-proxy-v6", "https://v6.gh-proxy.org/"),
+                new UpdateSource("gh-proxy-cdn", "https://cdn.gh-proxy.org/"),
+                new UpdateSource("direct", string.Empty)
+            };
+        }
     }
 
     public sealed class UpdateMetadataResult
