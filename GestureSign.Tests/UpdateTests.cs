@@ -494,16 +494,21 @@ namespace GestureSign.Tests
                 ["GestureSign.exe"] = "new executable",
                 ["locked.dll"] = "new locked file"
             });
+            string backupRoot = directory.CreateDirectory("backups");
 
-            using (File.Open(lockedPath, FileMode.Open, FileAccess.Read, FileShare.None))
+            using (File.Open(lockedPath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 Assert.ThrowsAny<Exception>(() =>
-                    new UpdateInstaller(directory.CreateDirectory("backups"))
+                    new UpdateInstaller(backupRoot)
                         .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath)));
             }
 
             Assert.Equal("old executable", File.ReadAllText(executablePath));
             Assert.Equal("old locked file", File.ReadAllText(lockedPath));
+            string journalPath = Assert.Single(Directory.EnumerateFiles(backupRoot,
+                "update-transaction.json", SearchOption.AllDirectories));
+            using JsonDocument journal = JsonDocument.Parse(File.ReadAllText(journalPath));
+            Assert.Equal("rolledBack", journal.RootElement.GetProperty("State").GetString());
         }
 
         [Fact]
