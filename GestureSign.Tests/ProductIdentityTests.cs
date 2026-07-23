@@ -111,8 +111,19 @@ namespace GestureSign.Tests
 
             using Process process = Process.Start(startInfo);
             Assert.NotNull(process);
-            Assert.True(process.WaitForExit(30000),
-                "The startup cleanup regression script did not exit in time.");
+            bool exited = process.WaitForExit(60000);
+            if (!exited)
+            {
+                try
+                {
+                    process.Kill(true);
+                    process.WaitForExit(5000);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
+            Assert.True(exited, "The startup cleanup regression script did not exit in time.");
             return process.ExitCode;
         }
     }

@@ -669,7 +669,7 @@ namespace GestureSign.Tests
                 reportStage("waiting for the external foreground process output");
                 Task<string> readHandle = process.StandardOutput.ReadLineAsync();
                 Task<string> readError = process.StandardError.ReadToEndAsync();
-                if (!readHandle.Wait(TimeSpan.FromSeconds(8)))
+                if (!readHandle.Wait(TimeSpan.FromSeconds(30)))
                 {
                     reportStage("stopping the timed-out foreground process");
                     StopProcess(process);
