@@ -168,14 +168,14 @@ namespace GestureSign.ControlPanel.Common
             }
         }
 
-        private static string BuildCreateTaskScript(string xmlFilePath)
+        internal static string BuildCreateTaskScript(string xmlFilePath)
         {
             string scheduler = DecodePowerShellValue(Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe"));
             string taskXml = DecodePowerShellValue(xmlFilePath);
             string currentTask = DecodePowerShellValue(CurrentTaskName);
             string legacyTask = DecodePowerShellValue(LegacyTaskName);
-            return "$ErrorActionPreference='Stop';" +
+            return "$ErrorActionPreference='SilentlyContinue';" +
                    "$scheduler=" + scheduler + ";$taskXml=" + taskXml + ";" +
                    "$currentTask=" + currentTask + ";$legacyTask=" + legacyTask + ";" +
                    "& $scheduler /Create /TN $currentTask /F /XML $taskXml | Out-Null;" +
@@ -188,11 +188,17 @@ namespace GestureSign.ControlPanel.Common
 
         private static string BuildDeleteTasksScript()
         {
+            return BuildDeleteTasksScript(CurrentTaskName, LegacyTaskName);
+        }
+
+        internal static string BuildDeleteTasksScript(string currentTaskName,
+            string legacyTaskName)
+        {
             string scheduler = DecodePowerShellValue(Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe"));
-            string currentTask = DecodePowerShellValue(CurrentTaskName);
-            string legacyTask = DecodePowerShellValue(LegacyTaskName);
-            return "$ErrorActionPreference='Stop';$scheduler=" + scheduler + ";" +
+            string currentTask = DecodePowerShellValue(currentTaskName);
+            string legacyTask = DecodePowerShellValue(legacyTaskName);
+            return "$ErrorActionPreference='SilentlyContinue';$scheduler=" + scheduler + ";" +
                    "$tasks=@(" + currentTask + "," + legacyTask + ");$failed=$false;" +
                    "foreach($task in $tasks){& $scheduler /Delete /TN $task /F 2>$null | Out-Null;" +
                    "& $scheduler /Query /TN $task 2>$null | Out-Null;" +

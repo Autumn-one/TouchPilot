@@ -1,7 +1,10 @@
 using GestureSign.Common;
 using GestureSign.ControlPanel.Common;
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using Xunit;
 
@@ -56,6 +59,47 @@ namespace GestureSign.Tests
             Assert.False(StartupHelper.IsStartupTargetForDirectory(
                 Path.Combine(Path.GetTempPath(), "Other", "GestureSign.exe"), directory));
             Assert.False(StartupHelper.IsStartupTargetForDirectory(null, directory));
+        }
+
+        [Fact]
+        public void ElevatedStartupScriptsTreatMissingLegacyTasksAsAlreadyClean()
+        {
+            string uniqueSuffix = Guid.NewGuid().ToString("N");
+            string script = StartupHelper.BuildDeleteTasksScript(
+                "TouchPilot Missing Current " + uniqueSuffix,
+                "TouchPilot Missing Legacy " + uniqueSuffix);
+
+            Assert.Contains("$ErrorActionPreference='SilentlyContinue'",
+                StartupHelper.BuildCreateTaskScript(Path.Combine(Path.GetTempPath(),
+                    "TouchPilot.StartupTask.xml")));
+            Assert.Equal(0, RunWindowsPowerShell(script));
+        }
+
+        private static int RunWindowsPowerShell(string script)
+        {
+            string powerShellPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System),
+                "WindowsPowerShell", "v1.0", "powershell.exe");
+            var startInfo = new ProcessStartInfo(powerShellPath)
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            startInfo.ArgumentList.Add("-NoLogo");
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-NonInteractive");
+            startInfo.ArgumentList.Add("-WindowStyle");
+            startInfo.ArgumentList.Add("Hidden");
+            startInfo.ArgumentList.Add("-EncodedCommand");
+            startInfo.ArgumentList.Add(Convert.ToBase64String(
+                Encoding.Unicode.GetBytes(script)));
+
+            using Process process = Process.Start(startInfo);
+            Assert.NotNull(process);
+            Assert.True(process.WaitForExit(30000),
+                "The startup cleanup regression script did not exit in time.");
+            return process.ExitCode;
         }
     }
 }
