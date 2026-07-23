@@ -341,11 +341,15 @@ namespace GestureSign.Tests
         {
             using var directory = new TemporaryDirectory();
             string path = Path.Combine(directory.Path, ReleaseManifest.FileName);
+            var builtAtUtc = new DateTimeOffset(2026, 7, 23, 4, 0, 0, TimeSpan.Zero);
             var manifest = new ReleaseManifest
             {
                 Version = "8.2.0",
                 Repository = "TransposonY/GestureSign",
                 Runtime = "win-x64",
+                Distribution = UpdatePackageNaming.PortableDistribution,
+                BuiltAtUtc = builtAtUtc,
+                ExpiresAtUtc = builtAtUtc.AddMonths(3),
                 Files = new List<ReleaseFileEntry>
                 {
                     new ReleaseFileEntry { Path = "GestureSign.exe", Sha256 = "abc", Size = 3 }
@@ -361,7 +365,27 @@ namespace GestureSign.Tests
             Assert.Equal(manifest.Version, restored.Version);
             Assert.Equal(manifest.Repository, restored.Repository);
             Assert.Equal(manifest.Runtime, restored.Runtime);
+            Assert.Equal(manifest.Distribution, restored.Distribution);
+            Assert.Equal(manifest.BuiltAtUtc, restored.BuiltAtUtc);
+            Assert.Equal(manifest.ExpiresAtUtc, restored.ExpiresAtUtc);
             Assert.Equal(manifest.Files[0].Path, restored.Files[0].Path);
+        }
+
+        [Fact]
+        public void ReleaseManifestKeepsLegacyFilesReadableWithoutLifecycleMetadata()
+        {
+            using var directory = new TemporaryDirectory();
+            string path = Path.Combine(directory.Path, ReleaseManifest.FileName);
+            File.WriteAllText(path,
+                "{\"version\":\"8.1.0\",\"repository\":\"TransposonY/GestureSign\"," +
+                "\"runtime\":\"win-x64\",\"files\":[]}");
+
+            ReleaseManifest restored = ReleaseManifest.Load(path);
+
+            Assert.Equal("8.1.0", restored.Version);
+            Assert.Null(restored.Distribution);
+            Assert.Null(restored.BuiltAtUtc);
+            Assert.Null(restored.ExpiresAtUtc);
         }
 
         [Fact]

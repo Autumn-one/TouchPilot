@@ -22,6 +22,12 @@ namespace GestureSign.Common.Updates
 
         public string Runtime { get; set; }
 
+        public string Distribution { get; set; }
+
+        public DateTimeOffset? BuiltAtUtc { get; set; }
+
+        public DateTimeOffset? ExpiresAtUtc { get; set; }
+
         public List<ReleaseFileEntry> Files { get; set; } = new List<ReleaseFileEntry>();
 
         public static ReleaseManifest TryLoadFromDirectory(string directory)
