@@ -72,6 +72,47 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void UpdateMetadataSignatureRoundTripsInstallerAndPortableAssets()
+        {
+            DateTimeOffset builtAt = new DateTimeOffset(2026, 7, 23, 4, 5, 6, TimeSpan.Zero);
+            UpdateMetadata metadata = CreateUpdateMetadata(builtAt);
+            using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            string json = UpdateMetadataSignature.Sign(metadata, signingKey);
+
+            UpdateMetadata verified = UpdateMetadataSignature.Verify(json, signingKey);
+
+            Assert.Equal("8.3.0-beta.1", verified.Version);
+            Assert.Equal(builtAt.AddMonths(3), verified.ExpiresAtUtc);
+            Assert.Equal(UpdatePackageNaming.GetInstallerAssetName(verified.Version),
+                verified.Assets[0].Name);
+            Assert.Equal(UpdatePackageNaming.GetPortableAssetName(verified.Version),
+                verified.Assets[1].Name);
+        }
+
+        [Fact]
+        public void UpdateMetadataSignatureRejectsTampering()
+        {
+            UpdateMetadata metadata = CreateUpdateMetadata(DateTimeOffset.UtcNow);
+            using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            string json = UpdateMetadataSignature.Sign(metadata, signingKey);
+            string tampered = json.Replace("8.3.0-beta.1", "8.3.0-beta.2");
+
+            Assert.Throws<CryptographicException>(() =>
+                UpdateMetadataSignature.Verify(tampered, signingKey));
+        }
+
+        [Fact]
+        public void UpdateMetadataRejectsExpiryOtherThanThreeCalendarMonths()
+        {
+            UpdateMetadata metadata = CreateUpdateMetadata(DateTimeOffset.UtcNow);
+            metadata.ExpiresAtUtc = metadata.BuiltAtUtc.AddDays(90);
+            using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
+            Assert.Throws<InvalidDataException>(() =>
+                UpdateMetadataSignature.Sign(metadata, signingKey));
+        }
+
+        [Fact]
         public async Task ReleasePublisherDeletesReleaseByResolvedId()
         {
             var handler = new ReleaseDeletionHandler();
@@ -219,6 +260,39 @@ namespace GestureSign.Tests
             string packagePath = Path.Combine(rootDirectory, "GestureSign-" + version + ".zip");
             ZipFile.CreateFromDirectory(sourceDirectory, packagePath);
             return packagePath;
+        }
+
+        private static UpdateMetadata CreateUpdateMetadata(DateTimeOffset builtAt)
+        {
+            const string version = "8.3.0-beta.1";
+            return new UpdateMetadata
+            {
+                Repository = "Autumn-one/TouchPilot",
+                Version = version,
+                Tag = "v" + version,
+                BuiltAtUtc = builtAt.ToUniversalTime(),
+                ExpiresAtUtc = builtAt.ToUniversalTime().AddMonths(3),
+                ReleaseNotes = "Beta test",
+                Assets = new List<UpdateAssetMetadata>
+                {
+                    new UpdateAssetMetadata
+                    {
+                        Distribution = UpdatePackageNaming.InstallerDistribution,
+                        Runtime = UpdatePackageNaming.WindowsX64Runtime,
+                        Name = UpdatePackageNaming.GetInstallerAssetName(version),
+                        Size = 123,
+                        Sha256 = new string('a', 64)
+                    },
+                    new UpdateAssetMetadata
+                    {
+                        Distribution = UpdatePackageNaming.PortableDistribution,
+                        Runtime = UpdatePackageNaming.WindowsX64Runtime,
+                        Name = UpdatePackageNaming.GetPortableAssetName(version),
+                        Size = 456,
+                        Sha256 = new string('b', 64)
+                    }
+                }
+            };
         }
 
         private static string ComputeSha256(string path)
