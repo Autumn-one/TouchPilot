@@ -16,4 +16,10 @@
     <ProjectReference Include="..\GestureSign.PointPatterns\GestureSign.PointPatterns.csproj" />
     <ProjectReference Include="..\ManagedWinapi\ManagedWinapi.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Updates\TouchPilot-update-public.pem" />
+    <EmbeddedResource Include="Updates\TouchPilot-update-public.pem"
+                      LogicalName="TouchPilot.UpdatePublicKey" />
+  </ItemGroup>
 </Project>
