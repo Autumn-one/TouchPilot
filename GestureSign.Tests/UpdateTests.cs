@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Versioning;
@@ -386,6 +387,123 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void UpdaterDeletesObsoleteManifestFilesAndPreservesUnmanagedFiles()
+        {
+            using var directory = new TemporaryDirectory();
+            string targetDirectory = directory.CreateDirectory("target");
+            string oldProgramPath = Path.Combine(targetDirectory, "obsolete.dll");
+            string userPath = Path.Combine(targetDirectory, "user.settings");
+            File.WriteAllText(Path.Combine(targetDirectory, "GestureSign.exe"), "old executable");
+            File.WriteAllText(oldProgramPath, "old program file");
+            File.WriteAllText(userPath, "user data");
+            new ReleaseManifest
+            {
+                Version = "8.1.0",
+                Repository = "TransposonY/GestureSign",
+                Runtime = "win-x64",
+                Files = new List<ReleaseFileEntry>
+                {
+                    new ReleaseFileEntry
+                    {
+                        Path = "GestureSign.exe",
+                        Sha256 = ComputeSha256(Path.Combine(targetDirectory, "GestureSign.exe")),
+                        Size = new FileInfo(Path.Combine(targetDirectory, "GestureSign.exe")).Length
+                    },
+                    new ReleaseFileEntry
+                    {
+                        Path = "obsolete.dll",
+                        Sha256 = ComputeSha256(oldProgramPath),
+                        Size = new FileInfo(oldProgramPath).Length
+                    }
+                }
+            }.Save(Path.Combine(targetDirectory, ReleaseManifest.FileName));
+            string packagePath = CreatePackage(directory.Path, "8.2.0", new Dictionary<string, string>
+            {
+                ["GestureSign.exe"] = "new executable"
+            });
+
+            new UpdateInstaller(directory.CreateDirectory("backups"))
+                .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath));
+
+            Assert.False(File.Exists(oldProgramPath));
+            Assert.Equal("user data", File.ReadAllText(userPath));
+        }
+
+        [Fact]
+        public void UpdaterRejectsFilesMissingFromReleaseManifest()
+        {
+            using var directory = new TemporaryDirectory();
+            string targetDirectory = directory.CreateDirectory("target");
+            File.WriteAllText(Path.Combine(targetDirectory, "GestureSign.exe"), "old executable");
+            string packagePath = CreatePackage(directory.Path, "8.2.0", new Dictionary<string, string>
+            {
+                ["GestureSign.exe"] = "new executable"
+            }, extraUnlistedFile: true);
+
+            Assert.Throws<InvalidDataException>(() =>
+                new UpdateInstaller(directory.CreateDirectory("backups"))
+                    .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath)));
+
+            Assert.Equal("old executable", File.ReadAllText(Path.Combine(targetDirectory, "GestureSign.exe")));
+        }
+
+        [Fact]
+        public void UpdaterRollsBackFilesAppliedBeforeAReplacementFails()
+        {
+            using var directory = new TemporaryDirectory();
+            string targetDirectory = directory.CreateDirectory("target");
+            string executablePath = Path.Combine(targetDirectory, "GestureSign.exe");
+            string lockedPath = Path.Combine(targetDirectory, "locked.dll");
+            File.WriteAllText(executablePath, "old executable");
+            File.WriteAllText(lockedPath, "old locked file");
+            string packagePath = CreatePackage(directory.Path, "8.2.0", new Dictionary<string, string>
+            {
+                ["GestureSign.exe"] = "new executable",
+                ["locked.dll"] = "new locked file"
+            });
+
+            using (File.Open(lockedPath, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                Assert.ThrowsAny<Exception>(() =>
+                    new UpdateInstaller(directory.CreateDirectory("backups"))
+                        .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath)));
+            }
+
+            Assert.Equal("old executable", File.ReadAllText(executablePath));
+            Assert.Equal("old locked file", File.ReadAllText(lockedPath));
+        }
+
+        [Fact]
+        public void UpdaterRecoversPreparedTransactionBeforeStartingAnotherUpdate()
+        {
+            using var directory = new TemporaryDirectory();
+            string targetDirectory = directory.CreateDirectory("target");
+            string executablePath = Path.Combine(targetDirectory, "GestureSign.exe");
+            File.WriteAllText(executablePath, "partially updated executable");
+            string backupRoot = directory.CreateDirectory("backups");
+            string interruptedBackup = Path.Combine(backupRoot, "interrupted");
+            Directory.CreateDirectory(interruptedBackup);
+            File.WriteAllText(Path.Combine(interruptedBackup, "GestureSign.exe"), "original executable");
+            File.WriteAllText(Path.Combine(interruptedBackup, "update-transaction.json"),
+                JsonSerializer.Serialize(new
+                {
+                    targetDirectory,
+                    state = "prepared",
+                    entries = new[] { new { path = "GestureSign.exe", hadOriginal = true } }
+                }));
+            string packagePath = CreatePackage(directory.Path, "8.2.0", new Dictionary<string, string>
+            {
+                ["GestureSign.exe"] = "new executable"
+            }, extraUnlistedFile: true);
+
+            Assert.Throws<InvalidDataException>(() =>
+                new UpdateInstaller(backupRoot)
+                    .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath)));
+
+            Assert.Equal("original executable", File.ReadAllText(executablePath));
+        }
+
+        [Fact]
         public void UpdaterRejectsInvalidHashBeforeChangingTarget()
         {
             using var directory = new TemporaryDirectory();
@@ -426,7 +544,8 @@ namespace GestureSign.Tests
         }
 
         private static string CreatePackage(string rootDirectory, string version,
-            IReadOnlyDictionary<string, string> files, bool corruptFirstHash = false)
+            IReadOnlyDictionary<string, string> files, bool corruptFirstHash = false,
+            bool extraUnlistedFile = false)
         {
             string sourceDirectory = Path.Combine(rootDirectory, "package-source-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(sourceDirectory);
@@ -454,6 +573,8 @@ namespace GestureSign.Tests
                 Runtime = "win-x64",
                 Files = entries
             }.Save(Path.Combine(sourceDirectory, ReleaseManifest.FileName));
+            if (extraUnlistedFile)
+                File.WriteAllText(Path.Combine(sourceDirectory, "unlisted.dll"), "not in manifest");
 
             string packagePath = Path.Combine(rootDirectory, "GestureSign-" + version + ".zip");
             ZipFile.CreateFromDirectory(sourceDirectory, packagePath);
