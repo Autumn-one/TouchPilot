@@ -35,7 +35,6 @@ This may lead to function failure(e.g. Start application at Windows startup).
     <Header>About</Header>
     <Homepage>Homepage</Homepage>
     <HomepageUrl>https://github.com/Autumn-one/TouchPilot</HomepageUrl>
-    <Store>Microsoft Store</Store>
     <HelpPageUrl>https://github.com/Autumn-one/TouchPilot</HelpPageUrl>
     <Version>Version:  </Version>
     <ReleaseDate>Release date:  </ReleaseDate>

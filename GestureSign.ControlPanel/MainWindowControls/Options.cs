@@ -302,63 +302,25 @@ namespace GestureSign.ControlPanel.MainWindowControls
             {
                 RunAsAdminCheckBox.IsChecked = false;
 
-#if ConvertedDesktopApp
-                StartupHelper.CheckStoreAppStartupStatus().ContinueWith(t =>
-                {
-                    bool result = t.Result;
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetSwitchState(StartupSwitch, result);
-                    }, System.Windows.Threading.DispatcherPriority.Background);
-                });
-#else
                 SetSwitchState(StartupSwitch, StartupHelper.GetStartupStatus());
-#endif
 
             }
         }
 
         private void EnableStartup()
         {
-#if ConvertedDesktopApp
-            StartupHelper.EnableStoreAppStartup().ContinueWith(t =>
-            {
-                if (!t.Result)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetSwitchState(StartupSwitch, false);
-                    }, System.Windows.Threading.DispatcherPriority.Background);
-                }
-            });
-#else
             if (!StartupHelper.EnableNormalStartup())
             {
                 SetSwitchState(StartupSwitch, false);
             }
-#endif
         }
 
         private void DisableStartup()
         {
-#if ConvertedDesktopApp
-            StartupHelper.DisableStoreAppStartup().ContinueWith(t =>
-            {
-                if (!t.Result)
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetSwitchState(StartupSwitch, true);
-                    }, System.Windows.Threading.DispatcherPriority.Background);
-                }
-            });
-#else
-
             if (!StartupHelper.DisableNormalStartup())
             {
                 SetSwitchState(StartupSwitch, true);
             }
-#endif
         }
 
         private void StartupSwitch_Toggled(object sender, RoutedEventArgs e)

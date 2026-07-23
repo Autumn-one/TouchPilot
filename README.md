@@ -23,7 +23,7 @@ TouchPilot is a Windows touchpad and gesture automation utility. It can automate
 
 ## Automatic updates
 
-Release, Portable, and uiAccessRelease builds check the repository's latest published GitHub Release shortly after startup. Debug and Microsoft Store/Centennial builds do not use the self-updater. Drafts and prereleases are not returned by GitHub's `releases/latest` endpoint and are therefore not offered automatically.
+Release, Portable, and uiAccessRelease builds check the repository's latest published GitHub Release shortly after startup. Debug builds do not use the self-updater. Drafts and prereleases are not returned by GitHub's `releases/latest` endpoint and are therefore not offered automatically.
 
 Each published x64 release contains these signed update assets, using the release version without a leading `v`:
 

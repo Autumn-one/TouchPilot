@@ -133,23 +133,6 @@
                                 </StackPanel>
                             </Button>
                             <Button MinWidth="136"
-                                    Margin="0,0,8,8"
-                                    Style="{StaticResource V2.Button.Secondary}"
-                                    ToolTip="{localization:LocalisedText About.Store}"
-                                    AutomationProperties.Name="{localization:LocalisedText About.Store}"
-                                    Click="Hyperlink_Click"
-                                    CommandParameter="ms-windows-store://pdp/?productid=9n45wqvk2qqw">
-                                <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconLucide Width="17"
-                                                              Height="17"
-                                                              Margin="0,0,8,0"
-                                                              VerticalAlignment="Center"
-                                                              Kind="Store" />
-                                    <TextBlock VerticalAlignment="Center"
-                                               Text="{localization:LocalisedText About.Store}" />
-                                </StackPanel>
-                            </Button>
-                            <Button MinWidth="136"
                                     Margin="0,0,0,8"
                                     Style="{StaticResource V2.Button.Primary}"
                                     ToolTip="{localization:LocalisedText About.SendFeedback}"

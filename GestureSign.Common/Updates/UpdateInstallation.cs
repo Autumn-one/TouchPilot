@@ -12,7 +12,7 @@ namespace GestureSign.Common.Updates
         {
             get
             {
-#if DEBUG || ConvertedDesktopApp
+#if DEBUG
                 return false;
 #else
                 return true;

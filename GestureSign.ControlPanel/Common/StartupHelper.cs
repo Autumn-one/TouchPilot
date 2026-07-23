@@ -3,7 +3,6 @@ using GestureSign.Common.Localization;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
 using File = System.IO.File;
 
@@ -119,47 +118,6 @@ namespace GestureSign.ControlPanel.Common
                 return false;
             }
 
-            return true;
-        }
-
-        public static async Task<bool> CheckStoreAppStartupStatus()
-        {
-            var startupTask = await Windows.ApplicationModel.StartupTask.GetAsync("GestureSignTask");
-            switch (startupTask.State)
-            {
-                case Windows.ApplicationModel.StartupTaskState.Disabled:
-                    return false;
-                case Windows.ApplicationModel.StartupTaskState.DisabledByUser:
-                    return false;
-                case Windows.ApplicationModel.StartupTaskState.Enabled:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public static async Task<bool> EnableStoreAppStartup()
-        {
-            var startupTask = await Windows.ApplicationModel.StartupTask.GetAsync("GestureSignTask");
-            if (startupTask.State != Windows.ApplicationModel.StartupTaskState.Enabled)
-            {
-                var state = await startupTask.RequestEnableAsync();
-                if (state == Windows.ApplicationModel.StartupTaskState.DisabledByUser)
-                {
-                    MessageBox.Show(LocalizationProvider.Instance.GetTextValue("Options.Messages.TaskUserDisabled"), LocalizationProvider.Instance.GetTextValue("Messages.Error"), MessageBoxButton.OK, MessageBoxImage.Error);
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public static async Task<bool> DisableStoreAppStartup()
-        {
-            var startupTask = await Windows.ApplicationModel.StartupTask.GetAsync("GestureSignTask");
-            if (startupTask.State == Windows.ApplicationModel.StartupTaskState.Enabled)
-            {
-                startupTask.Disable();
-            }
             return true;
         }
 

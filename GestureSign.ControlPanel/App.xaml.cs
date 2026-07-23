@@ -10,12 +10,9 @@ using GestureSign.ControlPanel.Localization;
 using ManagedWinapi.Windows;
 using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Security.Principal;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
-using Windows.Management.Deployment;
 
 namespace GestureSign.ControlPanel
 {
@@ -46,10 +43,6 @@ namespace GestureSign.ControlPanel
             mutex = new Mutex(true, Constants.ControlPanel, out createdNew);
             if (createdNew)
             {
-                if (AppConfig.UiAccess && VersionHelper.IsWindows10OrGreater())
-                    if (TryLaunchStoreVersion())
-                        return;
-
                 GestureManager.Instance.Load(null);
                 GestureSign.Common.Plugins.PluginManager.Instance.Load(null);
                 ApplicationManager.Instance.Load(null);
@@ -115,35 +108,6 @@ namespace GestureSign.ControlPanel
                     }
                 }
                 return true;
-            }
-            return false;
-        }
-
-        private bool TryLaunchStoreVersion()
-        {
-            using (var currentUser = WindowsIdentity.GetCurrent())
-            {
-                if (currentUser.User != null)
-                {
-                    var sid = currentUser.User.ToString();
-                    PackageManager packageManager = new PackageManager();
-                    var storeVersion = packageManager.FindPackagesForUserWithPackageTypes(sid, "41908Transpy.GestureSign", "CN=AF41F066-0041-4D13-9D95-9DAB66112B0A", PackageTypes.Main).FirstOrDefault();
-                    if (storeVersion != null)
-                    {
-                        using (Process explorer = new Process
-                        {
-                            StartInfo =
-                                    {
-                                        FileName = "explorer.exe", Arguments = @"shell:AppsFolder\" + "41908Transpy.GestureSign_f441wk0cxr8zc!GestureSign"
-                                    }
-                        })
-                        {
-                            explorer.Start();
-                        }
-                        Current.Shutdown();
-                        return true;
-                    }
-                }
             }
             return false;
         }
