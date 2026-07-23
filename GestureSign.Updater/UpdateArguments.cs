@@ -6,6 +6,8 @@ namespace GestureSign.Updater
 {
     internal sealed class UpdateArguments
     {
+        public UpdateMode Mode { get; private set; }
+
         public string PackagePath { get; private set; }
 
         public string TargetDirectory { get; private set; }
@@ -38,9 +40,13 @@ namespace GestureSign.Updater
                 throw new ArgumentException("--sha256 must be a SHA-256 hash.");
             if (!int.TryParse(GetRequired(values, "wait-pid"), out int waitProcessId) || waitProcessId <= 0)
                 throw new ArgumentException("--wait-pid must be a positive process ID.");
+            UpdateMode mode = ParseMode(values.TryGetValue("mode", out string modeValue)
+                ? modeValue
+                : "portable");
 
             return new UpdateArguments
             {
+                Mode = mode,
                 PackagePath = Path.GetFullPath(packagePath),
                 TargetDirectory = Path.GetFullPath(targetDirectory),
                 RestartExecutable = restartExecutable,
@@ -48,6 +54,15 @@ namespace GestureSign.Updater
                 ExpectedPackageSha256 = expectedPackageSha256.ToLowerInvariant(),
                 WaitProcessId = waitProcessId
             };
+        }
+
+        private static UpdateMode ParseMode(string value)
+        {
+            if (string.Equals(value, "portable", StringComparison.OrdinalIgnoreCase))
+                return UpdateMode.Portable;
+            if (string.Equals(value, "installer", StringComparison.OrdinalIgnoreCase))
+                return UpdateMode.Installer;
+            throw new ArgumentException("--mode must be portable or installer.");
         }
 
         private static bool IsHexString(string value)
@@ -67,5 +82,11 @@ namespace GestureSign.Updater
                 throw new ArgumentException("Missing required updater argument --" + key + ".");
             return value.Trim();
         }
+    }
+
+    internal enum UpdateMode
+    {
+        Portable,
+        Installer
     }
 }

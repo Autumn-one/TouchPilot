@@ -504,6 +504,55 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void UpdateArgumentsDefaultToPortableAndParseInstallerMode()
+        {
+            string[] commonArguments =
+            {
+                "--package", "package.zip",
+                "--target", "target",
+                "--restart", "GestureSign.exe",
+                "--version", "8.3.0-beta.1",
+                "--sha256", new string('a', 64),
+                "--wait-pid", "42"
+            };
+
+            UpdateArguments portable = UpdateArguments.Parse(commonArguments);
+            UpdateArguments installer = UpdateArguments.Parse(commonArguments.Concat(
+                new[] { "--mode", "installer" }).ToArray());
+
+            Assert.Equal(UpdateMode.Portable, portable.Mode);
+            Assert.Equal(UpdateMode.Installer, installer.Mode);
+        }
+
+        [Fact]
+        public void InstallerUpdateRunnerVerifiesPackageBeforeSilentExecution()
+        {
+            using var directory = new TemporaryDirectory();
+            string installerPath = Path.Combine(directory.Path, "TouchPilot-setup.exe");
+            File.WriteAllText(installerPath, "installer payload");
+            var processRunner = new RecordingInstallerProcessRunner();
+
+            new InstallerUpdateRunner(processRunner).Install(installerPath, ComputeSha256(installerPath));
+
+            Assert.Equal(installerPath, processRunner.Path);
+            Assert.Equal(InstallerUpdateRunner.SilentArguments, processRunner.Arguments);
+        }
+
+        [Fact]
+        public void InstallerUpdateRunnerRejectsChangedPackageBeforeExecution()
+        {
+            using var directory = new TemporaryDirectory();
+            string installerPath = Path.Combine(directory.Path, "TouchPilot-setup.exe");
+            File.WriteAllText(installerPath, "installer payload");
+            var processRunner = new RecordingInstallerProcessRunner();
+
+            Assert.Throws<InvalidDataException>(() =>
+                new InstallerUpdateRunner(processRunner).Install(installerPath, new string('0', 64)));
+
+            Assert.Null(processRunner.Path);
+        }
+
+        [Fact]
         public void UpdaterRejectsInvalidHashBeforeChangingTarget()
         {
             using var directory = new TemporaryDirectory();
@@ -696,6 +745,19 @@ namespace GestureSign.Tests
                 }
 
                 return Task.FromResult(new HttpResponseMessage(status) { Content = content });
+            }
+        }
+
+        private sealed class RecordingInstallerProcessRunner : IInstallerProcessRunner
+        {
+            public string Path { get; private set; }
+            public string Arguments { get; private set; }
+
+            public int Run(string path, string arguments)
+            {
+                Path = path;
+                Arguments = arguments;
+                return 0;
             }
         }
 

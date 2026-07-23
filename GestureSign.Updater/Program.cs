@@ -18,10 +18,18 @@ namespace GestureSign.Updater
             {
                 UpdateArguments arguments = UpdateArguments.Parse(args);
                 WaitForProcess(arguments.WaitProcessId, TimeSpan.FromSeconds(45));
-                WaitForControlPanel(TimeSpan.FromSeconds(15));
+                WaitForApplicationProcesses(TimeSpan.FromSeconds(45));
 
-                new UpdateInstaller().Install(arguments.PackagePath, arguments.TargetDirectory,
-                    arguments.ExpectedVersion, arguments.ExpectedPackageSha256);
+                if (arguments.Mode == UpdateMode.Installer)
+                {
+                    new InstallerUpdateRunner().Install(arguments.PackagePath,
+                        arguments.ExpectedPackageSha256);
+                }
+                else
+                {
+                    new UpdateInstaller().Install(arguments.PackagePath, arguments.TargetDirectory,
+                        arguments.ExpectedVersion, arguments.ExpectedPackageSha256);
+                }
 
                 string restartPath = GetSafeRestartPath(arguments.TargetDirectory, arguments.RestartExecutable);
                 Process.Start(new ProcessStartInfo
@@ -38,7 +46,7 @@ namespace GestureSign.Updater
             }
             catch (Exception exception)
             {
-                MessageBox.Show(exception.ToString(), "GestureSign Update Failed", MessageBoxButtons.OK,
+                MessageBox.Show(exception.ToString(), "TouchPilot Update Failed", MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 return 1;
             }
@@ -50,19 +58,28 @@ namespace GestureSign.Updater
             {
                 using Process process = Process.GetProcessById(processId);
                 if (!process.WaitForExit((int)timeout.TotalMilliseconds))
-                    throw new TimeoutException("GestureSign did not exit before the update timeout.");
+                    throw new TimeoutException("TouchPilot did not exit before the update timeout.");
             }
             catch (ArgumentException)
             {
             }
         }
 
-        private static void WaitForControlPanel(TimeSpan timeout)
+        private static void WaitForApplicationProcesses(TimeSpan timeout)
         {
+            string[] processNames =
+            {
+                "GestureSign",
+                "GestureSign.ControlPanel",
+                "TouchPilot",
+                "TouchPilot.ControlPanel"
+            };
             var stopwatch = Stopwatch.StartNew();
             while (stopwatch.Elapsed < timeout)
             {
-                Process[] processes = Process.GetProcessesByName("GestureSign.ControlPanel");
+                Process[] processes = processNames.SelectMany(Process.GetProcessesByName)
+                    .Where(process => process.Id != Environment.ProcessId)
+                    .ToArray();
                 if (processes.Length == 0)
                     return;
 
@@ -71,11 +88,13 @@ namespace GestureSign.Updater
                 System.Threading.Thread.Sleep(200);
             }
 
-            Process[] remainingProcesses = Process.GetProcessesByName("GestureSign.ControlPanel");
+            Process[] remainingProcesses = processNames.SelectMany(Process.GetProcessesByName)
+                .Where(process => process.Id != Environment.ProcessId)
+                .ToArray();
             try
             {
                 if (remainingProcesses.Any())
-                    throw new TimeoutException("GestureSign Control Panel did not exit before the update timeout.");
+                    throw new TimeoutException("TouchPilot processes did not exit before the update timeout.");
             }
             finally
             {
@@ -92,7 +111,7 @@ namespace GestureSign.Updater
 
             string path = Path.Combine(targetDirectory, restartExecutable);
             if (!File.Exists(path))
-                throw new FileNotFoundException("The updated GestureSign executable was not found.", path);
+                throw new FileNotFoundException("The updated TouchPilot executable was not found.", path);
             return path;
         }
     }
