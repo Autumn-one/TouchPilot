@@ -34,8 +34,9 @@ namespace GestureSign.Tests
             Assert.False(release.Draft);
             Assert.False(release.Prerelease);
             Assert.Equal(3, release.Assets.Count);
-            Assert.Equal("GET release", handler.Events[0]);
-            Assert.Equal("CREATE draft", handler.Events[1]);
+            Assert.Equal("GET release by tag", handler.Events[0]);
+            Assert.Equal("LIST releases", handler.Events[1]);
+            Assert.Equal("CREATE draft", handler.Events[2]);
             Assert.Equal(new[]
             {
                 "application/vnd.microsoft.portable-executable",
@@ -129,8 +130,9 @@ namespace GestureSign.Tests
 
             Assert.True(release.Draft);
             Assert.False(release.Prerelease);
-            Assert.Equal("GET draft", handler.Events[0]);
-            Assert.Equal("DELETE stale", handler.Events[1]);
+            Assert.Equal("GET draft by tag", handler.Events[0]);
+            Assert.Equal("LIST drafts", handler.Events[1]);
+            Assert.Equal("DELETE stale", handler.Events[2]);
             Assert.Equal(3, handler.Events.Count(item => item == "UPLOAD"));
             Assert.Equal("VERIFY draft", handler.Events[^2]);
             Assert.Equal("KEEP DRAFT", handler.Events[^1]);
@@ -139,7 +141,6 @@ namespace GestureSign.Tests
         private sealed class TransactionalReleaseHandler : HttpMessageHandler
         {
             private readonly IReadOnlyDictionary<string, long> _assets;
-            private int _releaseGets;
 
             public TransactionalReleaseHandler(IReadOnlyList<string> assetPaths)
             {
@@ -158,13 +159,18 @@ namespace GestureSign.Tests
                 string url = request.RequestUri.ToString();
                 if (request.Method == HttpMethod.Get && url.Contains("/releases/tags/"))
                 {
-                    _releaseGets++;
-                    if (_releaseGets == 1)
-                    {
-                        Events.Add("GET release");
-                        return new HttpResponseMessage(HttpStatusCode.NotFound);
-                    }
+                    Events.Add("GET release by tag");
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }
 
+                if (request.Method == HttpMethod.Get && url.Contains("/releases?"))
+                {
+                    Events.Add("LIST releases");
+                    return JsonResponse("[]");
+                }
+
+                if (request.Method == HttpMethod.Get && url.EndsWith("/releases/42"))
+                {
                     Events.Add("VERIFY draft");
                     return JsonResponse(CreateReleaseJson(true));
                 }
@@ -249,7 +255,6 @@ namespace GestureSign.Tests
         private sealed class DraftRebuildHandler : HttpMessageHandler
         {
             private readonly IReadOnlyDictionary<string, long> _assets;
-            private int _releaseGets;
 
             public DraftRebuildHandler(IReadOnlyList<string> assetPaths)
             {
@@ -265,9 +270,18 @@ namespace GestureSign.Tests
                 string url = request.RequestUri.ToString();
                 if (request.Method == HttpMethod.Get && url.Contains("/releases/tags/"))
                 {
-                    _releaseGets++;
-                    Events.Add(_releaseGets == 1 ? "GET draft" : "VERIFY draft");
-                    return JsonResponse(CreateReleaseJson(includeStaleAsset: _releaseGets == 1));
+                    Events.Add("GET draft by tag");
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }
+                if (request.Method == HttpMethod.Get && url.Contains("/releases?"))
+                {
+                    Events.Add("LIST drafts");
+                    return JsonResponse("[" + CreateReleaseJson(includeStaleAsset: true) + "]");
+                }
+                if (request.Method == HttpMethod.Get && url.EndsWith("/releases/42"))
+                {
+                    Events.Add("VERIFY draft");
+                    return JsonResponse(CreateReleaseJson(includeStaleAsset: false));
                 }
                 if (request.Method == HttpMethod.Delete && url.EndsWith("/releases/assets/9"))
                 {

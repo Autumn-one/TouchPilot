@@ -98,7 +98,7 @@ namespace GestureSign.Common.Updates
                 await UploadAssetAsync(release.Id, path, cancellationToken).ConfigureAwait(false);
             }
 
-            GitHubReleaseInfo verified = await GetReleaseByTagAsync(tagName, cancellationToken)
+            GitHubReleaseInfo verified = await GetReleaseByIdAsync(release.Id, cancellationToken)
                 .ConfigureAwait(false);
             ValidateUploadedAssets(verified, orderedAssetPaths);
             if (!verified.Draft)
@@ -148,9 +148,44 @@ namespace GestureSign.Common.Updates
             using HttpResponseMessage response = await _httpClient.GetAsync(
                 ApiUrl("releases/tags/" + Uri.EscapeDataString(tagName)), cancellationToken).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
+                return await FindReleaseByTagInListAsync(tagName, cancellationToken).ConfigureAwait(false);
+            await EnsureSuccessAsync(response).ConfigureAwait(false);
+            return await ReadReleaseAsync(response, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task<GitHubReleaseInfo> GetReleaseByIdAsync(long releaseId,
+            CancellationToken cancellationToken)
+        {
+            using HttpResponseMessage response = await _httpClient.GetAsync(
+                ApiUrl("releases/" + releaseId), cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.NotFound)
                 return null;
             await EnsureSuccessAsync(response).ConfigureAwait(false);
             return await ReadReleaseAsync(response, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task<GitHubReleaseInfo> FindReleaseByTagInListAsync(string tagName,
+            CancellationToken cancellationToken)
+        {
+            const int pageSize = 100;
+            for (int page = 1; ; page++)
+            {
+                using HttpResponseMessage response = await _httpClient.GetAsync(
+                    ApiUrl($"releases?per_page={pageSize}&page={page}"), cancellationToken)
+                    .ConfigureAwait(false);
+                await EnsureSuccessAsync(response).ConfigureAwait(false);
+                IReadOnlyList<GitHubReleaseInfo> releases =
+                    await ReadReleaseListAsync(response, cancellationToken).ConfigureAwait(false);
+                GitHubReleaseInfo[] matches = releases.Where(candidate =>
+                    string.Equals(candidate.TagName, tagName, StringComparison.Ordinal)).ToArray();
+                if (matches.Length > 1)
+                    throw new InvalidDataException(
+                        "GitHub returned multiple releases for tag " + tagName + ".");
+                if (matches.Length == 1)
+                    return matches[0];
+                if (releases.Count < pageSize)
+                    return null;
+            }
         }
 
         private async Task<GitHubReleaseInfo> CreateReleaseAsync(string tagName, string releaseName, string body,
@@ -249,6 +284,21 @@ namespace GestureSign.Common.Updates
             if (dto == null || dto.id <= 0)
                 throw new InvalidDataException("GitHub returned an invalid release response.");
 
+            return ToReleaseInfo(dto);
+        }
+
+        private static async Task<IReadOnlyList<GitHubReleaseInfo>> ReadReleaseListAsync(
+            HttpResponseMessage response, CancellationToken cancellationToken)
+        {
+            string json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            List<ReleaseDto> dtos = JsonSerializer.Deserialize<List<ReleaseDto>>(json);
+            if (dtos == null || dtos.Any(dto => dto == null || dto.id <= 0))
+                throw new InvalidDataException("GitHub returned an invalid release list response.");
+            return dtos.Select(ToReleaseInfo).ToArray();
+        }
+
+        private static GitHubReleaseInfo ToReleaseInfo(ReleaseDto dto)
+        {
             return new GitHubReleaseInfo
             {
                 Id = dto.id,
