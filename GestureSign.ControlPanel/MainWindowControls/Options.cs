@@ -295,6 +295,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
         {
             if (StartupHelper.IsRunAsAdmin)
             {
+                StartupHelper.TryMigrateHighPrivilegeStartup();
                 SetSwitchState(StartupSwitch, true);
                 RunAsAdminCheckBox.IsChecked = true;
             }
