@@ -18,6 +18,10 @@ namespace GestureSign.Common.Updates
 
         public DateTimeOffset? PublishedAt { get; set; }
 
+        public bool Draft { get; set; }
+
+        public bool Prerelease { get; set; }
+
         public IReadOnlyList<GitHubReleaseAsset> Assets { get; set; } = Array.Empty<GitHubReleaseAsset>();
 
         public NuGetVersion Version => ReleaseVersion.Parse(TagName);

@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,20 +17,36 @@ namespace GestureSign.Common.Updates
     {
         private readonly HttpClient _httpClient;
         private readonly bool _ownsHttpClient;
+        private readonly ECDsa _trustedKey;
+        private readonly bool _ownsTrustedKey;
         private readonly GitHubRepository _repository;
 
         public GitHubReleasePublisher(GitHubRepository repository, string token)
             : this(repository ?? throw new ArgumentNullException(nameof(repository)),
-                CreateHttpClient(token), true)
+                CreateHttpClient(token), TrustedUpdateSigningKey.Load(), true, true)
         {
         }
 
         internal GitHubReleasePublisher(GitHubRepository repository, HttpClient httpClient,
             bool ownsHttpClient = false)
+            : this(repository, httpClient, TrustedUpdateSigningKey.Load(), ownsHttpClient, true)
+        {
+        }
+
+        internal GitHubReleasePublisher(GitHubRepository repository, HttpClient httpClient,
+            ECDsa trustedKey, bool ownsHttpClient = false)
+            : this(repository, httpClient, trustedKey, ownsHttpClient, false)
+        {
+        }
+
+        private GitHubReleasePublisher(GitHubRepository repository, HttpClient httpClient,
+            ECDsa trustedKey, bool ownsHttpClient, bool ownsTrustedKey)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _trustedKey = trustedKey ?? throw new ArgumentNullException(nameof(trustedKey));
             _ownsHttpClient = ownsHttpClient;
+            _ownsTrustedKey = ownsTrustedKey;
         }
 
         public async Task<GitHubReleaseInfo> PublishAsync(string tagName, string releaseName, string body,
@@ -77,6 +94,73 @@ namespace GestureSign.Common.Updates
             return release;
         }
 
+        public async Task<GitHubReleaseInfo> EnsureCanPublishAsync(string tagName,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(tagName))
+                throw new ArgumentException("A release tag is required.", nameof(tagName));
+
+            GitHubReleaseInfo release = await GetReleaseByTagAsync(tagName.Trim(), cancellationToken)
+                .ConfigureAwait(false);
+            if (release != null && !release.Draft)
+                throw new InvalidOperationException(
+                    "Published release " + tagName.Trim() + " is immutable and cannot be rebuilt.");
+            return release;
+        }
+
+        public async Task<GitHubReleaseInfo> PublishImmutableAsync(string tagName, string releaseName,
+            string body, bool draft, IReadOnlyList<string> assetPaths, IProgress<string> progress,
+            CancellationToken cancellationToken)
+        {
+            string[] orderedAssetPaths = ValidateImmutableAssets(tagName, assetPaths);
+            tagName = tagName.Trim();
+            GitHubReleaseInfo release = await EnsureCanPublishAsync(tagName, cancellationToken)
+                .ConfigureAwait(false);
+            if (release == null)
+            {
+                progress?.Report("Creating draft GitHub release " + tagName + "...");
+                release = await CreateReleaseAsync(tagName, releaseName, body, true, false,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                progress?.Report("Rebuilding draft GitHub release " + tagName + "...");
+            }
+
+            if (!release.Draft)
+                throw new InvalidOperationException(
+                    "Published release " + tagName + " is immutable and cannot be rebuilt.");
+
+            foreach (GitHubReleaseAsset existing in release.Assets)
+            {
+                progress?.Report("Removing draft asset " + existing.Name + "...");
+                await DeleteAssetAsync(existing.Id, cancellationToken).ConfigureAwait(false);
+            }
+
+            foreach (string path in orderedAssetPaths)
+            {
+                progress?.Report("Uploading " + Path.GetFileName(path) + "...");
+                await UploadAssetAsync(release.Id, path, cancellationToken).ConfigureAwait(false);
+            }
+
+            GitHubReleaseInfo verified = await GetReleaseByTagAsync(tagName, cancellationToken)
+                .ConfigureAwait(false);
+            ValidateUploadedAssets(verified, orderedAssetPaths);
+            if (!verified.Draft)
+                throw new InvalidOperationException(
+                    "The GitHub release left draft state before asset verification completed.");
+
+            GitHubReleaseInfo completed = await UpdateReleaseAsync(release.Id, tagName, releaseName,
+                body, draft, false, cancellationToken).ConfigureAwait(false);
+            if (completed.Draft != draft || completed.Prerelease)
+                throw new InvalidDataException("GitHub returned an unexpected final release state.");
+            ValidateUploadedAssets(completed, orderedAssetPaths);
+
+            progress?.Report((draft ? "GitHub release draft ready: " : "GitHub release published: ") +
+                             completed.HtmlUrl);
+            return completed;
+        }
+
         public async Task<GitHubReleaseInfo> DeleteAsync(string tagName, IProgress<string> progress,
             CancellationToken cancellationToken)
         {
@@ -99,6 +183,8 @@ namespace GestureSign.Common.Updates
         {
             if (_ownsHttpClient)
                 _httpClient.Dispose();
+            if (_ownsTrustedKey)
+                _trustedKey.Dispose();
         }
 
         private async Task<GitHubReleaseInfo> GetReleaseByTagAsync(string tagName,
@@ -171,10 +257,7 @@ namespace GestureSign.Common.Updates
                          $"{releaseId}/assets?name={Uri.EscapeDataString(assetName)}";
             using FileStream stream = File.OpenRead(path);
             using var content = new StreamContent(stream);
-            content.Headers.ContentType = new MediaTypeHeaderValue(
-                string.Equals(Path.GetExtension(path), ".zip", StringComparison.OrdinalIgnoreCase)
-                    ? "application/zip"
-                    : "text/plain");
+            content.Headers.ContentType = new MediaTypeHeaderValue(GetContentType(path));
             using HttpResponseMessage response = await _httpClient.PostAsync(url, content, cancellationToken)
                 .ConfigureAwait(false);
             await EnsureSuccessAsync(response).ConfigureAwait(false);
@@ -219,6 +302,8 @@ namespace GestureSign.Common.Updates
                 Body = dto.body,
                 HtmlUrl = dto.html_url,
                 PublishedAt = dto.published_at,
+                Draft = dto.draft,
+                Prerelease = dto.prerelease,
                 Assets = (dto.assets ?? new List<AssetDto>()).Select(asset => new GitHubReleaseAsset
                 {
                     Id = asset.id,
@@ -240,6 +325,105 @@ namespace GestureSign.Common.Updates
                 null, response.StatusCode);
         }
 
+        private string[] ValidateImmutableAssets(string tagName, IReadOnlyList<string> assetPaths)
+        {
+            if (string.IsNullOrWhiteSpace(tagName))
+                throw new ArgumentException("A release tag is required.", nameof(tagName));
+            string version = ReleaseVersion.ToReleaseString(ReleaseVersion.Parse(tagName));
+            if (!string.Equals(tagName.Trim(), "v" + version, StringComparison.Ordinal))
+                throw new InvalidDataException("The release tag must use canonical v-prefixed SemVer.");
+            if (assetPaths == null)
+                throw new ArgumentNullException(nameof(assetPaths));
+
+            string[] expectedNames =
+            {
+                UpdatePackageNaming.GetInstallerAssetName(version),
+                UpdatePackageNaming.GetPortableAssetName(version),
+                UpdatePackageNaming.MetadataAssetName
+            };
+            var pathsByName = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (string path in assetPaths)
+            {
+                if (!File.Exists(path))
+                    throw new FileNotFoundException("Release asset not found.", path);
+                if (new FileInfo(path).Length <= 0)
+                    throw new InvalidDataException("Release asset is empty: " + Path.GetFileName(path) + ".");
+                string name = Path.GetFileName(path);
+                if (!pathsByName.TryAdd(name, path))
+                    throw new InvalidDataException("The release contains duplicate asset names.");
+            }
+            if (pathsByName.Count != expectedNames.Length ||
+                expectedNames.Any(name => !pathsByName.ContainsKey(name)))
+                throw new InvalidDataException(
+                    "A release must contain the installer, portable ZIP, and signed update metadata.");
+
+            string metadataPath = pathsByName[UpdatePackageNaming.MetadataAssetName];
+            if (new FileInfo(metadataPath).Length > 64 * 1024)
+                throw new InvalidDataException("The signed update metadata exceeds the client limit.");
+            UpdateMetadata metadata = UpdateMetadataSignature.Verify(File.ReadAllText(metadataPath), _trustedKey);
+            if (!string.Equals(metadata.Version, version, StringComparison.Ordinal) ||
+                !string.Equals(metadata.Tag, tagName.Trim(), StringComparison.Ordinal) ||
+                !string.Equals(metadata.Repository, _repository.Slug, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("The signed update metadata does not match the release.");
+
+            ValidateMetadataAsset(metadata, UpdatePackageNaming.InstallerDistribution,
+                pathsByName[expectedNames[0]]);
+            ValidateMetadataAsset(metadata, UpdatePackageNaming.PortableDistribution,
+                pathsByName[expectedNames[1]]);
+            return expectedNames.Select(name => pathsByName[name]).ToArray();
+        }
+
+        private static void ValidateMetadataAsset(UpdateMetadata metadata, string distribution,
+            string path)
+        {
+            UpdateAssetMetadata asset = metadata.Assets.Single(item =>
+                string.Equals(item.Distribution, distribution, StringComparison.Ordinal));
+            var file = new FileInfo(path);
+            if (!string.Equals(asset.Name, file.Name, StringComparison.Ordinal) ||
+                asset.Size != file.Length ||
+                !string.Equals(asset.Sha256, ComputeSha256(path), StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException(
+                    "The signed metadata does not match release asset " + file.Name + ".");
+        }
+
+        private static string ComputeSha256(string path)
+        {
+            using SHA256 sha256 = SHA256.Create();
+            using FileStream stream = File.OpenRead(path);
+            return Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
+        }
+
+        private static void ValidateUploadedAssets(GitHubReleaseInfo release,
+            IReadOnlyList<string> expectedPaths)
+        {
+            if (release == null)
+                throw new InvalidDataException("The GitHub release could not be reloaded after upload.");
+            if (release.Assets.Count != expectedPaths.Count)
+                throw new InvalidDataException("The GitHub release asset count is invalid.");
+
+            foreach (string path in expectedPaths)
+            {
+                string name = Path.GetFileName(path);
+                long size = new FileInfo(path).Length;
+                GitHubReleaseAsset asset = release.Assets.SingleOrDefault(candidate =>
+                    string.Equals(candidate.Name, name, StringComparison.Ordinal));
+                if (asset == null || asset.Size != size)
+                    throw new InvalidDataException("The uploaded release asset is invalid: " + name + ".");
+            }
+        }
+
+        private static string GetContentType(string path)
+        {
+            string extension = Path.GetExtension(path);
+            if (string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase))
+                return "application/zip";
+            if (string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase))
+                return "application/json";
+            if (string.Equals(extension, ".exe", StringComparison.OrdinalIgnoreCase))
+                return "application/vnd.microsoft.portable-executable";
+            return "application/octet-stream";
+        }
+
         private sealed class ReleasePayload
         {
             public string tag_name { get; set; }
@@ -257,6 +441,8 @@ namespace GestureSign.Common.Updates
             public string body { get; set; }
             public string html_url { get; set; }
             public DateTimeOffset? published_at { get; set; }
+            public bool draft { get; set; }
+            public bool prerelease { get; set; }
             public List<AssetDto> assets { get; set; }
         }
 
