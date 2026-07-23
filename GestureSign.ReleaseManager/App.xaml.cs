@@ -42,6 +42,17 @@ namespace GestureSign.ReleaseManager
                     return;
                 }
 
+                if (args.Length == 2 && string.Equals(args[0], "--validate-user-config",
+                        StringComparison.Ordinal))
+                {
+                    ReleaseManagerUserConfiguration configuration =
+                        ReleaseManagerUserConfiguration.Load(args[1]);
+                    Console.WriteLine("Release Manager configuration is valid for " +
+                                      configuration.Repository + ".");
+                    Shutdown(0);
+                    return;
+                }
+
                 WriteCommandLineUsage();
                 Shutdown(2);
             }
@@ -77,6 +88,8 @@ namespace GestureSign.ReleaseManager
             Console.Error.WriteLine(
                 "   or: GestureSign.ReleaseManager.exe --generate-update-metadata " +
                 "<source-directory> <output-directory> <version> <repository> [release-notes-file]");
+            Console.Error.WriteLine(
+                "   or: GestureSign.ReleaseManager.exe --validate-user-config <source-directory>");
         }
     }
 }

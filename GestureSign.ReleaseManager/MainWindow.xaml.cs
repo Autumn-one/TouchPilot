@@ -19,8 +19,10 @@ namespace GestureSign.ReleaseManager
         public MainWindow()
         {
             InitializeComponent();
+            string sourceDirectory = FindRepositoryRoot() ?? Environment.CurrentDirectory;
             RepositoryTextBox.Text = Constants.DefaultGitHubRepository;
-            SourceDirectoryTextBox.Text = FindRepositoryRoot() ?? Environment.CurrentDirectory;
+            SourceDirectoryTextBox.Text = sourceDirectory;
+            LoadUserConfiguration(sourceDirectory);
             SelectRuntime(UpdatePackageNaming.GetCurrentRuntimeIdentifier());
         }
 
@@ -33,7 +35,10 @@ namespace GestureSign.ReleaseManager
                 UseDescriptionForTitle = true
             };
             if (dialog.ShowDialog() == Forms.DialogResult.OK)
+            {
                 SourceDirectoryTextBox.Text = dialog.SelectedPath;
+                LoadUserConfiguration(dialog.SelectedPath);
+            }
         }
 
         private void VersionTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -155,6 +160,8 @@ namespace GestureSign.ReleaseManager
 
         private ReleaseIdentity ValidateReleaseIdentity()
         {
+            if (string.IsNullOrWhiteSpace(TokenPasswordBox.Password))
+                LoadUserConfiguration(SourceDirectoryTextBox.Text);
             GitHubRepository repository = GitHubRepository.Parse(RepositoryTextBox.Text);
             string token = TokenPasswordBox.Password;
             if (string.IsNullOrWhiteSpace(token))
@@ -167,6 +174,26 @@ namespace GestureSign.ReleaseManager
                 Token = token,
                 Version = ReleaseVersion.ToReleaseString(version)
             };
+        }
+
+        private void LoadUserConfiguration(string sourceDirectory)
+        {
+            try
+            {
+                ReleaseManagerUserConfiguration configuration =
+                    ReleaseManagerUserConfiguration.TryLoad(sourceDirectory);
+                if (configuration == null)
+                    return;
+
+                RepositoryTextBox.Text = configuration.Repository;
+                TokenPasswordBox.Password = configuration.Token;
+            }
+            catch (Exception exception) when (exception is IOException ||
+                                              exception is UnauthorizedAccessException ||
+                                              exception is InvalidDataException)
+            {
+                StatusTextBlock.Text = "发布配置无效：" + exception.Message;
+            }
         }
 
         private void SetBusyState(bool busy, string status)

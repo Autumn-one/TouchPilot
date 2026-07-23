@@ -82,7 +82,7 @@
                     <TextBlock Margin="0,5,0,0"
                                Foreground="{StaticResource MutedBrush}"
                                FontSize="12"
-                               Text="需要 Contents: Read and write 权限；密钥不会保存到磁盘。" />
+                               Text="从源码根目录 TouchPilot.ReleaseManager.config.user 读取；需要 Contents: Read and write 权限。" />
                 </StackPanel>
 
                 <Grid Grid.Row="2" Margin="0,16,0,0">
