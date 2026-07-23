@@ -568,10 +568,9 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 Dispatcher.InvokeAsync(EditApplication, DispatcherPriority.Input);
         }
 
-        private void DownloadButton_Click(object sender, RoutedEventArgs e)
+        private void ImportButton_Click(object sender, RoutedEventArgs e)
         {
-            DownloadWindow DownloadWindow = new DownloadWindow();
-            DownloadWindow.Show();
+            SettingsImportLauncher.Show();
         }
 
         protected override void OnDrop(DragEventArgs e)

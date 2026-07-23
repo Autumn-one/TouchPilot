@@ -83,10 +83,9 @@ namespace GestureSign.ControlPanel.MainWindowControls
             exportImportDialog.ShowDialog();
         }
 
-        private void DownloadButton_Click(object sender, RoutedEventArgs e)
+        private void ImportButton_Click(object sender, RoutedEventArgs e)
         {
-            DownloadWindow DownloadWindow = new DownloadWindow();
-            DownloadWindow.Show();
+            SettingsImportLauncher.Show();
         }
 
         private void lstIgnoredApplications_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)

@@ -463,14 +463,14 @@
                             <iconPacks:PackIconLucide Style="{StaticResource V2.Icon}"
                                                       Kind="Upload" />
                         </Button>
-                        <Button x:Name="DownloadButton"
+                        <Button x:Name="ImportButton"
                                 Margin="4,0,0,0"
                                 Style="{StaticResource V2.Button.Icon}"
                                 ToolTip="{localization:LocalisedText Common.Import}"
                                 AutomationProperties.Name="{localization:LocalisedText Common.Import}"
-                                Click="DownloadButton_Click">
+                                Click="ImportButton_Click">
                             <iconPacks:PackIconLucide Style="{StaticResource V2.Icon}"
-                                                      Kind="CloudDownload" />
+                                                      Kind="FolderOpen" />
                         </Button>
                     </StackPanel>
                 </Border>
