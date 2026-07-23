@@ -58,3 +58,105 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExecutable}"; Tasks: des
 
 [Run]
 Filename: "{app}\{#AppExecutable}"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function RemoveSurroundingQuotes(const Value: string): string;
+begin
+  Result := Trim(Value);
+  if (Length(Result) >= 2) and (Result[1] = '"') and
+     (Result[Length(Result)] = '"') then
+    Result := Copy(Result, 2, Length(Result) - 2);
+end;
+
+function IsCurrentInstallationTarget(const TargetPath: string): Boolean;
+var
+  NormalizedTarget: string;
+begin
+  NormalizedTarget := RemoveSurroundingQuotes(TargetPath);
+  Result := (NormalizedTarget <> '') and
+    ((CompareText(ExpandFileName(NormalizedTarget),
+        ExpandConstant('{app}\TouchPilot.exe')) = 0) or
+     (CompareText(ExpandFileName(NormalizedTarget),
+        ExpandConstant('{app}\GestureSign.exe')) = 0));
+end;
+
+procedure DeleteOwnedStartupLink(const LinkName: string);
+var
+  LinkPath: string;
+  TargetPath: string;
+  Shell: Variant;
+  Shortcut: Variant;
+begin
+  LinkPath := AddBackslash(ExpandConstant('{userstartup}')) + LinkName;
+  if not FileExists(LinkPath) then
+    Exit;
+
+  try
+    Shell := CreateOleObject('WScript.Shell');
+    Shortcut := Shell.CreateShortcut(LinkPath);
+    TargetPath := Shortcut.TargetPath;
+    if IsCurrentInstallationTarget(TargetPath) then
+    begin
+      if DeleteFile(LinkPath) then
+        Log('Removed owned startup shortcut: ' + LinkPath)
+      else
+        Log('Could not remove owned startup shortcut: ' + LinkPath);
+    end
+    else
+      Log('Preserved startup shortcut with a different target: ' + LinkPath);
+  except
+    Log('Could not inspect startup shortcut ' + LinkPath + ': ' +
+      GetExceptionMessage);
+  end;
+end;
+
+procedure DeleteOwnedStartupTask(const TaskName: string);
+var
+  Scheduler: Variant;
+  RootFolder: Variant;
+  RegisteredTask: Variant;
+  TaskAction: Variant;
+  TargetPath: string;
+begin
+  try
+    Scheduler := CreateOleObject('Schedule.Service');
+    Scheduler.Connect;
+    RootFolder := Scheduler.GetFolder('\');
+    try
+      RegisteredTask := RootFolder.GetTask(TaskName);
+    except
+      Log('Startup task is not registered: ' + TaskName);
+      Exit;
+    end;
+
+    if RegisteredTask.Definition.Actions.Count < 1 then
+    begin
+      Log('Preserved startup task without an executable action: ' + TaskName);
+      Exit;
+    end;
+
+    TaskAction := RegisteredTask.Definition.Actions.Item(1);
+    TargetPath := TaskAction.Path;
+    if IsCurrentInstallationTarget(TargetPath) then
+    begin
+      RootFolder.DeleteTask(TaskName, 0);
+      Log('Removed owned startup task: ' + TaskName);
+    end
+    else
+      Log('Preserved startup task with a different target: ' + TaskName);
+  except
+    Log('Could not inspect startup task ' + TaskName + ': ' +
+      GetExceptionMessage);
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    DeleteOwnedStartupLink('TouchPilot.lnk');
+    DeleteOwnedStartupLink('GestureSign.lnk');
+    DeleteOwnedStartupTask('TouchPilot Startup');
+    DeleteOwnedStartupTask('StartGestureSign');
+  end;
+end;
