@@ -277,7 +277,7 @@ namespace GestureSign.Common.Updates
             {
                 Timeout = TimeSpan.FromMinutes(10)
             };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("GestureSign-ReleaseManager");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TouchPilot-ReleaseManager");
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             client.DefaultRequestHeaders.Authorization =

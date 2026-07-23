@@ -46,7 +46,7 @@ namespace GestureSign.Daemon
 
             // Tray Icon
             _trayIcon.ContextMenuStrip = _trayMenu;
-            _trayIcon.Text = "GestureSign";
+            _trayIcon.Text = Constants.ProductName;
             _trayIcon.MouseDoubleClick += TrayIcon_Click;
             _trayIcon.MouseClick += TrayIcon_Click;
             _trayIcon.Icon = Resources.normal_daemon;

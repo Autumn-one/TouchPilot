@@ -3,16 +3,16 @@
   <Messages>
     <Error>Error</Error>
     <ContactCountError>Can not get the number of contacts! Please try to reinstall the device driver!</ContactCountError>
-    <ComponentNotFoundMessage>Can not find {0}.Try to redownload or reinstall GestureSign.</ComponentNotFoundMessage>
+    <ComponentNotFoundMessage>Cannot find {0}. Try downloading or installing TouchPilot again.</ComponentNotFoundMessage>
   </Messages>
   <TrayMenu>
-    <Disable>Disable GestureSign</Disable>
+    <Disable>Disable TouchPilot</Disable>
     <ControlPanel>Control Panel</ControlPanel>
     <Exit>Exit</Exit>
   </TrayMenu>
   <Update>
-    <Title>GestureSign Update</Title>
-    <Available>GestureSign {0} is available. Download and install it now?</Available>
-    <FailedTitle>GestureSign Update Failed</FailedTitle>
+    <Title>TouchPilot Update</Title>
+    <Available>TouchPilot {0} is available. Download and install it now?</Available>
+    <FailedTitle>TouchPilot Update Failed</FailedTitle>
   </Update>
 </Language>

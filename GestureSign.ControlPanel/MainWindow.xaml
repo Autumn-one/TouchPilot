@@ -106,7 +106,7 @@
                                         Margin="12,0,0,0"
                                         VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource V2.Text.PageTitle}"
-                                           Text="GestureSign" />
+                                           Text="TouchPilot" />
                                 <TextBlock Margin="0,3,0,0"
                                            Style="{StaticResource V2.Text.Caption}"
                                            Text="{localization:LocalisedText About.HomepageUrl}" />
@@ -207,7 +207,7 @@
                                      FontSize="12"
                                      Foreground="{StaticResource V2.Brush.TextMuted}"
                                      IsReadOnly="True"
-                                     Text="Project Page&#xA;https://github.com/TransposonY/GestureSign&#xA;&#xA;Thanks to the following project:&#xA;http://highsign.codeplex.com/&#xA;License:http://highsign.codeplex.com/license&#xA;&#xA;MahApps.Metro&#xA;https://github.com/MahApps/MahApps.Metro&#xA;License:http://www.opensource.org/licenses/MS-PL&#xA;&#xA;WGestures&#xA;https://github.com/yingDev/WGestures&#xA;License:https://github.com/yingDev/WGestures/blob/master/LICENSE"
+                                     Text="Project Page&#xA;https://github.com/Autumn-one/TouchPilot&#xA;&#xA;Thanks to the following project:&#xA;http://highsign.codeplex.com/&#xA;License:http://highsign.codeplex.com/license&#xA;&#xA;MahApps.Metro&#xA;https://github.com/MahApps/MahApps.Metro&#xA;License:http://www.opensource.org/licenses/MS-PL&#xA;&#xA;WGestures&#xA;https://github.com/yingDev/WGestures&#xA;License:https://github.com/yingDev/WGestures/blob/master/LICENSE"
                                      TextWrapping="Wrap" />
                         </Grid>
                     </Grid>

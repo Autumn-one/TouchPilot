@@ -167,7 +167,7 @@
                                                    FontSize="17"
                                                    FontWeight="SemiBold"
                                                    Foreground="White"
-                                                   Text="GestureSign" />
+                                                   Text="TouchPilot" />
                                         <TextBlock Margin="0,2,0,0"
                                                    FontFamily="{StaticResource V2.FontFamily}"
                                                    FontSize="11"

@@ -5,7 +5,7 @@
   <IsRightToLeft>False</IsRightToLeft>
   <Title>设置</Title>
   <Messages>
-    <CannotFindDaemonMessage>未找到组件GestureSign.exe，请重新下载或安装本软件。</CannotFindDaemonMessage>
+    <CannotFindDaemonMessage>未找到组件 TouchPilot.exe，请重新下载或安装本软件。</CannotFindDaemonMessage>
     <Error>错误</Error>
     <CompatWarning>检测到您在本程序的文件属性中勾选了“以管理员身份运行此程序”，这将导致开机启动、屏蔽等功能失效。
 如需用管理员身份运行，请在快捷方式的高级属性中设置，或右键菜单-以管理员身份运行。</CompatWarning>
@@ -36,9 +36,9 @@
   <About>
     <Header>关于</Header>
     <Homepage>打开官网</Homepage>
-    <HomepageUrl>https://zh.gesturesign.win/</HomepageUrl>
+    <HomepageUrl>https://github.com/Autumn-one/TouchPilot</HomepageUrl>
     <Store>Windows应用商店版</Store>
-    <HelpPageUrl>https://zh.gesturesign.win/#/guide</HelpPageUrl>
+    <HelpPageUrl>https://github.com/Autumn-one/TouchPilot</HelpPageUrl>
     <Version>版本：  </Version>
     <ReleaseDate>发布时间：  </ReleaseDate>
     <Information>作者:   TransposonY
@@ -145,8 +145,8 @@ QQ交流群：576981420
     <NewAction>新动作</NewAction>
     <NewCommand>新命令</NewCommand>
     <FromSelected>为当前动作添加新命令</FromSelected>
-    <ApplicationFile>GestureSign程序文件</ApplicationFile>
-    <ArchiveFile>GestureSign文件</ArchiveFile>
+    <ApplicationFile>TouchPilot 程序文件</ApplicationFile>
+    <ArchiveFile>TouchPilot 文件</ArchiveFile>
     <ActionCount>  ( {0}个动作 )</ActionCount>
     <AppCount>{0} ({1}程序)</AppCount>
     <DefaultGroup>(默认)</DefaultGroup>
@@ -296,7 +296,7 @@ QQ交流群：576981420
     <MinimumPointDistance>最小点距 {0:F0} px</MinimumPointDistance>
     <Backup>备份所有设置</Backup>
     <Restore>导入设置</Restore>
-    <BackupFile>GestureSign备份文件</BackupFile>
+    <BackupFile>TouchPilot 备份文件</BackupFile>
     <OpenConfigFolder>打开配置所在文件夹</OpenConfigFolder>
     <OnLabel>开</OnLabel>
     <OffLabel>关</OffLabel>

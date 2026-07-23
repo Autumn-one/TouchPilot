@@ -3,18 +3,18 @@
   <Font>Segoe UI, Lucida Sans Unicode, Verdana</Font>
   <HeaderFontFamily>Segoe UI Light, Lucida Sans Unicode, Verdana</HeaderFontFamily>
   <IsRightToLeft>False</IsRightToLeft>
-  <Title>GestureSign Control Panel</Title>
+  <Title>TouchPilot Settings</Title>
   <Messages>
-    <CannotFindDaemonMessage>Can not find GestureSign.exe.Try to redownload or reinstall GestureSign.</CannotFindDaemonMessage>
+    <CannotFindDaemonMessage>Cannot find TouchPilot.exe. Try downloading or installing TouchPilot again.</CannotFindDaemonMessage>
     <Error>Error</Error>
     <CompatWarning>Application detect that it is set the compatibility to run as administrator(right click/properties/compatibility/Run this program as an administrator).
 This may lead to function failure(e.g. Start application at Windows startup).
     </CompatWarning>
     <CompatWarningTitle>Warning</CompatWarningTitle>
     <FindNewErrorLog>Find new error log.You can help me track and fix problems by sending these error logs.</FindNewErrorLog>
-    <StartupError>Can not launch "{0}". Please check if you have some antivirus blocking the startup or try reinstalling GestureSign. </StartupError>
+    <StartupError>Cannot launch "{0}". Check whether security software blocked startup, or reinstall TouchPilot.</StartupError>
     <UnexpectedException>An unexpected exception has occurred. Shutting down the application. You can help fix the problems by "Send Feedback" </UnexpectedException>
-    <FileWriteException>Failed to save. Please try to change the GestureSign location if you are using portable edition.</FileWriteException>
+    <FileWriteException>Failed to save. Try moving TouchPilot if you are using the portable edition.</FileWriteException>
   </Messages>
   <Common>
     <GlobalActions>(Global Actions)</GlobalActions>
@@ -34,9 +34,9 @@ This may lead to function failure(e.g. Start application at Windows startup).
   <About>
     <Header>About</Header>
     <Homepage>Homepage</Homepage>
-    <HomepageUrl>https://gesturesign.win</HomepageUrl>
+    <HomepageUrl>https://github.com/Autumn-one/TouchPilot</HomepageUrl>
     <Store>Microsoft Store</Store>
-    <HelpPageUrl>https://gesturesign.win/#/guide</HelpPageUrl>
+    <HelpPageUrl>https://github.com/Autumn-one/TouchPilot</HelpPageUrl>
     <Version>Version:  </Version>
     <ReleaseDate>Release date:  </ReleaseDate>
     <Information>Author: TransposonY
@@ -141,8 +141,8 @@ Email: ccfyzh@gmail.com
     <NewAction>New Action</NewAction>
     <NewCommand>New Command</NewCommand>
     <FromSelected>New Command To Selected Action</FromSelected>
-    <ApplicationFile>GestureSign Applications</ApplicationFile>
-    <ArchiveFile>GestureSign Archive File</ArchiveFile>
+    <ApplicationFile>TouchPilot Applications</ApplicationFile>
+    <ArchiveFile>TouchPilot Archive File</ArchiveFile>
     <ActionCount>  ( {0} Actions )</ActionCount>
     <AppCount>{0} ({1})</AppCount>
     <DefaultGroup>(Default)</DefaultGroup>
@@ -283,7 +283,7 @@ Email: ccfyzh@gmail.com
       <System>System</System>
       <Data>Data</Data>
     </Sections>
-    <Language>Language（Restart GestureSign to take effect）</Language>
+    <Language>Language (restart TouchPilot to apply)</Language>
     <Opacity>Opacity </Opacity>
     <VisualFeedbackWidth>Visual Feedback Width {0:0} px</VisualFeedbackWidth>
     <Off>Off</Off>
@@ -293,7 +293,7 @@ Email: ccfyzh@gmail.com
     <Backup>Backup All User Data</Backup>
     <Restore>Restore User Data</Restore>
     <OpenConfigFolder>Open Configuration Folder</OpenConfigFolder>
-    <BackupFile>GestureSign Backup File</BackupFile>
+    <BackupFile>TouchPilot Backup File</BackupFile>
     <OnLabel>On</OnLabel>
     <OffLabel>Off</OffLabel>
     <MouseGesture>Mouse Gesture</MouseGesture>
@@ -311,9 +311,9 @@ Email: ccfyzh@gmail.com
     <InitialTimeoutTitle>Drawing Start Timeout</InitialTimeoutTitle>
     <InitialTimeout>Timeout after {0:F1} Second</InitialTimeout>
     <ErrorLogPrompt>Error Log Prompt</ErrorLogPrompt>
-    <RunAsAdmin>Run GestureSign As Administrator At Startup</RunAsAdmin>
+    <RunAsAdmin>Run TouchPilot as administrator at startup</RunAsAdmin>
     <WindowsStartup>
-      <Header>Start GestureSign on Windows Startup</Header>
+      <Header>Start TouchPilot with Windows</Header>
     </WindowsStartup>
     <IgnoreFullScreen>
       <Header>Ignore Full Screen Window</Header>

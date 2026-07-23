@@ -103,7 +103,7 @@ namespace GestureSign.Common.Updates
             {
                 Timeout = TimeSpan.FromSeconds(30)
             };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("GestureSign-Updater");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TouchPilot-Updater");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
             if (!string.IsNullOrWhiteSpace(token))
