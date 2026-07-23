@@ -62,15 +62,25 @@ namespace GestureSign.Tests
             const string installedPowerShell = @"C:\Program Files\PowerShell\7\pwsh.exe";
             string executable = File.Exists(installedPowerShell) ? installedPowerShell : "pwsh.exe";
             var runner = new ProcessReleaseCommandRunner();
-            using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
-            var stopwatch = Stopwatch.StartNew();
+            using var cancellation = new CancellationTokenSource();
+            long canceledTimestamp = 0;
+            var cancelThread = new Thread(() =>
+            {
+                Thread.Sleep(300);
+                Interlocked.Exchange(ref canceledTimestamp, Stopwatch.GetTimestamp());
+                cancellation.Cancel();
+            });
+            cancelThread.Start();
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runner.RunAsync(
                 new ReleaseCommand(executable, Environment.CurrentDirectory,
                     new[] { "-NoLogo", "-NoProfile", "-Command", "Start-Sleep -Seconds 30" }),
                 null, cancellation.Token));
+            cancelThread.Join();
 
-            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+            TimeSpan cancellationLatency = Stopwatch.GetElapsedTime(
+                Interlocked.Read(ref canceledTimestamp));
+            Assert.True(cancellationLatency < TimeSpan.FromSeconds(10),
                 "The canceled release process did not terminate promptly.");
         }
 

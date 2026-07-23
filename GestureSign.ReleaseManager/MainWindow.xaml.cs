@@ -1,4 +1,3 @@
-using GestureSign.Common;
 using GestureSign.Common.Updates;
 using System;
 using System.IO;
@@ -14,23 +13,23 @@ namespace GestureSign.ReleaseManager
     public partial class MainWindow : Window
     {
         private readonly ReleaseBuildService _buildService = new ReleaseBuildService();
+        private CancellationTokenSource _operationCancellation;
         private bool _updatingReleaseTitle;
 
         public MainWindow()
         {
             InitializeComponent();
             string sourceDirectory = FindRepositoryRoot() ?? Environment.CurrentDirectory;
-            RepositoryTextBox.Text = Constants.DefaultGitHubRepository;
+            RepositoryTextBox.Text = "Autumn-one/TouchPilot";
             SourceDirectoryTextBox.Text = sourceDirectory;
             LoadUserConfiguration(sourceDirectory);
-            SelectRuntime(UpdatePackageNaming.GetCurrentRuntimeIdentifier());
         }
 
         private void BrowseSourceButton_Click(object sender, RoutedEventArgs e)
         {
             using var dialog = new Forms.FolderBrowserDialog
             {
-                Description = "选择包含 publish.ps1 的 GestureSign 源码目录",
+                Description = "选择包含 build-release.ps1 的 TouchPilot 源码目录",
                 SelectedPath = SourceDirectoryTextBox.Text,
                 UseDescriptionForTitle = true
             };
@@ -47,7 +46,7 @@ namespace GestureSign.ReleaseManager
                 return;
 
             _updatingReleaseTitle = true;
-            ReleaseTitleTextBox.Text = "GestureSign " + VersionTextBox.Text.Trim();
+            ReleaseTitleTextBox.Text = "TouchPilot " + VersionTextBox.Text.Trim();
             _updatingReleaseTitle = false;
         }
 
@@ -56,25 +55,37 @@ namespace GestureSign.ReleaseManager
             try
             {
                 PublishRequest request = ValidateRequest();
-                SetBusyState(true, "正在构建发布包...");
+                SetBusyState(true, "正在检查 Release 状态...");
                 LogTextBox.Clear();
+                _operationCancellation = new CancellationTokenSource();
+                CancellationToken cancellationToken = _operationCancellation.Token;
 
                 var progress = new Progress<string>(AppendLog);
-                await _buildService.BuildAsync(request.SourceDirectory, request.Configuration,
-                    request.Runtime, request.Version, request.Repository.Slug, request.PackagePath, progress,
-                    CancellationToken.None);
-
-                AppendLog("Build and package completed.");
-                SetBusyState(true, "正在上传 GitHub Release...");
                 using var publisher = new GitHubReleasePublisher(request.Repository, request.Token);
-                GitHubReleaseInfo release = await publisher.PublishAsync("v" + request.Version,
-                    request.ReleaseTitle, request.ReleaseNotes, request.Draft, request.Prerelease,
-                    new[] { request.PackagePath, request.PackagePath + ".sha256" }, progress,
-                    CancellationToken.None);
+                string tagName = "v" + request.Version;
+                await publisher.EnsureCanPublishAsync(tagName, cancellationToken);
 
-                StatusTextBlock.Text = "发布完成：" + release.TagName;
-                MessageBox.Show(this, "Release 已成功创建或更新。\n\n" + release.HtmlUrl,
-                    "发布完成", MessageBoxButton.OK, MessageBoxImage.Information);
+                SetBusyState(true, "正在测试并构建发布资产...");
+                ReleaseBuildResult build = await _buildService.BuildReleaseAsync(request.SourceDirectory,
+                    request.Version, request.Repository.Slug, request.ReleaseNotes, progress,
+                    cancellationToken);
+
+                AppendLog("Tests, assets, and signed metadata completed.");
+                SetBusyState(true, "正在上传 GitHub Release...");
+                GitHubReleaseInfo release = await publisher.PublishImmutableAsync(tagName,
+                    request.ReleaseTitle, request.ReleaseNotes, request.Draft, build.AssetPaths, progress,
+                    cancellationToken);
+
+                StatusTextBlock.Text = (release.Draft ? "草稿完成：" : "发布完成：") + release.TagName;
+                MessageBox.Show(this,
+                    (release.Draft ? "Release 草稿已构建并上传。" : "Release 已成功发布。") +
+                    "\n\n" + release.HtmlUrl, release.Draft ? "草稿完成" : "发布完成",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (OperationCanceledException)
+            {
+                AppendLog("Release operation canceled.");
+                StatusTextBlock.Text = "发布已取消";
             }
             catch (Exception exception)
             {
@@ -85,6 +96,8 @@ namespace GestureSign.ReleaseManager
             }
             finally
             {
+                _operationCancellation?.Dispose();
+                _operationCancellation = null;
                 SetBusyState(false, StatusTextBlock.Text);
             }
         }
@@ -105,13 +118,19 @@ namespace GestureSign.ReleaseManager
 
                 SetBusyState(true, "正在删除 GitHub Release...");
                 LogTextBox.Clear();
+                _operationCancellation = new CancellationTokenSource();
                 var progress = new Progress<string>(AppendLog);
                 using var publisher = new GitHubReleasePublisher(identity.Repository, identity.Token);
-                await publisher.DeleteAsync(tagName, progress, CancellationToken.None);
+                await publisher.DeleteAsync(tagName, progress, _operationCancellation.Token);
 
                 StatusTextBlock.Text = "已删除：" + tagName;
                 MessageBox.Show(this, $"Release {tagName} 已删除。\n\nGit 标签 {tagName} 已保留。",
                     "删除完成", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (OperationCanceledException)
+            {
+                AppendLog("Release deletion canceled.");
+                StatusTextBlock.Text = "删除已取消";
             }
             catch (Exception exception)
             {
@@ -122,6 +141,8 @@ namespace GestureSign.ReleaseManager
             }
             finally
             {
+                _operationCancellation?.Dispose();
+                _operationCancellation = null;
                 SetBusyState(false, StatusTextBlock.Text);
             }
         }
@@ -131,14 +152,8 @@ namespace GestureSign.ReleaseManager
             ReleaseIdentity identity = ValidateReleaseIdentity();
 
             string sourceDirectory = Path.GetFullPath(SourceDirectoryTextBox.Text.Trim());
-            if (!File.Exists(Path.Combine(sourceDirectory, "publish.ps1")))
-                throw new InvalidOperationException("源码目录中没有 publish.ps1。");
-
-            string runtime = GetSelectedValue(RuntimeComboBox);
-            string configuration = GetSelectedValue(ConfigurationComboBox);
-            string packageDirectory = Path.Combine(sourceDirectory, "artifacts", "release-manager", "packages");
-            string packagePath = Path.Combine(packageDirectory,
-                UpdatePackageNaming.GetAssetName(identity.Version, runtime));
+            if (!File.Exists(Path.Combine(sourceDirectory, "build-release.ps1")))
+                throw new InvalidOperationException("源码目录中没有 build-release.ps1。");
 
             return new PublishRequest
             {
@@ -146,15 +161,11 @@ namespace GestureSign.ReleaseManager
                 Token = identity.Token,
                 SourceDirectory = sourceDirectory,
                 Version = identity.Version,
-                Runtime = runtime,
-                Configuration = configuration,
-                PackagePath = packagePath,
                 ReleaseTitle = string.IsNullOrWhiteSpace(ReleaseTitleTextBox.Text)
-                    ? "GestureSign " + identity.Version
+                    ? "TouchPilot " + identity.Version
                     : ReleaseTitleTextBox.Text.Trim(),
                 ReleaseNotes = ReleaseNotesTextBox.Text,
-                Draft = DraftCheckBox.IsChecked == true,
-                Prerelease = PrereleaseCheckBox.IsChecked == true
+                Draft = DraftCheckBox.IsChecked == true
             };
         }
 
@@ -211,23 +222,10 @@ namespace GestureSign.ReleaseManager
             LogTextBox.ScrollToEnd();
         }
 
-        private void SelectRuntime(string runtime)
+        protected override void OnClosed(EventArgs e)
         {
-            foreach (ComboBoxItem item in RuntimeComboBox.Items)
-            {
-                if (string.Equals(item.Content?.ToString(), runtime, StringComparison.OrdinalIgnoreCase))
-                {
-                    RuntimeComboBox.SelectedItem = item;
-                    return;
-                }
-            }
-        }
-
-        private static string GetSelectedValue(ComboBox comboBox)
-        {
-            if (!(comboBox.SelectedItem is ComboBoxItem item) || item.Content == null)
-                throw new InvalidOperationException("请选择构建选项。");
-            return item.Content.ToString();
+            _operationCancellation?.Cancel();
+            base.OnClosed(e);
         }
 
         private static string FindRepositoryRoot()
@@ -235,7 +233,7 @@ namespace GestureSign.ReleaseManager
             DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory != null)
             {
-                if (File.Exists(Path.Combine(directory.FullName, "publish.ps1")))
+                if (File.Exists(Path.Combine(directory.FullName, "build-release.ps1")))
                     return directory.FullName;
                 directory = directory.Parent;
             }
@@ -248,13 +246,9 @@ namespace GestureSign.ReleaseManager
             public string Token { get; set; }
             public string SourceDirectory { get; set; }
             public string Version { get; set; }
-            public string Runtime { get; set; }
-            public string Configuration { get; set; }
-            public string PackagePath { get; set; }
             public string ReleaseTitle { get; set; }
             public string ReleaseNotes { get; set; }
             public bool Draft { get; set; }
-            public bool Prerelease { get; set; }
         }
 
         private sealed class ReleaseIdentity
