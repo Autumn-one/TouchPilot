@@ -44,6 +44,20 @@ namespace GestureSign.Common.Updates
                 throw new ArgumentNullException(nameof(repository));
             ValidateAsset(tag, asset, destinationPath);
 
+            if (File.Exists(destinationPath))
+            {
+                try
+                {
+                    ValidateCompletedFile(destinationPath, asset);
+                    progress?.Report(100);
+                    return destinationPath;
+                }
+                catch (InvalidDataException)
+                {
+                    File.Delete(destinationPath);
+                }
+            }
+
             string originUrl = BuildAssetUrl(repository, tag, asset.Name);
             ProbeResult[] probes = await Task.WhenAll(_sources.Select(source =>
                 ProbeAsync(source, originUrl, asset.Size, cancellationToken))).ConfigureAwait(false);

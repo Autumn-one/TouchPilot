@@ -312,6 +312,34 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public async Task PackageDownloaderReusesVerifiedCompletedDownloadWithoutNetwork()
+        {
+            using var directory = new TemporaryDirectory();
+            byte[] package = Encoding.UTF8.GetBytes(new string('b', 20000));
+            string destination = Path.Combine(directory.Path, "TouchPilot.zip");
+            File.WriteAllBytes(destination, package);
+            var handler = new PackageHandler(package);
+            using var httpClient = new HttpClient(handler);
+            using var downloader = new UpdatePackageDownloader(httpClient,
+                new[] { new UpdateSource("unused", "https://unused.invalid/") });
+            var asset = new UpdateAssetMetadata
+            {
+                Distribution = UpdatePackageNaming.PortableDistribution,
+                Runtime = UpdatePackageNaming.WindowsX64Runtime,
+                Name = UpdatePackageNaming.GetPortableAssetName("8.3.0"),
+                Size = package.Length,
+                Sha256 = Convert.ToHexString(SHA256.HashData(package)).ToLowerInvariant()
+            };
+            string result = await downloader.DownloadAsync(
+                GitHubRepository.Parse("Autumn-one/TouchPilot"), "v8.3.0", asset, destination,
+                null, CancellationToken.None);
+
+            Assert.Equal(destination, result);
+            Assert.Empty(handler.Requests);
+            Assert.Equal(package, File.ReadAllBytes(destination));
+        }
+
+        [Fact]
         public async Task ReleasePublisherDeletesReleaseByResolvedId()
         {
             var handler = new ReleaseDeletionHandler();
