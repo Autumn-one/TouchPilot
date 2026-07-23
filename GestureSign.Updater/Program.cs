@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -18,7 +19,7 @@ namespace GestureSign.Updater
             {
                 UpdateArguments arguments = UpdateArguments.Parse(args);
                 WaitForProcess(arguments.WaitProcessId, TimeSpan.FromSeconds(45));
-                WaitForApplicationProcesses(TimeSpan.FromSeconds(45));
+                WaitForApplicationProcesses(arguments.TargetDirectory, TimeSpan.FromSeconds(45));
 
                 if (arguments.Mode == UpdateMode.Installer)
                 {
@@ -65,7 +66,7 @@ namespace GestureSign.Updater
             }
         }
 
-        private static void WaitForApplicationProcesses(TimeSpan timeout)
+        private static void WaitForApplicationProcesses(string targetDirectory, TimeSpan timeout)
         {
             string[] processNames =
             {
@@ -77,9 +78,7 @@ namespace GestureSign.Updater
             var stopwatch = Stopwatch.StartNew();
             while (stopwatch.Elapsed < timeout)
             {
-                Process[] processes = processNames.SelectMany(Process.GetProcessesByName)
-                    .Where(process => process.Id != Environment.ProcessId)
-                    .ToArray();
+                Process[] processes = GetTargetApplicationProcesses(processNames, targetDirectory);
                 if (processes.Length == 0)
                     return;
 
@@ -88,9 +87,7 @@ namespace GestureSign.Updater
                 System.Threading.Thread.Sleep(200);
             }
 
-            Process[] remainingProcesses = processNames.SelectMany(Process.GetProcessesByName)
-                .Where(process => process.Id != Environment.ProcessId)
-                .ToArray();
+            Process[] remainingProcesses = GetTargetApplicationProcesses(processNames, targetDirectory);
             try
             {
                 if (remainingProcesses.Any())
@@ -101,6 +98,49 @@ namespace GestureSign.Updater
                 foreach (Process process in remainingProcesses)
                     process.Dispose();
             }
+        }
+
+        private static Process[] GetTargetApplicationProcesses(IEnumerable<string> processNames,
+            string targetDirectory)
+        {
+            var matches = new List<Process>();
+            foreach (Process process in processNames.SelectMany(Process.GetProcessesByName))
+            {
+                if (process.Id == Environment.ProcessId)
+                {
+                    process.Dispose();
+                    continue;
+                }
+
+                try
+                {
+                    if (IsExecutableInTargetDirectory(process.MainModule?.FileName, targetDirectory))
+                    {
+                        matches.Add(process);
+                        continue;
+                    }
+                }
+                catch (Exception exception) when (exception is Win32Exception ||
+                                                  exception is InvalidOperationException ||
+                                                  exception is NotSupportedException)
+                {
+                }
+
+                process.Dispose();
+            }
+
+            return matches.ToArray();
+        }
+
+        internal static bool IsExecutableInTargetDirectory(string executablePath, string targetDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(executablePath) || string.IsNullOrWhiteSpace(targetDirectory))
+                return false;
+
+            string executableDirectory = Path.GetDirectoryName(Path.GetFullPath(executablePath));
+            string expectedDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(targetDirectory));
+            return string.Equals(Path.TrimEndingDirectorySeparator(executableDirectory), expectedDirectory,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetSafeRestartPath(string targetDirectory, string restartExecutable)

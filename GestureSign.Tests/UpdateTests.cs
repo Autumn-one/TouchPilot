@@ -576,6 +576,17 @@ namespace GestureSign.Tests
             Assert.Equal(UpdateMode.Installer, installer.Mode);
         }
 
+        [Theory]
+        [InlineData(@"C:\Apps\TouchPilot\GestureSign.exe", @"C:\Apps\TouchPilot", true)]
+        [InlineData(@"C:\Apps\TouchPilot\GestureSign.ControlPanel.exe", @"C:\Apps\TouchPilot\", true)]
+        [InlineData(@"C:\Apps\Other\GestureSign.exe", @"C:\Apps\TouchPilot", false)]
+        [InlineData(@"C:\Apps\TouchPilot\Child\GestureSign.exe", @"C:\Apps\TouchPilot", false)]
+        public void UpdaterOnlyWaitsForProcessesInTargetDirectory(string executablePath,
+            string targetDirectory, bool expected)
+        {
+            Assert.Equal(expected, Program.IsExecutableInTargetDirectory(executablePath, targetDirectory));
+        }
+
         [Fact]
         public void InstallerUpdateRunnerVerifiesPackageBeforeSilentExecution()
         {
