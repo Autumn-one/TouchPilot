@@ -98,12 +98,12 @@ namespace GestureSign.Tests
                 "pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml",
                 "pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml",
                 "pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml",
-                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Tokens.xaml",
-                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Typography.xaml",
-                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Controls.xaml",
-                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Shell.xaml",
-                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Settings.xaml",
-                "pack://application:,,,/GestureSign.ControlPanel;component/Themes/V2/Dialogs.xaml"
+                "pack://application:,,,/TouchPilot.ControlPanel;component/Themes/V2/Tokens.xaml",
+                "pack://application:,,,/TouchPilot.ControlPanel;component/Themes/V2/Typography.xaml",
+                "pack://application:,,,/TouchPilot.ControlPanel;component/Themes/V2/Controls.xaml",
+                "pack://application:,,,/TouchPilot.ControlPanel;component/Themes/V2/Shell.xaml",
+                "pack://application:,,,/TouchPilot.ControlPanel;component/Themes/V2/Settings.xaml",
+                "pack://application:,,,/TouchPilot.ControlPanel;component/Themes/V2/Dialogs.xaml"
             };
 
             foreach (string resourceUri in resourceUris)

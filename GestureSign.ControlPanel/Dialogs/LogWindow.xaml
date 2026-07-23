@@ -16,7 +16,7 @@
                       WindowStartupLocation="CenterScreen"
                       WindowStyle="ToolWindow"
                       ResizeMode="CanMinimize"
-                      Icon="/GestureSign.ControlPanel;component/Resources/normal.ico">
+                      Icon="/TouchPilot.ControlPanel;component/Resources/normal.ico">
     <controls:MetroWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </controls:MetroWindow.Resources>

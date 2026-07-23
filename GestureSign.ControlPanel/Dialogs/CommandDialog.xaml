@@ -14,7 +14,7 @@
                       Width="430"
                       WindowStyle="ToolWindow"
                       SizeToContent="Height"
-                      Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
+                      Icon="/TouchPilot.ControlPanel;component/Resources/normal.ico"
                       WindowStartupLocation="CenterScreen"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
                       ResizeMode="CanMinimize"

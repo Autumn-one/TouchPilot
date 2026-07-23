@@ -12,7 +12,7 @@
                       SizeToContent="Height"
                       FlowDirection="{StaticResource DefaultFlowDirection}"
                       Topmost="True"
-                      Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
+                      Icon="/TouchPilot.ControlPanel;component/Resources/normal.ico"
                       WindowStartupLocation="CenterScreen">
     <Grid Margin="24,20,24,22">
         <Grid.RowDefinitions>

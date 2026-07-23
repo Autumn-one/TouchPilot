@@ -13,7 +13,7 @@
                     Height="520"
                     MinWidth="660"
                     MinHeight="440"
-                    Icon="/GestureSign.ControlPanel;component/Resources/normal.ico">
+                    Icon="/TouchPilot.ControlPanel;component/Resources/normal.ico">
     <Grid Margin="24,20,24,22">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />

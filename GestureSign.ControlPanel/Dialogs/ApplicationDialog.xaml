@@ -15,7 +15,7 @@
                     d:DesignHeight="650"
                     d:DesignWidth="700"
                     Style="{StaticResource V2.Dialog.Window}"
-                    Icon="/GestureSign.ControlPanel;component/Resources/normal.ico"
+                    Icon="/TouchPilot.ControlPanel;component/Resources/normal.ico"
                     Width="700"
                     MaxHeight="720"
                     SizeToContent="Height"
