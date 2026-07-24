@@ -3,7 +3,10 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Forms;
 using Xunit;
 
 namespace GestureSign.Tests
@@ -15,16 +18,17 @@ namespace GestureSign.Tests
         [Trait("Category", "WindowsIntegration")]
         public void NativeSurfaceRetainsPerPixelAlpha()
         {
-            using (var surface = new DiBitmap(new Size(12, 10)))
+            using (var surface = new LayeredWindowSurface(new Size(12, 10)))
             {
-                Graphics graphics = surface.BeginDraw();
-                graphics.CompositingMode = CompositingMode.SourceCopy;
-                graphics.Clear(Color.Transparent);
-                using (var brush = new SolidBrush(Color.FromArgb(128, 40, 80, 120)))
-                    graphics.FillRectangle(brush, 2, 2, 6, 6);
-                surface.EndDraw();
+                surface.Draw(graphics =>
+                {
+                    graphics.CompositingMode = CompositingMode.SourceCopy;
+                    graphics.Clear(Color.Transparent);
+                    using (var brush = new SolidBrush(Color.FromArgb(128, 40, 80, 120)))
+                        graphics.FillRectangle(brush, 2, 2, 6, 6);
+                });
 
-                NativeBitmap bitmap = GetNativeBitmap(surface.HBitmap);
+                NativeBitmap bitmap = GetNativeBitmap(surface.BitmapHandle);
                 Assert.Equal(12, bitmap.Width);
                 Assert.Equal(10, Math.Abs(bitmap.Height));
                 Assert.Equal(32, bitmap.BitsPerPixel);
@@ -55,14 +59,45 @@ namespace GestureSign.Tests
             Assert.InRange(finalCount - initialCount, 0, 2);
         }
 
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void NativeSurfacePresentsToARealLayeredWindow()
+        {
+            RunInStaThread(() =>
+            {
+                using (var window = new LayeredTestWindow
+                {
+                    Bounds = new Rectangle(-32000, -32000, 48, 36),
+                    ShowInTaskbar = false
+                })
+                using (var surface = new LayeredWindowSurface(window.Size))
+                {
+                    surface.Draw(graphics =>
+                    {
+                        graphics.CompositingMode = CompositingMode.SourceCopy;
+                        graphics.Clear(Color.Transparent);
+                        using (var brush = new SolidBrush(Color.FromArgb(192, 30, 120, 220)))
+                            graphics.FillEllipse(brush, 4, 4, 24, 24);
+                    });
+
+                    IntPtr handle = window.Handle;
+                    bool presented = surface.Present(handle, window.Bounds,
+                        new Rectangle(Point.Empty, window.Size), 220);
+                    Assert.True(presented,
+                        $"UpdateLayeredWindowIndirect failed with Win32 error {Marshal.GetLastWin32Error()}.");
+                }
+            });
+        }
+
         private static void ExerciseSurface()
         {
-            using (var surface = new DiBitmap(new Size(32, 24)))
+            using (var surface = new LayeredWindowSurface(new Size(32, 24)))
             {
-                Graphics graphics = surface.BeginDraw();
-                graphics.Clear(Color.Transparent);
-                graphics.DrawLine(Pens.White, 0, 0, 31, 23);
-                surface.EndDraw();
+                surface.Draw(graphics =>
+                {
+                    graphics.Clear(Color.Transparent);
+                    graphics.DrawLine(Pens.White, 0, 0, 31, 23);
+                });
             }
         }
 
@@ -84,6 +119,28 @@ namespace GestureSign.Tests
                 value & 0xff);
         }
 
+        private static void RunInStaThread(Action action)
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            Assert.True(thread.Join(TimeSpan.FromSeconds(15)),
+                "The layered-window integration test timed out.");
+            if (failure != null)
+                ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
         private const uint GdiObjects = 0;
 
         [DllImport("gdi32.dll", EntryPoint = "GetObjectW", SetLastError = true)]
@@ -102,6 +159,19 @@ namespace GestureSign.Tests
             public ushort Planes;
             public ushort BitsPerPixel;
             public IntPtr Bits;
+        }
+
+        private sealed class LayeredTestWindow : Form
+        {
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    CreateParams parameters = base.CreateParams;
+                    parameters.ExStyle |= 0x00080000;
+                    return parameters;
+                }
+            }
         }
     }
 }
