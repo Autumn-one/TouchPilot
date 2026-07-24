@@ -47,16 +47,23 @@ namespace GestureSign.Tests
         public void NativeSurfaceReleasesGdiObjectsAfterRepeatedUse()
         {
             ExerciseSurface();
+            CollectFinalizedResources();
             int initialCount = GetGuiResources(Process.GetCurrentProcess().Handle, GdiObjects);
             for (int index = 0; index < 32; index++)
                 ExerciseSurface();
 
+            CollectFinalizedResources();
+
+            int finalCount = GetGuiResources(Process.GetCurrentProcess().Handle, GdiObjects);
+            Assert.True(finalCount <= initialCount + 2,
+                $"GDI object count grew from {initialCount} to {finalCount}.");
+        }
+
+        private static void CollectFinalizedResources()
+        {
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
-
-            int finalCount = GetGuiResources(Process.GetCurrentProcess().Handle, GdiObjects);
-            Assert.InRange(finalCount - initialCount, 0, 2);
         }
 
         [Fact]
