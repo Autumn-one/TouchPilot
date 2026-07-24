@@ -15,6 +15,8 @@ namespace GestureSign.Daemon.Triggers
     {
         private TouchpadInteractionRecognizer _recognizer;
         private readonly WindowDragController _windowDragController = new WindowDragController();
+        private readonly BottomAnchoredWindowDragTargetLock _windowDragTargetLock =
+            new BottomAnchoredWindowDragTargetLock();
         private readonly TouchpadWheelSuppressor _wheelSuppressor = new TouchpadWheelSuppressor();
         private readonly ITouchpadContactFilter _confidenceFilter;
         private Point _sessionStartPoint;
@@ -37,6 +39,7 @@ namespace GestureSign.Daemon.Triggers
         private void PointCapture_TouchpadFrame(object sender, TouchpadFrameEventArgs e)
         {
             bool normalMode = PointCapture.Instance.Mode == CaptureMode.Normal;
+            Point frameCursorPosition = Cursor.Position;
             IReadOnlyList<TouchpadContact> contacts = AppConfig.TouchpadEdgeConfidenceFilteringEnabled
                 ? _confidenceFilter.Filter(e.Contacts)
                 : e.Contacts;
@@ -51,7 +54,8 @@ namespace GestureSign.Daemon.Triggers
                 _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
                 _sessionWindowDragBringToFront = AppConfig.TouchpadWindowDragBringToFront;
                 _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
-                _sessionStartPoint = Cursor.Position;
+                _sessionStartPoint = frameCursorPosition;
+                _windowDragTargetLock.Clear();
             }
 
             TouchpadInteractionFrameResult result = _recognizer.ProcessFrame(contacts, e.TimestampMilliseconds);
@@ -60,13 +64,17 @@ namespace GestureSign.Daemon.Triggers
 
             if (normalMode)
             {
+                _windowDragTargetLock.Update(result, frameCursorPosition, GetWindowAtPoint);
                 foreach (TouchpadInteractionEvent interactionEvent in result.Events)
                     ProcessInteractionEvent(interactionEvent);
             }
+            else
+                _windowDragTargetLock.Clear();
 
             if (!result.SessionActive)
             {
                 _windowDragController.End();
+                _windowDragTargetLock.Clear();
                 _wheelSuppressor.StopMonitoring();
             }
             else if (!normalMode)
@@ -82,9 +90,25 @@ namespace GestureSign.Daemon.Triggers
                     break;
                 case TouchpadInteractionEventType.WindowDragStarted:
                     if (!_wheelSuppressor.IsMonitoring && !_wheelSuppressor.StartMonitoring())
+                    {
+                        _windowDragTargetLock.Clear();
                         break;
-                    _windowDragController.Begin(GetWindowUnderCursor(), interactionEvent.NormalizedX, interactionEvent.NormalizedY,
-                        _sessionWindowDragImplementation, _sessionWindowDragBringToFront);
+                    }
+
+                    SystemWindow targetWindow;
+                    Point capturedCursor;
+                    if (_windowDragTargetLock.TryTake(out targetWindow, out capturedCursor))
+                    {
+                        _windowDragController.Begin(targetWindow, capturedCursor,
+                            interactionEvent.NormalizedX, interactionEvent.NormalizedY,
+                            _sessionWindowDragImplementation, _sessionWindowDragBringToFront);
+                    }
+                    else
+                    {
+                        _windowDragController.Begin(GetWindowUnderCursor(),
+                            interactionEvent.NormalizedX, interactionEvent.NormalizedY,
+                            _sessionWindowDragImplementation, _sessionWindowDragBringToFront);
+                    }
                     break;
                 case TouchpadInteractionEventType.WindowDragMoved:
                     _windowDragController.Update(interactionEvent.NormalizedX, interactionEvent.NormalizedY, AppConfig.TouchpadWindowDragSensitivityPercent / 100d);
@@ -98,13 +122,19 @@ namespace GestureSign.Daemon.Triggers
                     break;
                 case TouchpadInteractionEventType.WindowDragEnded:
                     _windowDragController.End();
+                    _windowDragTargetLock.Clear();
                     break;
             }
         }
 
         private static SystemWindow GetWindowUnderCursor()
         {
-            return ApplicationManager.Instance.GetWindowFromPoint(Cursor.Position);
+            return GetWindowAtPoint(Cursor.Position);
+        }
+
+        private static SystemWindow GetWindowAtPoint(Point point)
+        {
+            return ApplicationManager.Instance.GetWindowFromPoint(point);
         }
 
         private void FireEdgeGesture(FixedEdgeGesture gesture)
@@ -152,6 +182,43 @@ namespace GestureSign.Daemon.Triggers
                 EdgeActivationDistance = activationDistance,
                 EdgeSlideStep = System.Math.Max(0.03, activationDistance * 0.625)
             });
+        }
+    }
+
+    internal sealed class BottomAnchoredWindowDragTargetLock
+    {
+        private bool _locked;
+        private Point _cursorPosition;
+        private SystemWindow _window;
+
+        internal void Update(TouchpadInteractionFrameResult result, Point frameCursorPosition,
+            Func<Point, SystemWindow> resolveWindow)
+        {
+            if (result.BottomAnchoredWindowDragCandidateEnded)
+                Clear();
+
+            if (!result.BottomAnchoredWindowDragCandidateStarted)
+                return;
+
+            _cursorPosition = frameCursorPosition;
+            _window = resolveWindow(frameCursorPosition);
+            _locked = true;
+        }
+
+        internal bool TryTake(out SystemWindow window, out Point cursorPosition)
+        {
+            window = _window;
+            cursorPosition = _cursorPosition;
+            bool locked = _locked;
+            Clear();
+            return locked;
+        }
+
+        internal void Clear()
+        {
+            _locked = false;
+            _cursorPosition = default(Point);
+            _window = null;
         }
     }
 }

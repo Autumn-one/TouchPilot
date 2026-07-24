@@ -124,16 +124,23 @@ namespace GestureSign.Common.Input
 
     public sealed class TouchpadInteractionFrameResult
     {
-        internal TouchpadInteractionFrameResult(bool claimInput, bool sessionActive, IReadOnlyList<TouchpadInteractionEvent> events)
+        internal TouchpadInteractionFrameResult(bool claimInput, bool sessionActive,
+            IReadOnlyList<TouchpadInteractionEvent> events,
+            bool bottomAnchoredWindowDragCandidateStarted,
+            bool bottomAnchoredWindowDragCandidateEnded)
         {
             ClaimInput = claimInput;
             SessionActive = sessionActive;
             Events = events;
+            BottomAnchoredWindowDragCandidateStarted = bottomAnchoredWindowDragCandidateStarted;
+            BottomAnchoredWindowDragCandidateEnded = bottomAnchoredWindowDragCandidateEnded;
         }
 
         public bool ClaimInput { get; }
         public bool SessionActive { get; }
         public IReadOnlyList<TouchpadInteractionEvent> Events { get; }
+        public bool BottomAnchoredWindowDragCandidateStarted { get; }
+        public bool BottomAnchoredWindowDragCandidateEnded { get; }
     }
 
     public sealed class TouchpadInteractionRecognizer
@@ -169,6 +176,11 @@ namespace GestureSign.Common.Input
         private bool _windowDragActive;
         private bool _windowDragMotionPaused;
         private bool _bottomDragReactivationPending;
+        private bool _bottomDragCandidatePrepared;
+        private int _bottomDragCandidateAnchorIdentifier;
+        private int _bottomDragCandidateMovingIdentifier;
+        private bool _bottomDragCandidateStartedThisFrame;
+        private bool _bottomDragCandidateEndedThisFrame;
         private long _sessionStartTimestamp;
 
         private int? _anchorContactIdentifier;
@@ -215,6 +227,8 @@ namespace GestureSign.Common.Input
             if (contacts == null)
                 throw new ArgumentNullException(nameof(contacts));
 
+            _bottomDragCandidateStartedThisFrame = false;
+            _bottomDragCandidateEndedThisFrame = false;
             bool claimedAtFrameStart = _claimed;
             UpdateActiveContacts(contacts);
 
@@ -229,9 +243,13 @@ namespace GestureSign.Common.Input
                 if (_windowDragActive)
                     endingEvents = new List<TouchpadInteractionEvent> { TouchpadInteractionEvent.WindowEnded() };
 
+                ClearBottomDragCandidate();
+                bool candidateStarted = _bottomDragCandidateStartedThisFrame;
+                bool candidateEnded = _bottomDragCandidateEndedThisFrame;
                 bool claimEndingFrame = claimedAtFrameStart || _claimed;
                 Reset();
-                return new TouchpadInteractionFrameResult(claimEndingFrame, false, endingEvents ?? NoEvents);
+                return new TouchpadInteractionFrameResult(claimEndingFrame, false, endingEvents ?? NoEvents,
+                    candidateStarted, candidateEnded);
             }
 
             var output = new List<TouchpadInteractionEvent>();
@@ -271,7 +289,9 @@ namespace GestureSign.Common.Input
                 ProcessClaimedEdgeSlide(output);
             }
 
-            return new TouchpadInteractionFrameResult(claimedAtFrameStart || _claimed, true, output.Count == 0 ? NoEvents : output);
+            return new TouchpadInteractionFrameResult(claimedAtFrameStart || _claimed, true,
+                output.Count == 0 ? NoEvents : output,
+                _bottomDragCandidateStartedThisFrame, _bottomDragCandidateEndedThisFrame);
         }
 
         public void Reset()
@@ -284,6 +304,11 @@ namespace GestureSign.Common.Input
             _windowDragActive = false;
             _windowDragMotionPaused = false;
             _bottomDragReactivationPending = false;
+            _bottomDragCandidatePrepared = false;
+            _bottomDragCandidateAnchorIdentifier = 0;
+            _bottomDragCandidateMovingIdentifier = 0;
+            _bottomDragCandidateStartedThisFrame = false;
+            _bottomDragCandidateEndedThisFrame = false;
             _sessionStartTimestamp = 0;
             _anchorContactIdentifier = null;
             _anchorMissingSinceTimestamp = null;
@@ -385,7 +410,10 @@ namespace GestureSign.Common.Input
             {
                 ProcessEdgeCandidate(timestampMilliseconds, output);
                 if (_claimed)
+                {
+                    ClearBottomDragCandidate();
                     return;
+                }
             }
 
             if (!_anchorContactIdentifier.HasValue)
@@ -570,27 +598,43 @@ namespace GestureSign.Common.Input
         private void TryActivateWindowDrag(long timestampMilliseconds, List<TouchpadInteractionEvent> output)
         {
             if (!_anchorContactIdentifier.HasValue)
+            {
+                ClearBottomDragCandidate();
                 return;
+            }
 
             TouchpadContact anchor;
             if (!_activeContacts.TryGetValue(_anchorContactIdentifier.Value, out anchor) || !IsInBottomEdgeZone(anchor))
             {
                 _anchorContactIdentifier = null;
                 _movingContactIdentifier = null;
+                ClearBottomDragCandidate();
                 return;
             }
             _lastAnchorContact = anchor;
+
+            TouchpadContact moving;
+            if (_movingContactIdentifier.HasValue)
+            {
+                if (!_activeContacts.TryGetValue(_movingContactIdentifier.Value, out moving))
+                {
+                    ClearBottomDragCandidate();
+                    return;
+                }
+            }
+            else if (!TryGetNonAnchorContact(out moving))
+            {
+                ClearBottomDragCandidate();
+                return;
+            }
+
+            PrepareBottomDragCandidate(anchor.ContactIdentifier, moving.ContactIdentifier);
 
             if (timestampMilliseconds - _anchorStartTimestamp < _options.BottomAnchorHoldMilliseconds)
                 return;
 
             if (!_movingContactIdentifier.HasValue)
-            {
-                TouchpadContact moving;
-                if (!TryGetNonAnchorContact(out moving))
-                    return;
                 _movingContactIdentifier = moving.ContactIdentifier;
-            }
 
             TouchpadContact currentMoving;
             TouchpadContact movingStart;
@@ -605,7 +649,42 @@ namespace GestureSign.Common.Input
             _bottomDragReactivationPending = false;
             _anchorMissingSinceTimestamp = null;
             CloseEdgeCandidate();
+            ConsumeBottomDragCandidate();
             output.Add(TouchpadInteractionEvent.Window(TouchpadInteractionEventType.WindowDragStarted, currentMoving));
+        }
+
+        private void PrepareBottomDragCandidate(int anchorIdentifier, int movingIdentifier)
+        {
+            if (_bottomDragCandidatePrepared &&
+                _bottomDragCandidateAnchorIdentifier == anchorIdentifier &&
+                _bottomDragCandidateMovingIdentifier == movingIdentifier)
+                return;
+
+            if (_bottomDragCandidatePrepared)
+                _bottomDragCandidateEndedThisFrame = true;
+
+            _bottomDragCandidatePrepared = true;
+            _bottomDragCandidateAnchorIdentifier = anchorIdentifier;
+            _bottomDragCandidateMovingIdentifier = movingIdentifier;
+            _bottomDragCandidateStartedThisFrame = true;
+        }
+
+        private void ClearBottomDragCandidate()
+        {
+            if (!_bottomDragCandidatePrepared)
+                return;
+
+            _bottomDragCandidatePrepared = false;
+            _bottomDragCandidateAnchorIdentifier = 0;
+            _bottomDragCandidateMovingIdentifier = 0;
+            _bottomDragCandidateEndedThisFrame = true;
+        }
+
+        private void ConsumeBottomDragCandidate()
+        {
+            _bottomDragCandidatePrepared = false;
+            _bottomDragCandidateAnchorIdentifier = 0;
+            _bottomDragCandidateMovingIdentifier = 0;
         }
 
         private void ProcessActiveWindowDrag(long timestampMilliseconds, List<TouchpadInteractionEvent> output)

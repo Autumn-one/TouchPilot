@@ -39,18 +39,29 @@ namespace GestureSign.Daemon.Triggers
         public bool Begin(SystemWindow window, double normalizedX, double normalizedY,
             TouchpadWindowDragImplementation implementation, bool bringToForeground = false)
         {
+            return Begin(window, Cursor.Position, normalizedX, normalizedY, implementation, bringToForeground);
+        }
+
+        public bool Begin(SystemWindow window, Point cursor, double normalizedX, double normalizedY,
+            TouchpadWindowDragImplementation implementation, bool bringToForeground = false)
+        {
             End();
             if (!IsMovableWindow(window))
                 return false;
 
             _window = window;
-            Point cursor = Cursor.Position;
             _implementation = implementation;
             _bringToForeground = bringToForeground;
             _failureLogged = false;
             LastFailure = null;
 
             if (!PrepareWindowForDrag())
+            {
+                End();
+                return false;
+            }
+
+            if (!TryRestoreCursor(cursor))
             {
                 End();
                 return false;
@@ -77,6 +88,26 @@ namespace GestureSign.Daemon.Triggers
             return implementation == TouchpadWindowDragImplementation.DirectSetWindowPos
                 ? MoveWindowToCursor(cursor)
                 : true;
+        }
+
+        private bool TryRestoreCursor(Point cursor)
+        {
+            if (Cursor.Position == cursor)
+                return true;
+
+            if (!NativeMethods.SetCursorPos(cursor.X, cursor.Y))
+            {
+                LogFailureOnce("restore the captured cursor position", Marshal.GetLastWin32Error());
+                return false;
+            }
+
+            Point actualCursor = Cursor.Position;
+            if (actualCursor == cursor)
+                return true;
+
+            LogFailureOnce("restore the captured cursor position",
+                $"Expected=({cursor.X},{cursor.Y}), Actual=({actualCursor.X},{actualCursor.Y})");
+            return false;
         }
 
         public bool Update(double normalizedX, double normalizedY, double sensitivity)

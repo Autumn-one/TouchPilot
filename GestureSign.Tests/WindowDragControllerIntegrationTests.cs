@@ -134,6 +134,113 @@ namespace GestureSign.Tests
 
         [Fact]
         [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerRestoresCapturedCursorAndMovesCapturedWindow()
+        {
+            RunInStaThread(reportStage => RunCapturedWindowDragTest(reportStage),
+                "The captured window drag integration test timed out.");
+        }
+
+        private static void RunCapturedWindowDragTest(Action<string> reportStage)
+        {
+            Point originalCursor = Cursor.Position;
+            var controller = new WindowDragController();
+            Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
+            int width = Math.Min(300, workingArea.Width / 3);
+            int height = Math.Min(220, workingArea.Height / 2);
+            using (var capturedForm = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Left + 40, workingArea.Top + 80, width, height), "captured"))
+            using (var laterForm = CreateDirectDragTestForm(
+                new Rectangle(workingArea.Right - width - 40, workingArea.Top + 80, width, height), "later"))
+            {
+                try
+                {
+                    reportStage("showing the captured-target test windows");
+                    capturedForm.Show();
+                    laterForm.Show();
+                    Application.DoEvents();
+
+                    var capturedWindow = new SystemWindow(capturedForm.Handle);
+                    var laterWindow = new SystemWindow(laterForm.Handle);
+                    WindowPositionFlags topMostFlags = WindowPositionFlags.NoMove |
+                                                       WindowPositionFlags.NoSize |
+                                                       WindowPositionFlags.NoActivate |
+                                                       WindowPositionFlags.ShowWindow;
+                    Assert.True(WindowPositionInterop.SetWindowPosition(capturedWindow.HWnd,
+                        new IntPtr(-1), 0, 0, 0, 0, topMostFlags));
+                    Assert.True(WindowPositionInterop.SetWindowPosition(laterWindow.HWnd,
+                        new IntPtr(-1), 0, 0, 0, 0, topMostFlags));
+                    PumpWindowMessages();
+                    RECT capturedInitialRectangle = capturedWindow.Rectangle;
+                    RECT laterInitialRectangle = laterWindow.Rectangle;
+                    Point capturedCursor = new Point(capturedInitialRectangle.Left + 80,
+                        capturedInitialRectangle.Top + 60);
+                    Point laterCursor = new Point(laterInitialRectangle.Left + 80,
+                        laterInitialRectangle.Top + 60);
+
+                    reportStage("verifying the two cursor targets");
+                    Assert.Equal(capturedWindow.HWnd,
+                        SystemWindow.FromPointEx(capturedCursor.X, capturedCursor.Y, true, true).HWnd);
+                    Assert.Equal(laterWindow.HWnd,
+                        SystemWindow.FromPointEx(laterCursor.X, laterCursor.Y, true, true).HWnd);
+                    Cursor.Position = laterCursor;
+
+                    reportStage("starting from the earlier captured target");
+                    Assert.True(controller.Begin(capturedWindow, capturedCursor, 0.50, 0.50,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos));
+                    Assert.Equal(capturedCursor, Cursor.Position);
+                    Thread.Sleep(25);
+                    Assert.True(controller.Update(0.53, 0.52, 1));
+                    PumpWindowMessages();
+
+                    reportStage("verifying only the captured window moved");
+                    RECT capturedFinalRectangle = capturedWindow.Rectangle;
+                    RECT laterFinalRectangle = laterWindow.Rectangle;
+                    Screen screen = Screen.FromPoint(capturedCursor);
+                    int expectedX = (int)Math.Round(screen.Bounds.Width * 0.03);
+                    int expectedY = (int)Math.Round(screen.Bounds.Height * 0.02);
+                    Assert.InRange(capturedFinalRectangle.Left - capturedInitialRectangle.Left,
+                        expectedX - 4, expectedX + 4);
+                    Assert.InRange(capturedFinalRectangle.Top - capturedInitialRectangle.Top,
+                        expectedY - 4, expectedY + 4);
+                    Assert.InRange(laterFinalRectangle.Left - laterInitialRectangle.Left, -1, 1);
+                    Assert.InRange(laterFinalRectangle.Top - laterInitialRectangle.Top, -1, 1);
+                }
+                finally
+                {
+                    controller.End();
+                    Cursor.Position = originalCursor;
+                    laterForm.Close();
+                    capturedForm.Close();
+                    Application.DoEvents();
+                }
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void InvalidCapturedWindowDoesNotRestoreCursorOrFallBack()
+        {
+            Point originalCursor = Cursor.Position;
+            var controller = new WindowDragController();
+            Rectangle virtualScreen = SystemInformation.VirtualScreen;
+            int offsetX = originalCursor.X < virtualScreen.Right - 20 ? 10 : -10;
+            var capturedCursor = new Point(originalCursor.X + offsetX, originalCursor.Y);
+
+            try
+            {
+                Assert.False(controller.Begin(new SystemWindow(IntPtr.Zero), capturedCursor, 0.50, 0.50,
+                    TouchpadWindowDragImplementation.DirectSetWindowPos));
+                Assert.Equal(originalCursor, Cursor.Position);
+            }
+            finally
+            {
+                controller.End();
+                Cursor.Position = originalCursor;
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
         public void DirectControllerRetargetsWindowUnderCursorWhenReclutched()
         {
             Exception failure = null;

@@ -470,9 +470,49 @@ namespace GestureSign.Tests
                 Frame(Contact(1, 0.53, 0.48), Contact(2, 0.75, 0.90)), 140);
 
             Assert.False(anchorArrived.ClaimInput);
+            Assert.True(anchorArrived.BottomAnchoredWindowDragCandidateStarted);
+            Assert.False(anchorArrived.BottomAnchoredWindowDragCandidateEnded);
             Assert.False(beforeHold.ClaimInput);
+            Assert.False(beforeHold.BottomAnchoredWindowDragCandidateStarted);
+            Assert.False(beforeHold.BottomAnchoredWindowDragCandidateEnded);
             Assert.True(started.ClaimInput);
             Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
+        public void BottomAnchorCandidateEndsAndRestartsWhenMovingFingerIsReplaced()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.45, 0.45)), 0);
+            TouchpadInteractionFrameResult candidateStarted = recognizer.ProcessFrame(
+                Frame(Contact(1, 0.48, 0.45), Contact(2, 0.25, 0.96)), 30);
+            TouchpadInteractionFrameResult candidateReplaced = recognizer.ProcessFrame(
+                Frame(ReleasedContact(1, 0.48, 0.45), Contact(2, 0.25, 0.96), Contact(3, 0.6, 0.5)), 50);
+            TouchpadInteractionFrameResult started = recognizer.ProcessFrame(
+                Frame(Contact(2, 0.25, 0.96), Contact(3, 0.64, 0.5)), 140);
+
+            Assert.True(candidateStarted.BottomAnchoredWindowDragCandidateStarted);
+            Assert.False(candidateStarted.BottomAnchoredWindowDragCandidateEnded);
+            Assert.True(candidateReplaced.BottomAnchoredWindowDragCandidateEnded);
+            Assert.True(candidateReplaced.BottomAnchoredWindowDragCandidateStarted);
+            Assert.Empty(candidateReplaced.Events);
+            Assert.Equal(TouchpadInteractionEventType.WindowDragStarted, Assert.Single(started.Events).EventType);
+        }
+
+        [Fact]
+        public void BottomAnchorCandidateEndsWhenCombinationBreaksBeforeActivation()
+        {
+            var recognizer = CreateRecognizer(windowDragMode: TouchpadWindowDragMode.BottomEdgeAnchor);
+
+            recognizer.ProcessFrame(Frame(Contact(1, 0.45, 0.45)), 0);
+            recognizer.ProcessFrame(Frame(Contact(1, 0.48, 0.45), Contact(2, 0.25, 0.96)), 30);
+            TouchpadInteractionFrameResult candidateEnded = recognizer.ProcessFrame(
+                Frame(ReleasedContact(1, 0.48, 0.45), Contact(2, 0.25, 0.96)), 50);
+
+            Assert.True(candidateEnded.BottomAnchoredWindowDragCandidateEnded);
+            Assert.False(candidateEnded.BottomAnchoredWindowDragCandidateStarted);
+            Assert.Empty(candidateEnded.Events);
         }
 
         [Fact]
