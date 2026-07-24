@@ -360,11 +360,11 @@ namespace GestureSign.Daemon.Triggers
             if (NativeMethods.SetForegroundWindow(_window.HWnd))
                 return;
 
-            NativeMethods.SWP flags = NativeMethods.SWP.SWP_NOMOVE |
-                                      NativeMethods.SWP.SWP_NOSIZE |
-                                      NativeMethods.SWP.SWP_SHOWWINDOW |
-                                      NativeMethods.SWP.SWP_ASYNCWINDOWPOS;
-            if (!NativeMethods.SetWindowPos(_window.HWnd, IntPtr.Zero, 0, 0, 0, 0, flags))
+            WindowPositionFlags flags = WindowPositionFlags.NoMove |
+                                        WindowPositionFlags.NoSize |
+                                        WindowPositionFlags.ShowWindow |
+                                        WindowPositionFlags.AsyncWindowPosition;
+            if (!WindowPositionInterop.SetWindowPosition(_window.HWnd, IntPtr.Zero, 0, 0, 0, 0, flags))
             {
                 int error = Marshal.GetLastWin32Error();
                 string detail = priorFailureDetail == null
@@ -438,12 +438,13 @@ namespace GestureSign.Daemon.Triggers
 
         private bool MoveWindowToCursor(Point cursor)
         {
-            NativeMethods.SWP flags = NativeMethods.SWP.SWP_NOSIZE |
-                                      NativeMethods.SWP.SWP_NOZORDER |
-                                      NativeMethods.SWP.SWP_NOACTIVATE |
-                                      NativeMethods.SWP.SWP_NOOWNERZORDER |
-                                      NativeMethods.SWP.SWP_ASYNCWINDOWPOS;
-            bool moved = NativeMethods.SetWindowPos(_window.HWnd, IntPtr.Zero, cursor.X - _anchorX, cursor.Y - _anchorY, 0, 0, flags);
+            WindowPositionFlags flags = WindowPositionFlags.NoSize |
+                                        WindowPositionFlags.NoZOrder |
+                                        WindowPositionFlags.NoActivate |
+                                        WindowPositionFlags.NoOwnerZOrder |
+                                        WindowPositionFlags.AsyncWindowPosition;
+            bool moved = WindowPositionInterop.SetWindowPosition(_window.HWnd, IntPtr.Zero,
+                cursor.X - _anchorX, cursor.Y - _anchorY, 0, 0, flags);
             if (!moved)
                 LogFailureOnce("SetWindowPos", Marshal.GetLastWin32Error());
             return moved;

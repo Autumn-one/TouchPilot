@@ -14,6 +14,8 @@ using System.Windows.Forms;
 using WindowsInput;
 using Xunit;
 using NativeMethods = GestureSign.Daemon.Native.NativeMethods;
+using WindowPositionFlags = GestureSign.Daemon.Native.WindowPositionFlags;
+using WindowPositionInterop = GestureSign.Daemon.Native.WindowPositionInterop;
 
 namespace GestureSign.Tests
 {
@@ -813,7 +815,7 @@ namespace GestureSign.Tests
             {
                 RECT initialRectangle = window.Rectangle;
                 Point initialCursor = (Point)textBox.Invoke(new Func<Point>(() => textBox.PointToScreen(new Point(8, textBox.ClientSize.Height / 2))));
-                IntPtr hitWindow = NativeMethods.WindowFromPoint(new NativeMethods.Point(initialCursor.X, initialCursor.Y));
+                IntPtr hitWindow = WindowPositionInterop.GetWindowAt(initialCursor.X, initialCursor.Y);
                 Assert.Equal(form.Handle, NativeMethods.GetAncestor(hitWindow, NativeMethods.GA_ROOT));
                 Cursor.Position = initialCursor;
 
@@ -892,20 +894,20 @@ namespace GestureSign.Tests
                     Thread.Sleep(150);
 
                     var window = new SystemWindow(form.Handle);
-                    Assert.True(NativeMethods.SetWindowPos(
+                    Assert.True(WindowPositionInterop.SetWindowPosition(
                         window.HWnd,
                         new IntPtr(-1),
                         0,
                         0,
                         0,
                         0,
-                        NativeMethods.SWP.SWP_NOMOVE |
-                        NativeMethods.SWP.SWP_NOSIZE |
-                        NativeMethods.SWP.SWP_SHOWWINDOW));
+                        WindowPositionFlags.NoMove |
+                        WindowPositionFlags.NoSize |
+                        WindowPositionFlags.ShowWindow));
                     Thread.Sleep(50);
                     Point activationPoint = (Point)form.Invoke(new Func<Point>(() =>
                         form.PointToScreen(new Point(form.ClientSize.Width - 20, form.ClientSize.Height - 20))));
-                    IntPtr hitWindow = NativeMethods.WindowFromPoint(new NativeMethods.Point(activationPoint.X, activationPoint.Y));
+                    IntPtr hitWindow = WindowPositionInterop.GetWindowAt(activationPoint.X, activationPoint.Y);
                     Assert.Equal(window.HWnd, NativeMethods.GetAncestor(hitWindow, NativeMethods.GA_ROOT));
                     Cursor.Position = activationPoint;
                     new InputSimulator().Mouse.LeftButtonClick();
