@@ -39,15 +39,7 @@ namespace GestureSign.Daemon.Native
 
         public static int GetSystemDpi()
         {
-            const int LOGPIXELSX = 88;
-
-            var scrDc = NativeMethods.GetDC(IntPtr.Zero);
-
-            int dpi = NativeMethods.GetDeviceCaps(scrDc, LOGPIXELSX);
-
-            NativeMethods.ReleaseDC(IntPtr.Zero, scrDc);
-
-            return dpi;
+            return ScreenDpiInterop.GetSystemDpi();
         }
     }
 }
