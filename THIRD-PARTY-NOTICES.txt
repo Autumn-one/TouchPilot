@@ -49,6 +49,27 @@ System.Management 10.0.10
   Project: https://github.com/dotnet/dotnet
   License: https://licenses.nuget.org/MIT
 
+Source components compiled into the application
+------------------------------------------------
+
+ManagedWinapi
+  Copyright (C) 2005-2008 Michael Schierl
+  License: LGPL-2.1-or-later
+  Project: http://mwinapi.sourceforge.net/
+  License: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+HidLibrary.Net
+  Copyright (C) 2006 Roman Reichel, Bauhaus University of Weimar
+  License: LGPL-2.1-or-later
+  Project: https://sourceforge.net/projects/hidlibrary/
+  License: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+Windows Input Simulator 1.0.4.1
+  Copyright (C) 2010 Michael Noonan
+  License: MIT
+  Project: https://github.com/michaelnoonan/inputsimulator
+  License: https://github.com/michaelnoonan/inputsimulator/blob/master/LICENSE
+
 Self-contained .NET and Windows components
 -------------------------------------------
 
@@ -63,16 +84,12 @@ and notice files are available here:
   WPF license: https://github.com/dotnet/wpf/blob/main/LICENSE.TXT
   WPF notices: https://github.com/dotnet/wpf/blob/main/THIRD-PARTY-NOTICES.TXT
 
-Historical attributions
------------------------
+Historical attribution
+----------------------
 
-The following attributions were present in an earlier TouchPilot About page
-and are retained here for reference:
+The following attribution was present in an earlier TouchPilot About page
+and is retained here for reference:
 
 HighSign
   Project: http://highsign.codeplex.com/
   License: http://highsign.codeplex.com/license
-
-WGestures
-  Project: https://github.com/yingDev/WGestures
-  License: https://github.com/yingDev/WGestures/blob/master/LICENSE
