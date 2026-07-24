@@ -31,7 +31,7 @@ Each published x64 release contains these signed update assets, using the releas
 - `TouchPilot-{version}-win-x64-portable.zip`
 - `TouchPilot-update.json`
 
-For example, version `8.2.0` uses `TouchPilot-8.2.0-win-x64-setup.exe` and `TouchPilot-8.2.0-win-x64-portable.zip`. The client verifies the signed metadata and package SHA-256 before and after elevation, then the updater verifies every portable file against `release-manifest.json`. Files not listed in the manifest, including portable `AppData`, are preserved.
+For example, version `0.0.1` uses `TouchPilot-0.0.1-win-x64-setup.exe` and `TouchPilot-0.0.1-win-x64-portable.zip`. The client verifies the signed metadata and package SHA-256 before and after elevation, then the updater verifies every portable file against `release-manifest.json`. Files not listed in the manifest, including portable `AppData`, are preserved.
 
 ## Release manager
 

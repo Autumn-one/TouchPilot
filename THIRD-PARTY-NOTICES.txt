@@ -1,0 +1,78 @@
+TouchPilot Third-Party Notices
+==============================
+
+TouchPilot is distributed as a proprietary application. This file records
+the third-party software and historical attributions associated with the
+distributed Windows x64 build. The listed projects retain their own
+copyright and license terms.
+
+NuGet packages included by the application
+-------------------------------------------
+
+MahApps.Metro 2.4.11
+  License: MIT
+  Project: https://github.com/MahApps/MahApps.Metro
+  License: https://licenses.nuget.org/MIT
+
+ControlzEx 4.4.0
+  License: MIT
+  Project: https://github.com/ControlzEx/ControlzEx
+  License: https://licenses.nuget.org/MIT
+
+MahApps.Metro.IconPacks.Core 6.2.1
+MahApps.Metro.IconPacks.Lucide 6.2.1
+  License: MIT
+  Project: https://github.com/MahApps/MahApps.Metro.IconPacks
+  License: https://licenses.nuget.org/MIT
+
+Microsoft.Xaml.Behaviors.Wpf 1.1.19
+  License: MIT
+  Project: https://github.com/microsoft/XamlBehaviorsWpf
+  License: https://licenses.nuget.org/MIT
+
+Newtonsoft.Json 13.0.4
+  License: MIT
+  Project: https://github.com/JamesNK/Newtonsoft.Json
+  License: https://licenses.nuget.org/MIT
+
+NuGet.Versioning 7.6.0
+  License: Apache-2.0
+  Project: https://github.com/NuGet/NuGet.Client
+  License: https://licenses.nuget.org/Apache-2.0
+
+SharpRaven 2.2.0
+  Project: https://github.com/getsentry/raven-csharp
+  License: https://github.com/getsentry/raven-csharp/blob/master/LICENSE
+
+System.Management 10.0.10
+  License: MIT
+  Project: https://github.com/dotnet/dotnet
+  License: https://licenses.nuget.org/MIT
+
+Self-contained .NET and Windows components
+-------------------------------------------
+
+The portable and installer distributions include self-contained .NET 10 and
+WPF runtime components, plus Windows SDK components. Their upstream license
+and notice files are available here:
+
+  .NET runtime: https://github.com/dotnet/runtime
+  .NET runtime license: https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+  .NET runtime notices: https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT
+  WPF runtime: https://github.com/dotnet/wpf
+  WPF license: https://github.com/dotnet/wpf/blob/main/LICENSE.TXT
+  WPF notices: https://github.com/dotnet/wpf/blob/main/THIRD-PARTY-NOTICES.TXT
+
+Historical attributions
+-----------------------
+
+The following attributions were present in an earlier TouchPilot About page
+and are retained here for reference:
+
+HighSign
+  Project: http://highsign.codeplex.com/
+  License: http://highsign.codeplex.com/license
+
+WGestures
+  Project: https://github.com/yingDev/WGestures
+  License: https://github.com/yingDev/WGestures/blob/master/LICENSE

@@ -39,7 +39,6 @@ This may lead to function failure(e.g. Start application at Windows startup).
     <Version>Version:  </Version>
     <ReleaseDate>Release date:  </ReleaseDate>
     <Information>Author: TransposonY
-Translator: TransposonY
 Email: ccfyzh@gmail.com
     </Information>
     <SendFeedback>Send Feedback</SendFeedback>

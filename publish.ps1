@@ -42,6 +42,16 @@ $lifecycleProperties = @(
     "-p:TouchPilotBuildBuiltAtUtcTicks=$($builtAt.UtcDateTime.Ticks)",
     "-p:TouchPilotBuildExpiresAtUtcTicks=$($expiresAt.UtcDateTime.Ticks)"
 )
+$releaseVersionProperties = @()
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    $null = $Version -match '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)'
+    $releaseFileVersion = "$($Matches.major).$($Matches.minor).$($Matches.patch).0"
+    $releaseVersionProperties = @(
+        "-p:TouchPilotReleaseVersion=$Version",
+        "-p:TouchPilotReleaseFileVersion=$releaseFileVersion"
+    )
+}
+$buildProperties = $lifecycleProperties + $releaseVersionProperties
 
 $resolvedPackagePath = $null
 if (-not [string]::IsNullOrWhiteSpace($PackagePath)) {
@@ -85,7 +95,7 @@ if (Test-Path -LiteralPath $output) {
 [void](New-Item -ItemType Directory -Path $output)
 
 Invoke-DotNet -Arguments (@("build", (Join-Path $root "GestureSign.sln"), "-c", $Configuration,
-    "--no-incremental") + $lifecycleProperties)
+    "--no-incremental") + $buildProperties)
 
 $publishOptions = @(
     "-c", $Configuration,
@@ -94,7 +104,7 @@ $publishOptions = @(
     "--output", $output,
     "-p:DebugType=None",
     "-p:DebugSymbols=false"
-) + $lifecycleProperties
+) + $buildProperties
 
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.ControlPanel\GestureSign.ControlPanel.csproj")) + $publishOptions)
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.Daemon\GestureSign.Daemon.csproj")) + $publishOptions)
@@ -113,7 +123,7 @@ $updaterPublishOptions = @(
     "--output", $output,
     "-p:DebugType=None",
     "-p:DebugSymbols=false"
-) + $lifecycleProperties
+) + $buildProperties
 Invoke-DotNet -Arguments (@("publish", (Join-Path $root "GestureSign.Updater\GestureSign.Updater.csproj")) + $updaterPublishOptions)
 
 $pluginOutput = Join-Path $root "GestureSign.ExtraPlugins"
@@ -131,6 +141,12 @@ foreach ($plugin in $pluginSources) {
     Copy-Item -LiteralPath $plugin -Destination $pluginDirectory -Force
 }
 
+$thirdPartyNoticesSource = Join-Path $root "THIRD-PARTY-NOTICES.txt"
+if (-not (Test-Path -LiteralPath $thirdPartyNoticesSource -PathType Leaf)) {
+    throw "The third-party notices file is missing: $thirdPartyNoticesSource"
+}
+Copy-Item -LiteralPath $thirdPartyNoticesSource -Destination $output -Force
+
 $requiredFiles = @(
     "TouchPilot.exe",
     "TouchPilot.ControlPanel.exe",
@@ -142,7 +158,8 @@ $requiredFiles = @(
     "Defaults\Actions.gsa",
     "Defaults\Gestures.gest",
     "Languages\ControlPanel\en.xml",
-    "Languages\Daemon\en.xml"
+    "Languages\Daemon\en.xml",
+    "THIRD-PARTY-NOTICES.txt"
 )
 foreach ($relativePath in $requiredFiles) {
     $path = Join-Path $output $relativePath

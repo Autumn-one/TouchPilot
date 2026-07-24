@@ -80,8 +80,6 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <Grid>
@@ -157,35 +155,6 @@
                                      Text="{localization:LocalisedText About.Information}"
                                      TextWrapping="Wrap" />
                         </Border>
-
-                        <Border Grid.Row="3"
-                                Height="1"
-                                Margin="0,22,0,18"
-                                Background="{StaticResource V2.Brush.Divider}" />
-
-                        <Grid Grid.Row="4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="30" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <iconPacks:PackIconLucide Width="18"
-                                                      Height="18"
-                                                      Margin="0,2,0,0"
-                                                      HorizontalAlignment="Left"
-                                                      VerticalAlignment="Top"
-                                                      Foreground="{StaticResource V2.Brush.TextMuted}"
-                                                      Kind="Github" />
-                            <TextBox Grid.Column="1"
-                                     Padding="0"
-                                     Background="Transparent"
-                                     BorderThickness="0"
-                                     FontFamily="{StaticResource V2.FontFamily}"
-                                     FontSize="12"
-                                     Foreground="{StaticResource V2.Brush.TextMuted}"
-                                     IsReadOnly="True"
-                                     Text="Project Page&#xA;https://github.com/Autumn-one/TouchPilot&#xA;&#xA;Thanks to the following project:&#xA;http://highsign.codeplex.com/&#xA;License:http://highsign.codeplex.com/license&#xA;&#xA;MahApps.Metro&#xA;https://github.com/MahApps/MahApps.Metro&#xA;License:http://www.opensource.org/licenses/MS-PL&#xA;&#xA;WGestures&#xA;https://github.com/yingDev/WGestures&#xA;License:https://github.com/yingDev/WGestures/blob/master/LICENSE"
-                                     TextWrapping="Wrap" />
-                        </Grid>
                     </Grid>
                 </ScrollViewer>
             </TabItem>

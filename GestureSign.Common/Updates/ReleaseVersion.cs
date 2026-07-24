@@ -9,7 +9,7 @@ namespace GestureSign.Common.Updates
         {
             if (!TryParse(value, out NuGetVersion version))
                 throw new FormatException(
-                    "Release version must use SemVer such as 8.2.0 or v8.3.0-beta.1.");
+                    "Release version must use SemVer such as 0.0.1 or v0.0.2-beta.1.");
 
             return version;
         }

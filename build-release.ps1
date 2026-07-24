@@ -66,7 +66,8 @@ function Invoke-Publish {
     )
 
     & (Join-Path $root "publish.ps1") -Runtime win-x64 -Configuration $Configuration `
-        -OutputDirectory $Destination -BuiltAtUtc $builtAt
+        -OutputDirectory $Destination -Version $Version -Repository $Repository `
+        -BuiltAtUtc $builtAt
     if ($LASTEXITCODE -ne 0) {
         throw "Publishing the $Configuration distribution failed with exit code $LASTEXITCODE."
     }
@@ -84,7 +85,8 @@ function Assert-ReleaseContents {
         "Defaults\Actions.gsa",
         "Defaults\Gestures.gest",
         "Languages\ControlPanel\en.xml",
-        "Languages\Daemon\en.xml"
+        "Languages\Daemon\en.xml",
+        "THIRD-PARTY-NOTICES.txt"
     )
     foreach ($relativePath in $requiredFiles) {
         if (-not (Test-Path -LiteralPath (Join-Path $Directory $relativePath) -PathType Leaf)) {

@@ -1,0 +1,30 @@
+<Project>
+  <Target Name="GenerateTouchPilotReleaseVersionAttributes"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TouchPilotReleaseVersion)' != '' And
+                     ('$(MSBuildProjectName)' == 'GestureSign.Daemon' Or
+                      '$(MSBuildProjectName)' == 'GestureSign.ControlPanel' Or
+                      '$(MSBuildProjectName)' == 'GestureSign.Updater')">
+    <Error Condition="'$(TouchPilotReleaseFileVersion)' == ''"
+           Text="TouchPilotReleaseFileVersion is required when TouchPilotReleaseVersion is set." />
+
+    <ItemGroup>
+      <_TouchPilotReleaseVersionAttribute Include="System.Reflection.AssemblyFileVersionAttribute">
+        <_Parameter1>$(TouchPilotReleaseFileVersion)</_Parameter1>
+      </_TouchPilotReleaseVersionAttribute>
+      <_TouchPilotReleaseVersionAttribute Include="System.Reflection.AssemblyInformationalVersionAttribute">
+        <_Parameter1>$(TouchPilotReleaseVersion)</_Parameter1>
+      </_TouchPilotReleaseVersionAttribute>
+      <_TouchPilotReleaseVersionAttribute Include="System.Reflection.AssemblyVersionAttribute"
+                                           Condition="'$(MSBuildProjectName)' == 'GestureSign.Updater'">
+        <_Parameter1>$(TouchPilotReleaseFileVersion)</_Parameter1>
+      </_TouchPilotReleaseVersionAttribute>
+    </ItemGroup>
+
+    <WriteCodeFragment Language="C#"
+                       OutputFile="$(IntermediateOutputPath)TouchPilot.ReleaseVersion.g.cs"
+                       AssemblyAttributes="@(_TouchPilotReleaseVersionAttribute)">
+      <Output TaskParameter="OutputFile" ItemName="Compile" />
+    </WriteCodeFragment>
+  </Target>
+</Project>
