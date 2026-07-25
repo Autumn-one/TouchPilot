@@ -18,6 +18,7 @@ namespace GestureSign.Daemon.Triggers
 
         private readonly Stopwatch _updateStopwatch = new Stopwatch();
         private readonly InputSimulator _inputSimulator = new InputSimulator();
+        private readonly WindowDragDiagnostics _diagnostics;
         private SystemWindow _window;
         private bool _active;
         private bool _failureLogged;
@@ -35,6 +36,15 @@ namespace GestureSign.Daemon.Triggers
         private bool _hasPendingPosition;
 
         internal string LastFailure { get; private set; }
+
+        internal WindowDragController() : this(null)
+        {
+        }
+
+        internal WindowDragController(WindowDragDiagnostics diagnostics)
+        {
+            _diagnostics = diagnostics;
+        }
 
         public bool Begin(SystemWindow window, double normalizedX, double normalizedY,
             TouchpadWindowDragImplementation implementation, bool bringToForeground = false)
@@ -112,6 +122,9 @@ namespace GestureSign.Daemon.Triggers
 
         public bool Update(double normalizedX, double normalizedY, double sensitivity)
         {
+            if (_active)
+                _diagnostics?.RecordControllerUpdate(Environment.TickCount64);
+
             if (!_active || !NativeMethods.IsWindow(_window.HWnd))
             {
                 End();
@@ -462,6 +475,7 @@ namespace GestureSign.Daemon.Triggers
             if (!_active || !_hasPendingPosition)
                 return _active;
 
+            ObserveWindowPosition();
             _hasPendingPosition = false;
             _updateStopwatch.Restart();
             return MoveWindowToCursor(_pendingCursor);
@@ -474,11 +488,36 @@ namespace GestureSign.Daemon.Triggers
                                         WindowPositionFlags.NoActivate |
                                         WindowPositionFlags.NoOwnerZOrder |
                                         WindowPositionFlags.AsyncWindowPosition;
+            int requestedLeft = cursor.X - _anchorX;
+            int requestedTop = cursor.Y - _anchorY;
+            long callStartedAt = Stopwatch.GetTimestamp();
             bool moved = WindowPositionInterop.SetWindowPosition(_window.HWnd, IntPtr.Zero,
-                cursor.X - _anchorX, cursor.Y - _anchorY, 0, 0, flags);
+                requestedLeft, requestedTop, 0, 0, flags);
+            int errorCode = moved ? 0 : Marshal.GetLastWin32Error();
+            long callTicks = Math.Max(0, Stopwatch.GetTimestamp() - callStartedAt);
+            long callMicroseconds = (long)(callTicks * (1_000_000d / Stopwatch.Frequency));
+            _diagnostics?.RecordWindowMoveRequest(Environment.TickCount64,
+                requestedLeft, requestedTop, moved, callMicroseconds);
             if (!moved)
-                LogFailureOnce("SetWindowPos", Marshal.GetLastWin32Error());
+                LogFailureOnce("SetWindowPos", errorCode);
             return moved;
+        }
+
+        private void ObserveWindowPosition()
+        {
+            if (_diagnostics == null || _window == null)
+                return;
+
+            try
+            {
+                WindowRect rectangle = _window.Rectangle;
+                _diagnostics.ObserveWindowPosition(Environment.TickCount64,
+                    rectangle.Left, rectangle.Top);
+            }
+            catch
+            {
+                // Diagnostics must never interrupt an active drag.
+            }
         }
 
         private void ClampCursorToVirtualDesktop()
@@ -499,6 +538,7 @@ namespace GestureSign.Daemon.Triggers
                 return;
 
             _failureLogged = true;
+            _diagnostics?.RecordControllerFailure(Environment.TickCount64, operation);
             string handle = _window == null ? "0" : _window.HWnd.ToInt64().ToString("X");
             LastFailure = $"Touchpad window drag {operation} failed. HWND=0x{handle}, {detail}.";
             Logging.LogMessage(LastFailure);

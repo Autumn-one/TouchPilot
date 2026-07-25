@@ -104,6 +104,7 @@ namespace GestureSign.Daemon
             _touchpadVisualizationServer?.Dispose();
             NamedPipe.Instance.Dispose();
             PointCapture.Instance.Dispose();
+            WindowDragDiagnosticWriter.ShutdownShared();
         }
 
         private static void Application_ThreadException(object sender, ThreadExceptionEventArgs e)

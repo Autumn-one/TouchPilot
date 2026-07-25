@@ -14,7 +14,8 @@ namespace GestureSign.Daemon.Triggers
     internal sealed class TouchpadInteractionTrigger : Trigger
     {
         private TouchpadInteractionRecognizer _recognizer;
-        private readonly WindowDragController _windowDragController = new WindowDragController();
+        private readonly WindowDragDiagnostics _windowDragDiagnostics;
+        private readonly WindowDragController _windowDragController;
         private readonly BottomAnchoredWindowDragTargetLock _windowDragTargetLock =
             new BottomAnchoredWindowDragTargetLock();
         private readonly TouchpadWheelSuppressor _wheelSuppressor = new TouchpadWheelSuppressor();
@@ -30,6 +31,8 @@ namespace GestureSign.Daemon.Triggers
         internal TouchpadInteractionTrigger(ITouchpadContactFilter confidenceFilter)
         {
             _confidenceFilter = confidenceFilter ?? throw new ArgumentNullException(nameof(confidenceFilter));
+            _windowDragDiagnostics = new WindowDragDiagnostics(WindowDragDiagnosticWriter.Instance);
+            _windowDragController = new WindowDragController(_windowDragDiagnostics);
             _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
             _sessionWindowDragBringToFront = AppConfig.TouchpadWindowDragBringToFront;
             _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
@@ -43,6 +46,7 @@ namespace GestureSign.Daemon.Triggers
             IReadOnlyList<TouchpadContact> contacts = AppConfig.TouchpadEdgeConfidenceFilteringEnabled
                 ? _confidenceFilter.Filter(e.Contacts)
                 : e.Contacts;
+            _windowDragDiagnostics.ObserveTouchpadFrame(e.TimestampMilliseconds, e.Contacts, contacts);
             if (normalMode && AppConfig.TouchpadEdgeGesturesEnabled &&
                 contacts.Count(contact => contact.IsActive) >= 2)
             {
@@ -66,7 +70,7 @@ namespace GestureSign.Daemon.Triggers
             {
                 _windowDragTargetLock.Update(result, frameCursorPosition, GetWindowAtPoint);
                 foreach (TouchpadInteractionEvent interactionEvent in result.Events)
-                    ProcessInteractionEvent(interactionEvent);
+                    ProcessInteractionEvent(interactionEvent, e.TimestampMilliseconds);
             }
             else
                 _windowDragTargetLock.Clear();
@@ -74,6 +78,7 @@ namespace GestureSign.Daemon.Triggers
             if (!result.SessionActive)
             {
                 _windowDragController.End();
+                _windowDragDiagnostics.Complete(e.TimestampMilliseconds, "session-inactive");
                 _windowDragTargetLock.Clear();
                 _wheelSuppressor.StopMonitoring();
             }
@@ -81,7 +86,8 @@ namespace GestureSign.Daemon.Triggers
                 _wheelSuppressor.StopMonitoring();
         }
 
-        private void ProcessInteractionEvent(TouchpadInteractionEvent interactionEvent)
+        private void ProcessInteractionEvent(TouchpadInteractionEvent interactionEvent,
+            long timestampMilliseconds)
         {
             switch (interactionEvent.EventType)
             {
@@ -97,31 +103,63 @@ namespace GestureSign.Daemon.Triggers
 
                     SystemWindow targetWindow;
                     Point capturedCursor;
-                    if (_windowDragTargetLock.TryTake(out targetWindow, out capturedCursor))
+                    bool targetLocked = _windowDragTargetLock.TryTake(out targetWindow,
+                        out capturedCursor);
+                    if (!targetLocked)
+                        targetWindow = GetWindowUnderCursor();
+
+                    _windowDragDiagnostics.Begin(timestampMilliseconds,
+                        _sessionWindowDragImplementation,
+                        targetWindow?.HWnd ?? IntPtr.Zero,
+                        targetLocked,
+                        AppConfig.TouchpadEdgeConfidenceFilteringEnabled);
+
+                    bool began;
+                    if (targetLocked)
                     {
-                        _windowDragController.Begin(targetWindow, capturedCursor,
+                        began = _windowDragController.Begin(targetWindow, capturedCursor,
                             interactionEvent.NormalizedX, interactionEvent.NormalizedY,
                             _sessionWindowDragImplementation, _sessionWindowDragBringToFront);
                     }
                     else
                     {
-                        _windowDragController.Begin(GetWindowUnderCursor(),
+                        began = _windowDragController.Begin(targetWindow,
                             interactionEvent.NormalizedX, interactionEvent.NormalizedY,
                             _sessionWindowDragImplementation, _sessionWindowDragBringToFront);
                     }
+                    _windowDragDiagnostics.RecordControllerBegin(began, timestampMilliseconds);
+                    if (!began)
+                        _windowDragDiagnostics.Complete(timestampMilliseconds, "begin-failed");
                     break;
                 case TouchpadInteractionEventType.WindowDragMoved:
-                    _windowDragController.Update(interactionEvent.NormalizedX, interactionEvent.NormalizedY, AppConfig.TouchpadWindowDragSensitivityPercent / 100d);
+                    _windowDragDiagnostics.RecordInteraction(interactionEvent.EventType,
+                        timestampMilliseconds);
+                    if (!_windowDragController.Update(interactionEvent.NormalizedX,
+                            interactionEvent.NormalizedY,
+                            AppConfig.TouchpadWindowDragSensitivityPercent / 100d))
+                    {
+                        _windowDragDiagnostics.Complete(timestampMilliseconds,
+                            "controller-update-failed");
+                    }
                     break;
                 case TouchpadInteractionEventType.WindowDragPaused:
+                    _windowDragDiagnostics.RecordInteraction(interactionEvent.EventType,
+                        timestampMilliseconds);
                     _windowDragController.Pause();
                     break;
                 case TouchpadInteractionEventType.WindowDragResumed:
-                    _windowDragController.Rebase(GetWindowUnderCursor(), interactionEvent.NormalizedX,
-                        interactionEvent.NormalizedY);
+                    _windowDragDiagnostics.RecordInteraction(interactionEvent.EventType,
+                        timestampMilliseconds);
+                    if (!_windowDragController.Rebase(GetWindowUnderCursor(),
+                            interactionEvent.NormalizedX, interactionEvent.NormalizedY))
+                    {
+                        _windowDragDiagnostics.Complete(timestampMilliseconds,
+                            "controller-rebase-failed");
+                    }
                     break;
                 case TouchpadInteractionEventType.WindowDragEnded:
                     _windowDragController.End();
+                    _windowDragDiagnostics.Complete(timestampMilliseconds, "ended");
                     _windowDragTargetLock.Clear();
                     break;
             }
