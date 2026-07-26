@@ -29,6 +29,10 @@ namespace GestureSign.Daemon.Triggers
         public int InputFrames { get; set; }
         public long MaximumInputGapMilliseconds { get; set; }
         public int InputGapsOverThreshold { get; set; }
+        public long MaximumInputDispatchDelayMilliseconds { get; set; }
+        public int InputDispatchDelaysOverThreshold { get; set; }
+        public long MaximumInputHandlerDurationMicroseconds { get; set; }
+        public int InputHandlerDurationsOverThreshold { get; set; }
         public int RawFramesBelowTwoContacts { get; set; }
         public int FilteredFramesBelowTwoContacts { get; set; }
         public int ConfidenceFilteredFramesBelowTwoContacts { get; set; }
@@ -38,9 +42,14 @@ namespace GestureSign.Daemon.Triggers
         public int RecognizerResumes { get; set; }
         public long MaximumRecognizerMoveGapMilliseconds { get; set; }
         public bool ControllerBeginSucceeded { get; set; }
+        public long ControllerBeginDurationMicroseconds { get; set; }
+        public Dictionary<string, long> ControllerBeginStagesMicroseconds { get; set; } =
+            new Dictionary<string, long>();
         public int ControllerUpdates { get; set; }
         public long MaximumControllerUpdateGapMilliseconds { get; set; }
         public int ControllerUpdateGapsOverThreshold { get; set; }
+        public long MaximumControllerUpdateDurationMicroseconds { get; set; }
+        public int ControllerUpdateDurationsOverThreshold { get; set; }
         public int WindowMoveRequests { get; set; }
         public long MaximumWindowMoveRequestGapMilliseconds { get; set; }
         public int WindowMoveRequestFailures { get; set; }
@@ -74,11 +83,16 @@ namespace GestureSign.Daemon.Triggers
         private int _latestRawActiveContacts;
         private int _latestFilteredActiveContacts;
         private int _latestLowConfidenceContacts;
+        private long _latestInputDispatchDelayMilliseconds;
 
         private int _inputFrames;
         private long _lastInputTimestamp;
         private long _maximumInputGapMilliseconds;
         private int _inputGapsOverThreshold;
+        private long _maximumInputDispatchDelayMilliseconds;
+        private int _inputDispatchDelaysOverThreshold;
+        private long _maximumInputHandlerDurationMicroseconds;
+        private int _inputHandlerDurationsOverThreshold;
         private int _rawFramesBelowTwoContacts;
         private int _filteredFramesBelowTwoContacts;
         private int _confidenceFilteredFramesBelowTwoContacts;
@@ -93,10 +107,15 @@ namespace GestureSign.Daemon.Triggers
         private long _maximumRecognizerMoveGapMilliseconds;
 
         private bool _controllerBeginSucceeded;
+        private long _controllerBeginDurationMicroseconds;
+        private readonly Dictionary<string, long> _controllerBeginStagesMicroseconds =
+            new Dictionary<string, long>(StringComparer.Ordinal);
         private int _controllerUpdates;
         private long _lastControllerUpdateTimestamp;
         private long _maximumControllerUpdateGapMilliseconds;
         private int _controllerUpdateGapsOverThreshold;
+        private long _maximumControllerUpdateDurationMicroseconds;
+        private int _controllerUpdateDurationsOverThreshold;
 
         private int _windowMoveRequests;
         private long _lastWindowMoveRequestTimestamp;
@@ -121,7 +140,8 @@ namespace GestureSign.Daemon.Triggers
 
         internal void ObserveTouchpadFrame(long timestampMilliseconds,
             IReadOnlyList<TouchpadContact> rawContacts,
-            IReadOnlyList<TouchpadContact> filteredContacts)
+            IReadOnlyList<TouchpadContact> filteredContacts,
+            long inputDispatchDelayMilliseconds = 0)
         {
             if (rawContacts == null || filteredContacts == null)
                 return;
@@ -151,11 +171,13 @@ namespace GestureSign.Daemon.Triggers
             _latestRawActiveContacts = rawActiveContacts;
             _latestFilteredActiveContacts = filteredActiveContacts;
             _latestLowConfidenceContacts = lowConfidenceContacts;
+            _latestInputDispatchDelayMilliseconds = Math.Max(0, inputDispatchDelayMilliseconds);
 
             if (_active)
             {
                 RecordInputFrame(timestampMilliseconds, rawActiveContacts,
-                    filteredActiveContacts, lowConfidenceContacts);
+                    filteredActiveContacts, lowConfidenceContacts,
+                    _latestInputDispatchDelayMilliseconds);
             }
         }
 
@@ -180,7 +202,25 @@ namespace GestureSign.Daemon.Triggers
             if (_hasLatestFrame)
             {
                 RecordInputFrame(_latestFrameTimestamp, _latestRawActiveContacts,
-                    _latestFilteredActiveContacts, _latestLowConfidenceContacts);
+                    _latestFilteredActiveContacts, _latestLowConfidenceContacts,
+                    _latestInputDispatchDelayMilliseconds);
+            }
+        }
+
+        internal void RecordInputHandlerDuration(long timestampMilliseconds,
+            long durationMicroseconds)
+        {
+            if (!_active)
+                return;
+
+            durationMicroseconds = Math.Max(0, durationMicroseconds);
+            _maximumInputHandlerDurationMicroseconds = Math.Max(
+                _maximumInputHandlerDurationMicroseconds, durationMicroseconds);
+            if (durationMicroseconds > HitchThresholdMilliseconds * 1000L)
+            {
+                _inputHandlerDurationsOverThreshold++;
+                AddSample(timestampMilliseconds,
+                    $"input-handler-duration durationUs={durationMicroseconds}");
             }
         }
 
@@ -217,6 +257,36 @@ namespace GestureSign.Daemon.Triggers
                 AddSample(timestampMilliseconds, "controller-begin-failed");
         }
 
+        internal void RecordControllerBeginDuration(long timestampMilliseconds,
+            long durationMicroseconds)
+        {
+            if (!_active)
+                return;
+
+            _controllerBeginDurationMicroseconds = Math.Max(0, durationMicroseconds);
+            if (_controllerBeginDurationMicroseconds > HitchThresholdMilliseconds * 1000L)
+            {
+                AddSample(timestampMilliseconds,
+                    $"controller-begin-duration durationUs={_controllerBeginDurationMicroseconds}");
+            }
+        }
+
+        internal void RecordControllerBeginStage(long timestampMilliseconds,
+            string stage,
+            long durationMicroseconds)
+        {
+            if (!_active || string.IsNullOrEmpty(stage))
+                return;
+
+            durationMicroseconds = Math.Max(0, durationMicroseconds);
+            _controllerBeginStagesMicroseconds[stage] = durationMicroseconds;
+            if (durationMicroseconds > HitchThresholdMilliseconds * 1000L)
+            {
+                AddSample(timestampMilliseconds,
+                    $"controller-begin-stage stage={stage} durationUs={durationMicroseconds}");
+            }
+        }
+
         internal void RecordControllerUpdate(long timestampMilliseconds)
         {
             if (!_active)
@@ -229,6 +299,23 @@ namespace GestureSign.Daemon.Triggers
             {
                 _controllerUpdateGapsOverThreshold++;
                 AddSample(timestampMilliseconds, $"controller-update-gap gapMs={gap}");
+            }
+        }
+
+        internal void RecordControllerUpdateDuration(long timestampMilliseconds,
+            long durationMicroseconds)
+        {
+            if (!_active)
+                return;
+
+            durationMicroseconds = Math.Max(0, durationMicroseconds);
+            _maximumControllerUpdateDurationMicroseconds = Math.Max(
+                _maximumControllerUpdateDurationMicroseconds, durationMicroseconds);
+            if (durationMicroseconds > HitchThresholdMilliseconds * 1000L)
+            {
+                _controllerUpdateDurationsOverThreshold++;
+                AddSample(timestampMilliseconds,
+                    $"controller-update-duration durationUs={durationMicroseconds}");
             }
         }
 
@@ -318,6 +405,10 @@ namespace GestureSign.Daemon.Triggers
                 InputFrames = _inputFrames,
                 MaximumInputGapMilliseconds = _maximumInputGapMilliseconds,
                 InputGapsOverThreshold = _inputGapsOverThreshold,
+                MaximumInputDispatchDelayMilliseconds = _maximumInputDispatchDelayMilliseconds,
+                InputDispatchDelaysOverThreshold = _inputDispatchDelaysOverThreshold,
+                MaximumInputHandlerDurationMicroseconds = _maximumInputHandlerDurationMicroseconds,
+                InputHandlerDurationsOverThreshold = _inputHandlerDurationsOverThreshold,
                 RawFramesBelowTwoContacts = _rawFramesBelowTwoContacts,
                 FilteredFramesBelowTwoContacts = _filteredFramesBelowTwoContacts,
                 ConfidenceFilteredFramesBelowTwoContacts = _confidenceFilteredFramesBelowTwoContacts,
@@ -327,9 +418,16 @@ namespace GestureSign.Daemon.Triggers
                 RecognizerResumes = _recognizerResumes,
                 MaximumRecognizerMoveGapMilliseconds = _maximumRecognizerMoveGapMilliseconds,
                 ControllerBeginSucceeded = _controllerBeginSucceeded,
+                ControllerBeginDurationMicroseconds = _controllerBeginDurationMicroseconds,
+                ControllerBeginStagesMicroseconds =
+                    new Dictionary<string, long>(_controllerBeginStagesMicroseconds),
                 ControllerUpdates = _controllerUpdates,
                 MaximumControllerUpdateGapMilliseconds = _maximumControllerUpdateGapMilliseconds,
                 ControllerUpdateGapsOverThreshold = _controllerUpdateGapsOverThreshold,
+                MaximumControllerUpdateDurationMicroseconds =
+                    _maximumControllerUpdateDurationMicroseconds,
+                ControllerUpdateDurationsOverThreshold =
+                    _controllerUpdateDurationsOverThreshold,
                 WindowMoveRequests = _windowMoveRequests,
                 MaximumWindowMoveRequestGapMilliseconds = _maximumWindowMoveRequestGapMilliseconds,
                 WindowMoveRequestFailures = _windowMoveRequestFailures,
@@ -354,7 +452,8 @@ namespace GestureSign.Daemon.Triggers
         private void RecordInputFrame(long timestampMilliseconds,
             int rawActiveContacts,
             int filteredActiveContacts,
-            int lowConfidenceContacts)
+            int lowConfidenceContacts,
+            long inputDispatchDelayMilliseconds)
         {
             _inputFrames++;
             long gap = RecordGap(timestampMilliseconds, ref _lastInputTimestamp,
@@ -363,6 +462,15 @@ namespace GestureSign.Daemon.Triggers
             {
                 _inputGapsOverThreshold++;
                 AddSample(timestampMilliseconds, $"input-gap gapMs={gap}");
+            }
+
+            _maximumInputDispatchDelayMilliseconds = Math.Max(
+                _maximumInputDispatchDelayMilliseconds, inputDispatchDelayMilliseconds);
+            if (inputDispatchDelayMilliseconds > HitchThresholdMilliseconds)
+            {
+                _inputDispatchDelaysOverThreshold++;
+                AddSample(timestampMilliseconds,
+                    $"input-dispatch-delay delayMs={inputDispatchDelayMilliseconds}");
             }
 
             bool rawBelowTwo = rawActiveContacts < 2;
@@ -424,6 +532,10 @@ namespace GestureSign.Daemon.Triggers
             _lastInputTimestamp = 0;
             _maximumInputGapMilliseconds = 0;
             _inputGapsOverThreshold = 0;
+            _maximumInputDispatchDelayMilliseconds = 0;
+            _inputDispatchDelaysOverThreshold = 0;
+            _maximumInputHandlerDurationMicroseconds = 0;
+            _inputHandlerDurationsOverThreshold = 0;
             _rawFramesBelowTwoContacts = 0;
             _filteredFramesBelowTwoContacts = 0;
             _confidenceFilteredFramesBelowTwoContacts = 0;
@@ -436,10 +548,14 @@ namespace GestureSign.Daemon.Triggers
             _lastRecognizerMoveTimestamp = 0;
             _maximumRecognizerMoveGapMilliseconds = 0;
             _controllerBeginSucceeded = false;
+            _controllerBeginDurationMicroseconds = 0;
+            _controllerBeginStagesMicroseconds.Clear();
             _controllerUpdates = 0;
             _lastControllerUpdateTimestamp = 0;
             _maximumControllerUpdateGapMilliseconds = 0;
             _controllerUpdateGapsOverThreshold = 0;
+            _maximumControllerUpdateDurationMicroseconds = 0;
+            _controllerUpdateDurationsOverThreshold = 0;
             _windowMoveRequests = 0;
             _lastWindowMoveRequestTimestamp = 0;
             _maximumWindowMoveRequestGapMilliseconds = 0;

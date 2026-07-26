@@ -5,6 +5,7 @@ using GestureSign.Daemon.Input;
 using ManagedWinapi.Windows;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -41,12 +42,15 @@ namespace GestureSign.Daemon.Triggers
 
         private void PointCapture_TouchpadFrame(object sender, TouchpadFrameEventArgs e)
         {
+            long handlerStartedAt = Stopwatch.GetTimestamp();
+            long handlerEnteredAtMilliseconds = Environment.TickCount64;
             bool normalMode = PointCapture.Instance.Mode == CaptureMode.Normal;
             Point frameCursorPosition = Cursor.Position;
             IReadOnlyList<TouchpadContact> contacts = AppConfig.TouchpadEdgeConfidenceFilteringEnabled
                 ? _confidenceFilter.Filter(e.Contacts)
                 : e.Contacts;
-            _windowDragDiagnostics.ObserveTouchpadFrame(e.TimestampMilliseconds, e.Contacts, contacts);
+            _windowDragDiagnostics.ObserveTouchpadFrame(e.TimestampMilliseconds, e.Contacts, contacts,
+                Math.Max(0, handlerEnteredAtMilliseconds - e.TimestampMilliseconds));
             if (normalMode && AppConfig.TouchpadEdgeGesturesEnabled &&
                 contacts.Count(contact => contact.IsActive) >= 2)
             {
@@ -84,6 +88,9 @@ namespace GestureSign.Daemon.Triggers
             }
             else if (!normalMode)
                 _wheelSuppressor.StopMonitoring();
+
+            _windowDragDiagnostics.RecordInputHandlerDuration(Environment.TickCount64,
+                GetElapsedMicroseconds(handlerStartedAt));
         }
 
         private void ProcessInteractionEvent(TouchpadInteractionEvent interactionEvent,
@@ -173,6 +180,12 @@ namespace GestureSign.Daemon.Triggers
         private static SystemWindow GetWindowAtPoint(Point point)
         {
             return ApplicationManager.Instance.GetWindowFromPoint(point);
+        }
+
+        private static long GetElapsedMicroseconds(long startedAt)
+        {
+            long elapsedTicks = Math.Max(0, Stopwatch.GetTimestamp() - startedAt);
+            return (long)(elapsedTicks * (1_000_000d / Stopwatch.Frequency));
         }
 
         private void FireEdgeGesture(FixedEdgeGesture gesture)

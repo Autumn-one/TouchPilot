@@ -134,6 +134,70 @@ namespace GestureSign.Tests
 
         [Fact]
         [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerSubmitsEveryRapidInputUpdate()
+        {
+            RunInStaThread(reportStage =>
+            {
+                const int updateCount = 12;
+                Point originalCursor = Cursor.Position;
+                var sink = new CapturingWindowDragDiagnosticSink();
+                var diagnostics = new WindowDragDiagnostics(sink);
+                var controller = new WindowDragController(diagnostics);
+                using (var form = CreateDirectDragTestForm(
+                    new Rectangle(180, 180, 360, 240), "rapid updates"))
+                {
+                    try
+                    {
+                        reportStage("showing the rapid-update test window");
+                        form.Show();
+                        Application.DoEvents();
+
+                        var window = new SystemWindow(form.Handle);
+                        RECT rectangle = window.Rectangle;
+                        var cursor = new Point(rectangle.Left + 80, rectangle.Top + 60);
+                        Cursor.Position = cursor;
+                        long startedAt = Environment.TickCount64;
+                        diagnostics.Begin(startedAt,
+                            TouchpadWindowDragImplementation.DirectSetWindowPos,
+                            window.HWnd, true, false);
+
+                        reportStage("submitting rapid direct-drag updates");
+                        bool began = controller.Begin(window, 0.50, 0.50,
+                            TouchpadWindowDragImplementation.DirectSetWindowPos);
+                        diagnostics.RecordControllerBegin(began, startedAt);
+                        Assert.True(began, controller.LastFailure);
+                        for (int i = 1; i <= updateCount; i++)
+                        {
+                            Assert.True(controller.Update(0.50 + i * 0.001,
+                                0.50 + i * 0.001, 1), controller.LastFailure);
+                        }
+
+                        controller.End();
+                        diagnostics.Complete(Environment.TickCount64, "test-ended");
+
+                        WindowDragDiagnosticRecord record = Assert.Single(sink.Records);
+                        Assert.Equal(updateCount, record.ControllerUpdates);
+                        Assert.Equal(updateCount + 1, record.WindowMoveRequests);
+                        Assert.True(record.ControllerBeginDurationMicroseconds > 0);
+                        Assert.Contains("validate-target",
+                            record.ControllerBeginStagesMicroseconds.Keys);
+                        Assert.Contains("initial-window-move",
+                            record.ControllerBeginStagesMicroseconds.Keys);
+                        Assert.True(record.MaximumControllerUpdateDurationMicroseconds > 0);
+                    }
+                    finally
+                    {
+                        controller.End();
+                        Cursor.Position = originalCursor;
+                        form.Close();
+                        Application.DoEvents();
+                    }
+                }
+            }, "The rapid direct-drag update integration test timed out.");
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
         public void DirectControllerRestoresCapturedCursorAndMovesCapturedWindow()
         {
             RunInStaThread(reportStage => RunCapturedWindowDragTest(reportStage),
@@ -730,6 +794,18 @@ namespace GestureSign.Tests
         private static bool IsControlKeyDown()
         {
             return (NativeMethods.GetAsyncKeyState(0x11) & 0x8000) != 0;
+        }
+
+        private sealed class CapturingWindowDragDiagnosticSink : IWindowDragDiagnosticSink
+        {
+            internal List<WindowDragDiagnosticRecord> Records { get; } =
+                new List<WindowDragDiagnosticRecord>();
+
+            public bool TryWrite(WindowDragDiagnosticRecord record)
+            {
+                Records.Add(record);
+                return true;
+            }
         }
 
         private sealed class ExternalForegroundWindow : IDisposable

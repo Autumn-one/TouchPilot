@@ -14,9 +14,6 @@ namespace GestureSign.Daemon.Triggers
 {
     internal sealed class WindowDragController
     {
-        private const int UpdateIntervalMilliseconds = 16;
-
-        private readonly Stopwatch _updateStopwatch = new Stopwatch();
         private readonly InputSimulator _inputSimulator = new InputSimulator();
         private readonly WindowDragDiagnostics _diagnostics;
         private SystemWindow _window;
@@ -55,8 +52,36 @@ namespace GestureSign.Daemon.Triggers
         public bool Begin(SystemWindow window, Point cursor, double normalizedX, double normalizedY,
             TouchpadWindowDragImplementation implementation, bool bringToForeground = false)
         {
+            long beginStartedAt = StartDiagnosticTimer();
+            try
+            {
+                return BeginCore(window, cursor, normalizedX, normalizedY,
+                    implementation, bringToForeground);
+            }
+            finally
+            {
+                if (beginStartedAt != 0)
+                {
+                    _diagnostics.RecordControllerBeginDuration(Environment.TickCount64,
+                        GetElapsedMicroseconds(beginStartedAt));
+                }
+            }
+        }
+
+        private bool BeginCore(SystemWindow window, Point cursor,
+            double normalizedX,
+            double normalizedY,
+            TouchpadWindowDragImplementation implementation,
+            bool bringToForeground)
+        {
+            long stageStartedAt = StartDiagnosticTimer();
             End();
-            if (!IsMovableWindow(window))
+            RecordControllerBeginStage("end-previous", stageStartedAt);
+
+            stageStartedAt = StartDiagnosticTimer();
+            bool movableWindow = IsMovableWindow(window);
+            RecordControllerBeginStage("validate-target", stageStartedAt);
+            if (!movableWindow)
                 return false;
 
             _window = window;
@@ -65,39 +90,54 @@ namespace GestureSign.Daemon.Triggers
             _failureLogged = false;
             LastFailure = null;
 
-            if (!PrepareWindowForDrag())
+            stageStartedAt = StartDiagnosticTimer();
+            bool windowPrepared = PrepareWindowForDrag();
+            RecordControllerBeginStage("prepare-window", stageStartedAt);
+            if (!windowPrepared)
             {
                 End();
                 return false;
             }
 
-            if (!TryRestoreCursor(cursor))
+            stageStartedAt = StartDiagnosticTimer();
+            bool cursorRestored = TryRestoreCursor(cursor);
+            RecordControllerBeginStage("restore-cursor", stageStartedAt);
+            if (!cursorRestored)
             {
                 End();
                 return false;
             }
 
+            stageStartedAt = StartDiagnosticTimer();
             if (UsesSimulatedMouseDrag(implementation))
             {
                 if (!TryStartSimulatedMouseDrag())
                 {
+                    RecordControllerBeginStage("start-simulated-drag", stageStartedAt);
                     End();
                     return false;
                 }
+                RecordControllerBeginStage("start-simulated-drag", stageStartedAt);
             }
             else
             {
                 ConfigureDirectWindowAnchor(window, cursor);
+                RecordControllerBeginStage("configure-anchor", stageStartedAt);
             }
 
+            stageStartedAt = StartDiagnosticTimer();
             InitializeCursorTracking(normalizedX, normalizedY, cursor);
             _hasPendingPosition = implementation == TouchpadWindowDragImplementation.DirectSetWindowPos;
             _active = true;
-            _updateStopwatch.Restart();
+            RecordControllerBeginStage("initialize-tracking", stageStartedAt);
 
-            return implementation == TouchpadWindowDragImplementation.DirectSetWindowPos
-                ? MoveWindowToCursor(cursor)
-                : true;
+            if (implementation != TouchpadWindowDragImplementation.DirectSetWindowPos)
+                return true;
+
+            stageStartedAt = StartDiagnosticTimer();
+            bool moved = MoveWindowToCursor(cursor);
+            RecordControllerBeginStage("initial-window-move", stageStartedAt);
+            return moved;
         }
 
         private bool TryRestoreCursor(Point cursor)
@@ -121,6 +161,23 @@ namespace GestureSign.Daemon.Triggers
         }
 
         public bool Update(double normalizedX, double normalizedY, double sensitivity)
+        {
+            long updateStartedAt = StartDiagnosticTimer();
+            try
+            {
+                return UpdateCore(normalizedX, normalizedY, sensitivity);
+            }
+            finally
+            {
+                if (updateStartedAt != 0)
+                {
+                    _diagnostics.RecordControllerUpdateDuration(Environment.TickCount64,
+                        GetElapsedMicroseconds(updateStartedAt));
+                }
+            }
+        }
+
+        private bool UpdateCore(double normalizedX, double normalizedY, double sensitivity)
         {
             if (_active)
                 _diagnostics?.RecordControllerUpdate(Environment.TickCount64);
@@ -172,10 +229,6 @@ namespace GestureSign.Daemon.Triggers
 
             _pendingCursor = desiredCursor;
             _hasPendingPosition = true;
-
-            if (_updateStopwatch.ElapsedMilliseconds < UpdateIntervalMilliseconds)
-                return true;
-
             return FlushPendingPosition();
         }
 
@@ -243,7 +296,6 @@ namespace GestureSign.Daemon.Triggers
             _hasPendingPosition = false;
             _anchorX = 0;
             _anchorY = 0;
-            _updateStopwatch.Reset();
         }
 
         private void ConfigureDirectWindowAnchor(SystemWindow window, Point cursor)
@@ -477,7 +529,6 @@ namespace GestureSign.Daemon.Triggers
 
             ObserveWindowPosition();
             _hasPendingPosition = false;
-            _updateStopwatch.Restart();
             return MoveWindowToCursor(_pendingCursor);
         }
 
@@ -494,13 +545,32 @@ namespace GestureSign.Daemon.Triggers
             bool moved = WindowPositionInterop.SetWindowPosition(_window.HWnd, IntPtr.Zero,
                 requestedLeft, requestedTop, 0, 0, flags);
             int errorCode = moved ? 0 : Marshal.GetLastWin32Error();
-            long callTicks = Math.Max(0, Stopwatch.GetTimestamp() - callStartedAt);
-            long callMicroseconds = (long)(callTicks * (1_000_000d / Stopwatch.Frequency));
+            long callMicroseconds = GetElapsedMicroseconds(callStartedAt);
             _diagnostics?.RecordWindowMoveRequest(Environment.TickCount64,
                 requestedLeft, requestedTop, moved, callMicroseconds);
             if (!moved)
                 LogFailureOnce("SetWindowPos", errorCode);
             return moved;
+        }
+
+        private long StartDiagnosticTimer()
+        {
+            return _diagnostics == null ? 0 : Stopwatch.GetTimestamp();
+        }
+
+        private void RecordControllerBeginStage(string stage, long startedAt)
+        {
+            if (startedAt == 0)
+                return;
+
+            _diagnostics.RecordControllerBeginStage(Environment.TickCount64,
+                stage, GetElapsedMicroseconds(startedAt));
+        }
+
+        private static long GetElapsedMicroseconds(long startedAt)
+        {
+            long elapsedTicks = Math.Max(0, Stopwatch.GetTimestamp() - startedAt);
+            return (long)(elapsedTicks * (1_000_000d / Stopwatch.Frequency));
         }
 
         private void ObserveWindowPosition()

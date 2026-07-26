@@ -18,12 +18,15 @@ namespace GestureSign.Tests
             TouchpadContact moving = Contact(1, TouchpadContactConfidence.Confident);
             TouchpadContact anchor = Contact(2, TouchpadContactConfidence.Confident);
 
-            diagnostics.ObserveTouchpadFrame(100, Frame(moving, anchor), Frame(moving, anchor));
+            diagnostics.ObserveTouchpadFrame(100, Frame(moving, anchor), Frame(moving, anchor), 30);
             diagnostics.Begin(100, TouchpadWindowDragImplementation.DirectSetWindowPos,
                 new IntPtr(123), true, true);
             diagnostics.RecordControllerBegin(true, 100);
+            diagnostics.RecordControllerBeginStage(100, "prepare-window", 40_000);
+            diagnostics.RecordControllerBeginDuration(100, 45_000);
             diagnostics.RecordInteraction(TouchpadInteractionEventType.WindowDragMoved, 100);
             diagnostics.RecordControllerUpdate(100);
+            diagnostics.RecordControllerUpdateDuration(100, 35_000);
             diagnostics.RecordWindowMoveRequest(100, 300, 200, true, 45);
             diagnostics.ObserveWindowPosition(108, 280, 200);
 
@@ -34,6 +37,7 @@ namespace GestureSign.Tests
             diagnostics.RecordInteraction(TouchpadInteractionEventType.WindowDragResumed, 140);
             diagnostics.RecordInteraction(TouchpadInteractionEventType.WindowDragMoved, 140);
             diagnostics.RecordControllerUpdate(140);
+            diagnostics.RecordInputHandlerDuration(140, 30_000);
             diagnostics.ObserveWindowPosition(140, 280, 200);
             diagnostics.Complete(150, "ended");
 
@@ -45,13 +49,22 @@ namespace GestureSign.Tests
             Assert.Equal(3, record.InputFrames);
             Assert.Equal(32, record.MaximumInputGapMilliseconds);
             Assert.Equal(1, record.InputGapsOverThreshold);
+            Assert.Equal(30, record.MaximumInputDispatchDelayMilliseconds);
+            Assert.Equal(1, record.InputDispatchDelaysOverThreshold);
+            Assert.Equal(30_000, record.MaximumInputHandlerDurationMicroseconds);
+            Assert.Equal(1, record.InputHandlerDurationsOverThreshold);
             Assert.Equal(1, record.ConfidenceFilteredFramesBelowTwoContacts);
             Assert.Equal(1, record.LowConfidenceFrames);
             Assert.Equal(1, record.RecognizerPauses);
             Assert.Equal(1, record.RecognizerResumes);
             Assert.Equal(40, record.MaximumRecognizerMoveGapMilliseconds);
+            Assert.Equal(45_000, record.ControllerBeginDurationMicroseconds);
+            Assert.Equal(40_000,
+                record.ControllerBeginStagesMicroseconds["prepare-window"]);
             Assert.Equal(40, record.MaximumControllerUpdateGapMilliseconds);
             Assert.Equal(1, record.ControllerUpdateGapsOverThreshold);
+            Assert.Equal(35_000, record.MaximumControllerUpdateDurationMicroseconds);
+            Assert.Equal(1, record.ControllerUpdateDurationsOverThreshold);
             Assert.Equal(1, record.WindowMoveRequests);
             Assert.Equal(45, record.MaximumSetWindowPosCallMicroseconds);
             Assert.Equal(20, record.MaximumObservedWindowLagPixels);
