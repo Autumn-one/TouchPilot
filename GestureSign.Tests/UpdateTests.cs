@@ -96,32 +96,38 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public async Task MetadataClientSelectsHighestTrustedVersionAcrossProxies()
+        public async Task MetadataClientFallsThroughSourcesAndStopsAtFirstTrustedResponse()
         {
             using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-            string stale = UpdateMetadataSignature.Sign(
-                CreateUpdateMetadata(DateTimeOffset.UtcNow.AddDays(-1), "8.3.0-beta.1"), signingKey);
+            using ECDsa untrustedKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            string untrusted = UpdateMetadataSignature.Sign(
+                CreateUpdateMetadata(DateTimeOffset.UtcNow, "99.0.0"), untrustedKey);
             string current = UpdateMetadataSignature.Sign(
                 CreateUpdateMetadata(DateTimeOffset.UtcNow, "8.3.0-beta.2"), signingKey);
             var handler = new MetadataHandler(new Dictionary<string, string>
             {
-                ["stale.invalid"] = stale,
-                ["current.invalid"] = current
+                ["untrusted.invalid"] = untrusted,
+                ["current.invalid"] = current,
+                ["unused.invalid"] = current
             });
             using var httpClient = new HttpClient(handler);
             using var client = new UpdateMetadataClient(
                 GitHubRepository.Parse("Autumn-one/TouchPilot"), signingKey, httpClient,
                 new[]
                 {
-                    new UpdateSource("stale", "https://stale.invalid/"),
-                    new UpdateSource("current", "https://current.invalid/")
+                    new UpdateSource("untrusted", "https://untrusted.invalid/"),
+                    new UpdateSource("current", "https://current.invalid/"),
+                    new UpdateSource("unused", "https://unused.invalid/")
                 }, TimeSpan.FromSeconds(1), () => DateTimeOffset.UnixEpoch);
 
             UpdateMetadataResult result = await client.GetLatestAsync(CancellationToken.None);
 
             Assert.Equal("8.3.0-beta.2", result.Metadata.Version);
             Assert.Equal("current", result.SourceName);
-            Assert.Equal(2, result.ValidSourceCount);
+            Assert.Equal(1, result.ValidSourceCount);
+            Assert.Collection(handler.Requests,
+                request => Assert.Equal("untrusted.invalid", new Uri(request.Url).Host),
+                request => Assert.Equal("current.invalid", new Uri(request.Url).Host));
             Assert.All(handler.Requests, request =>
             {
                 Assert.Contains("/releases/latest/download/TouchPilot-update.json", request.Url);
@@ -259,7 +265,7 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public async Task PackageDownloaderResumesThroughFastestHealthyProxy()
+        public async Task PackageDownloaderResumesThroughFirstHealthySource()
         {
             using var directory = new TemporaryDirectory();
             byte[] package = Encoding.UTF8.GetBytes(new string('a', 20000));
@@ -289,6 +295,13 @@ namespace GestureSign.Tests
             Assert.False(File.Exists(destination + ".download"));
             Assert.Contains(handler.Requests, request => request.Host == "healthy.invalid" &&
                                                         request.RangeStart == 3000);
+            Assert.Collection(handler.Requests,
+                request => Assert.Equal(("failed.invalid", 0L),
+                    (request.Host, request.RangeStart.GetValueOrDefault())),
+                request => Assert.Equal(("healthy.invalid", 0L),
+                    (request.Host, request.RangeStart.GetValueOrDefault())),
+                request => Assert.Equal(("healthy.invalid", 3000L),
+                    (request.Host, request.RangeStart.GetValueOrDefault())));
             Assert.All(handler.Requests, request => Assert.Null(request.Authorization));
         }
 

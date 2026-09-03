@@ -1,9 +1,7 @@
-using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -51,13 +49,11 @@ namespace GestureSign.Common.Updates
         public async Task<UpdateMetadataResult> GetLatestAsync(CancellationToken cancellationToken)
         {
             string targetUrl = BuildLatestMetadataUrl();
-            CandidateDownload[] downloads = await Task.WhenAll(_sources.Select(source =>
-                DownloadCandidateAsync(source, targetUrl, cancellationToken))).ConfigureAwait(false);
-
-            var validCandidates = new List<VerifiedCandidate>();
             var errors = new List<string>();
-            foreach (CandidateDownload download in downloads)
+            foreach (UpdateSource source in _sources)
             {
+                CandidateDownload download = await DownloadCandidateAsync(source, targetUrl,
+                    cancellationToken).ConfigureAwait(false);
                 if (download.Error != null)
                 {
                     errors.Add(download.Source.Name + ": " + download.Error.Message);
@@ -69,8 +65,8 @@ namespace GestureSign.Common.Updates
                     UpdateMetadata metadata = UpdateMetadataSignature.Verify(download.Json, _trustedKey);
                     if (!string.Equals(metadata.Repository, _repository.Slug, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException("The metadata repository does not match the application.");
-                    validCandidates.Add(new VerifiedCandidate(download.Source, metadata,
-                        download.ElapsedMilliseconds));
+                    return new UpdateMetadataResult(metadata, download.Source.Name,
+                        download.ElapsedMilliseconds, 1);
                 }
                 catch (Exception exception) when (exception is InvalidDataException ||
                                                   exception is FormatException ||
@@ -80,16 +76,7 @@ namespace GestureSign.Common.Updates
                 }
             }
 
-            if (validCandidates.Count == 0)
-                throw new UpdateMetadataUnavailableException(errors);
-
-            VerifiedCandidate selected = validCandidates
-                .OrderByDescending(candidate => ReleaseVersion.Parse(candidate.Metadata.Version),
-                    VersionComparer.VersionRelease)
-                .ThenBy(candidate => candidate.ElapsedMilliseconds)
-                .First();
-            return new UpdateMetadataResult(selected.Metadata, selected.Source.Name,
-                selected.ElapsedMilliseconds, validCandidates.Count);
+            throw new UpdateMetadataUnavailableException(errors);
         }
 
         public void Dispose()
@@ -100,7 +87,7 @@ namespace GestureSign.Common.Updates
 
         private string BuildLatestMetadataUrl()
         {
-            string cacheKey = _utcNow().UtcDateTime.ToString("yyyyMMddHH");
+            long cacheKey = _utcNow().ToUnixTimeSeconds() / (long)TimeSpan.FromMinutes(10).TotalSeconds;
             return $"https://github.com/{_repository.Slug}/releases/latest/download/" +
                    $"{UpdatePackageNaming.MetadataAssetName}?touchpilot_check={cacheKey}";
         }
@@ -199,19 +186,6 @@ namespace GestureSign.Common.Updates
             }
         }
 
-        private sealed class VerifiedCandidate
-        {
-            public VerifiedCandidate(UpdateSource source, UpdateMetadata metadata, long elapsedMilliseconds)
-            {
-                Source = source;
-                Metadata = metadata;
-                ElapsedMilliseconds = elapsedMilliseconds;
-            }
-
-            public UpdateSource Source { get; }
-            public UpdateMetadata Metadata { get; }
-            public long ElapsedMilliseconds { get; }
-        }
     }
 
     public sealed class UpdateSource

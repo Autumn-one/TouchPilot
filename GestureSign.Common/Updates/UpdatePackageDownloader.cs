@@ -59,23 +59,23 @@ namespace GestureSign.Common.Updates
             }
 
             string originUrl = BuildAssetUrl(repository, tag, asset.Name);
-            ProbeResult[] probes = await Task.WhenAll(_sources.Select(source =>
-                ProbeAsync(source, originUrl, asset.Size, cancellationToken))).ConfigureAwait(false);
-            UpdateSource[] candidates = probes.Where(probe => probe.Success)
-                .OrderBy(probe => probe.ElapsedMilliseconds)
-                .Select(probe => probe.Source)
-                .ToArray();
-            if (candidates.Length == 0)
-                throw new HttpRequestException("No update download source passed the range probe.");
-
             string partialPath = destinationPath + ".download";
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destinationPath)));
             if (File.Exists(partialPath) && new FileInfo(partialPath).Length > asset.Size)
                 File.Delete(partialPath);
 
             var failures = new List<Exception>();
-            foreach (UpdateSource source in candidates)
+            foreach (UpdateSource source in _sources)
             {
+                ProbeResult probe = await ProbeAsync(source, originUrl, asset.Size, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!probe.Success)
+                {
+                    failures.Add(new HttpRequestException(
+                        $"Update source {source.Name} did not pass the range probe."));
+                    continue;
+                }
+
                 try
                 {
                     await DownloadFromSourceAsync(source, originUrl, asset, partialPath, progress,
