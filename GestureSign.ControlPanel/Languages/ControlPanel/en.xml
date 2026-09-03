@@ -241,7 +241,7 @@ Email: ccfyzh@gmail.com
     <WindowDragBringToFront>Bring dragged window to front</WindowDragBringToFront>
     <WindowDragImplementation>Dragging method</WindowDragImplementation>
     <DirectSetWindowPos>Bottom anchor: direct window movement (SetWindowPos)</DirectSetWindowPos>
-    <NativeMoveLoop>Bottom anchor: Windows native move loop (activates window)</NativeMoveLoop>
+    <NativeMoveLoop>Bottom anchor: Windows native move loop (activates and snaps cursor)</NativeMoveLoop>
     <SimulatedMouseDrag>Bottom anchor: simulated mouse hold</SimulatedMouseDrag>
     <ThreeFingerDrag>Three-finger drag (recorded 3-finger gestures off)</ThreeFingerDrag>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>

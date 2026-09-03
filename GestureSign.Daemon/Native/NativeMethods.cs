@@ -73,13 +73,20 @@ namespace GestureSign.Daemon.Native
         internal const uint RIDI_PREPARSEDDATA = 0x20000005;
 
         internal const int WM_KEYDOWN = 0x0100;
+        internal const int WM_KEYUP = 0x0101;
         internal const int WM_SYSKEYDOWN = 0x0104;
+        internal const int WM_SYSCOMMAND = 0x0112;
+        internal const int WM_CANCELMODE = 0x001F;
         internal const int WM_NCHITTEST = 0x0084;
         internal const int WM_INPUT = 0x00FF;
         internal const int WM_INPUT_DEVICE_CHANGE = 0x00FE;
         internal const int HTCAPTION = 2;
+        internal const int SC_MOVE = 0xF010;
         internal const uint GA_ROOT = 2;
         internal const int VK_LBUTTON = 0x01;
+        internal const int VK_RETURN = 0x0D;
+        internal const int VK_LEFT = 0x25;
+        internal const int VK_RIGHT = 0x27;
         internal const int VK_OEM_CLEAR = 0xFE;
         internal const int VK_LAST_KEY = VK_OEM_CLEAR; // this is a made up value used as a sentinal
         internal const uint SMTO_BLOCK = 0x0001;

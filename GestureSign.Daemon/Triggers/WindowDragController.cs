@@ -14,12 +14,18 @@ namespace GestureSign.Daemon.Triggers
 {
     internal sealed class WindowDragController
     {
+        private static readonly TimeSpan DirectMoveFlushTimeout = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan DirectMoveStopTimeout = TimeSpan.FromMilliseconds(100);
+
         private readonly InputSimulator _inputSimulator = new InputSimulator();
         private readonly WindowDragDiagnostics _diagnostics;
+        private readonly NativeWindowMoveLoop _nativeMoveLoop = new NativeWindowMoveLoop();
+        private WindowDragMotionPump _directMotionPump;
         private SystemWindow _window;
         private bool _active;
         private bool _failureLogged;
         private bool _simulatedLeftButtonDown;
+        private bool _nativeMoveLoopFallback;
         private bool _bringToForeground;
         private TouchpadWindowDragImplementation _implementation;
         private int _anchorX;
@@ -87,6 +93,7 @@ namespace GestureSign.Daemon.Triggers
             _window = window;
             _implementation = implementation;
             _bringToForeground = bringToForeground;
+            _nativeMoveLoopFallback = false;
             _failureLogged = false;
             LastFailure = null;
 
@@ -131,11 +138,29 @@ namespace GestureSign.Daemon.Triggers
             _active = true;
             RecordControllerBeginStage("initialize-tracking", stageStartedAt);
 
+            if (implementation == TouchpadWindowDragImplementation.NativeMoveLoop)
+            {
+                stageStartedAt = StartDiagnosticTimer();
+                bool nativeStarted = _nativeMoveLoop.TryStart(_window.HWnd);
+                _diagnostics?.RecordNativeMoveLoopStart(nativeStarted,
+                    _nativeMoveLoop.LastFailure);
+                RecordControllerBeginStage("start-native-move-loop", stageStartedAt);
+                if (nativeStarted)
+                {
+                    InitializeCursorTracking(normalizedX, normalizedY, Cursor.Position);
+                    return true;
+                }
+
+                _nativeMoveLoopFallback = true;
+                _hasPendingPosition = true;
+                return FlushPendingPosition(true);
+            }
+
             if (implementation != TouchpadWindowDragImplementation.DirectSetWindowPos)
                 return true;
 
             stageStartedAt = StartDiagnosticTimer();
-            bool moved = MoveWindowToCursor(cursor);
+            bool moved = FlushPendingPosition(true);
             RecordControllerBeginStage("initial-window-move", stageStartedAt);
             return moved;
         }
@@ -188,6 +213,9 @@ namespace GestureSign.Daemon.Triggers
                 return false;
             }
 
+            if (!DrainDirectMotionResults())
+                return false;
+
             if (UsesSimulatedMouseDrag(_implementation) &&
                 (!_simulatedLeftButtonDown || !IsLeftButtonDown()))
             {
@@ -198,6 +226,14 @@ namespace GestureSign.Daemon.Triggers
             }
 
             Point actualCursor = Cursor.Position;
+            if (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop &&
+                !_nativeMoveLoopFallback && !_nativeMoveLoop.IsActive)
+            {
+                ConfigureDirectWindowAnchor(_window, actualCursor);
+                _nativeMoveLoopFallback = true;
+                _diagnostics?.RecordNativeMoveLoopStart(false,
+                    "move-loop-ended-during-update");
+            }
             bool cursorMovedOutsideController = Math.Abs(actualCursor.X - _lastCommandedCursor.X) > 1 ||
                                                 Math.Abs(actualCursor.Y - _lastCommandedCursor.Y) > 1;
             if (cursorMovedOutsideController)
@@ -219,13 +255,25 @@ namespace GestureSign.Daemon.Triggers
             ClampCursorToVirtualDesktop();
 
             Point desiredCursor = new Point((int)Math.Round(_virtualCursorX), (int)Math.Round(_virtualCursorY));
-            if (desiredCursor != actualCursor && !NativeMethods.SetCursorPos(desiredCursor.X, desiredCursor.Y))
-                LogFailureOnce("SetCursorPos", Marshal.GetLastWin32Error());
+            if (desiredCursor != actualCursor && !MoveCursor(desiredCursor))
+                LogFailureOnce("move the cursor", Marshal.GetLastWin32Error());
 
             _lastCommandedCursor = desiredCursor;
 
             if (UsesSimulatedMouseDrag(_implementation))
                 return true;
+
+            if (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop &&
+                !_nativeMoveLoopFallback)
+            {
+                if (_nativeMoveLoop.IsActive)
+                    return true;
+
+                ConfigureDirectWindowAnchor(_window, desiredCursor);
+                _nativeMoveLoopFallback = true;
+                _diagnostics?.RecordNativeMoveLoopStart(false,
+                    "move-loop-ended-during-cursor-update");
+            }
 
             _pendingCursor = desiredCursor;
             _hasPendingPosition = true;
@@ -243,8 +291,13 @@ namespace GestureSign.Daemon.Triggers
                 return false;
 
             Point cursor = Cursor.Position;
-            if (!UsesSimulatedMouseDrag(_implementation))
-                FlushPendingPosition();
+            if (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop &&
+                !_nativeMoveLoopFallback)
+            {
+                _nativeMoveLoop.Commit();
+            }
+            else if (!UsesSimulatedMouseDrag(_implementation))
+                FlushPendingPosition(true);
 
             if (!IsMovableWindow(window))
             {
@@ -273,6 +326,20 @@ namespace GestureSign.Daemon.Triggers
             }
 
             InitializeCursorTracking(normalizedX, normalizedY, cursor);
+            if (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop)
+            {
+                _nativeMoveLoopFallback = !_nativeMoveLoop.TryStart(_window.HWnd);
+                _diagnostics?.RecordNativeMoveLoopStart(!_nativeMoveLoopFallback,
+                    _nativeMoveLoop.LastFailure);
+                if (!_nativeMoveLoopFallback)
+                {
+                    InitializeCursorTracking(normalizedX, normalizedY, Cursor.Position);
+                    return true;
+                }
+
+                _hasPendingPosition = true;
+                return FlushPendingPosition(true);
+            }
             return true;
         }
 
@@ -280,19 +347,34 @@ namespace GestureSign.Daemon.Triggers
         {
             if (UsesSimulatedMouseDrag(_implementation))
                 ReleaseSimulatedLeftButton();
+            else if (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop &&
+                     !_nativeMoveLoopFallback)
+            {
+                if (!_nativeMoveLoop.Commit())
+                    LogFailureOnce("exit the native window move loop", 0);
+            }
             else
-                FlushPendingPosition();
+                FlushPendingPosition(true);
         }
 
         public void End()
         {
-            if (_active && _implementation == TouchpadWindowDragImplementation.DirectSetWindowPos)
-                FlushPendingPosition();
+            if (_active && UsesDirectWindowPositioning())
+                FlushPendingPosition(true);
+
+            if (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop &&
+                !_nativeMoveLoop.Commit())
+            {
+                LogFailureOnce("exit the native window move loop", 0);
+            }
+
+            StopDirectMotionPump();
 
             ReleaseSimulatedLeftButton();
             _active = false;
             _window = null;
             _bringToForeground = false;
+            _nativeMoveLoopFallback = false;
             _hasPendingPosition = false;
             _anchorX = 0;
             _anchorY = 0;
@@ -367,10 +449,13 @@ namespace GestureSign.Daemon.Triggers
 
         private void BringWindowToForegroundIfRequested()
         {
-            if (!_bringToForeground || SystemWindow.ForegroundWindow.HWnd == _window.HWnd)
+            bool nativeMoveLoop = _implementation == TouchpadWindowDragImplementation.NativeMoveLoop;
+            if ((!_bringToForeground && !nativeMoveLoop) ||
+                SystemWindow.ForegroundWindow.HWnd == _window.HWnd)
                 return;
 
-            if (_implementation == TouchpadWindowDragImplementation.DirectSetWindowPos)
+            if (_implementation == TouchpadWindowDragImplementation.DirectSetWindowPos ||
+                nativeMoveLoop)
             {
                 if (TryActivateDirectDragWindow(out string failureDetail))
                     return;
@@ -522,14 +607,83 @@ namespace GestureSign.Daemon.Triggers
             _simulatedLeftButtonDown = false;
         }
 
-        private bool FlushPendingPosition()
+        private bool FlushPendingPosition(bool waitForCompletion = false)
         {
             if (!_active || !_hasPendingPosition)
-                return _active;
+                return _active && DrainDirectMotionResults();
 
             ObserveWindowPosition();
             _hasPendingPosition = false;
+            if (UsesDirectWindowPositioning())
+                return PublishDirectWindowPosition(_pendingCursor, waitForCompletion);
             return MoveWindowToCursor(_pendingCursor);
+        }
+
+        private bool PublishDirectWindowPosition(Point cursor, bool waitForCompletion)
+        {
+            int targetThreadId = NativeMethods.GetWindowThreadProcessId(
+                new HandleRef(this, _window.HWnd), out _);
+            bool requiresAsynchronousPositioning = targetThreadId == NativeMethods.GetCurrentThreadId();
+            var request = new WindowDragMotionRequest(_window.HWnd,
+                cursor.X - _anchorX, cursor.Y - _anchorY, requiresAsynchronousPositioning);
+
+            _directMotionPump ??= new WindowDragMotionPump();
+            if (!_directMotionPump.Publish(request))
+            {
+                StopDirectMotionPump();
+                return MoveWindowToCursor(cursor);
+            }
+            _diagnostics?.RecordWindowMoveTargetPublished();
+
+            if (waitForCompletion && !_directMotionPump.Flush(DirectMoveFlushTimeout))
+            {
+                StopDirectMotionPump();
+                return MoveWindowToCursor(cursor);
+            }
+
+            return DrainDirectMotionResults();
+        }
+
+        private bool DrainDirectMotionResults()
+        {
+            if (_directMotionPump == null)
+                return true;
+
+            bool succeeded = true;
+            while (_directMotionPump.TryTakeResult(out WindowDragMotionResult result))
+            {
+                _diagnostics?.RecordWindowMoveRequest(result.TimestampMilliseconds,
+                    result.RequestedLeft, result.RequestedTop, result.Succeeded,
+                    result.CallMicroseconds, result.UsedAsynchronousFallback,
+                    result.CompositionWaitMicroseconds);
+                if (!result.Succeeded)
+                {
+                    succeeded = false;
+                    LogFailureOnce("SetWindowPos", result.ErrorCode);
+                }
+            }
+            return succeeded;
+        }
+
+        private void StopDirectMotionPump()
+        {
+            WindowDragMotionPump pump = _directMotionPump;
+            if (pump == null)
+                return;
+
+            _directMotionPump = null;
+            pump.Stop(DirectMoveStopTimeout);
+            _diagnostics?.RecordWindowMoveTargetsCoalesced(pump.CoalescedTargets);
+            while (pump.TryTakeResult(out WindowDragMotionResult result))
+            {
+                _diagnostics?.RecordWindowMoveRequest(result.TimestampMilliseconds,
+                    result.RequestedLeft, result.RequestedTop, result.Succeeded,
+                    result.CallMicroseconds, result.UsedAsynchronousFallback,
+                    result.CompositionWaitMicroseconds);
+                if (!result.Succeeded)
+                    LogFailureOnce("SetWindowPos", result.ErrorCode);
+            }
+            pump.Dispose();
         }
 
         private bool MoveWindowToCursor(Point cursor)
@@ -546,11 +700,19 @@ namespace GestureSign.Daemon.Triggers
                 requestedLeft, requestedTop, 0, 0, flags);
             int errorCode = moved ? 0 : Marshal.GetLastWin32Error();
             long callMicroseconds = GetElapsedMicroseconds(callStartedAt);
+            _diagnostics?.RecordWindowMoveTargetPublished();
             _diagnostics?.RecordWindowMoveRequest(Environment.TickCount64,
-                requestedLeft, requestedTop, moved, callMicroseconds);
+                requestedLeft, requestedTop, moved, callMicroseconds, true);
             if (!moved)
                 LogFailureOnce("SetWindowPos", errorCode);
             return moved;
+        }
+
+        private bool UsesDirectWindowPositioning()
+        {
+            return _implementation == TouchpadWindowDragImplementation.DirectSetWindowPos ||
+                   (_implementation == TouchpadWindowDragImplementation.NativeMoveLoop &&
+                    _nativeMoveLoopFallback);
         }
 
         private long StartDiagnosticTimer()
@@ -595,6 +757,30 @@ namespace GestureSign.Daemon.Triggers
             Rectangle virtualScreen = SystemInformation.VirtualScreen;
             _virtualCursorX = Clamp(_virtualCursorX, virtualScreen.Left, virtualScreen.Right - 1);
             _virtualCursorY = Clamp(_virtualCursorY, virtualScreen.Top, virtualScreen.Bottom - 1);
+        }
+
+        private bool MoveCursor(Point cursor)
+        {
+            if (_implementation != TouchpadWindowDragImplementation.NativeMoveLoop ||
+                _nativeMoveLoopFallback)
+            {
+                return NativeMethods.SetCursorPos(cursor.X, cursor.Y);
+            }
+
+            try
+            {
+                Rectangle virtualScreen = SystemInformation.VirtualScreen;
+                double absoluteX = (cursor.X - virtualScreen.Left) * 65535d /
+                                   Math.Max(1, virtualScreen.Width - 1);
+                double absoluteY = (cursor.Y - virtualScreen.Top) * 65535d /
+                                   Math.Max(1, virtualScreen.Height - 1);
+                _inputSimulator.Mouse.MoveMouseToPositionOnVirtualDesktop(absoluteX, absoluteY);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void LogFailureOnce(string operation, int errorCode)

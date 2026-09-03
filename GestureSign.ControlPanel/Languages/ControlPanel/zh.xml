@@ -244,7 +244,7 @@ QQ交流群: 576981420
     <WindowDragBringToFront>拖移时将窗口置前</WindowDragBringToFront>
     <WindowDragImplementation>拖移方式</WindowDragImplementation>
     <DirectSetWindowPos>底部锚点：直接移动窗口 (SetWindowPos)</DirectSetWindowPos>
-    <NativeMoveLoop>底部锚点：Windows 原生移动循环（会激活窗口）</NativeMoveLoop>
+    <NativeMoveLoop>底部锚点：Windows 原生移动循环（激活窗口并吸附光标）</NativeMoveLoop>
     <SimulatedMouseDrag>底部锚点：模拟鼠标按住</SimulatedMouseDrag>
     <ThreeFingerDrag>三指拖移（停用已录入三指手势）</ThreeFingerDrag>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>

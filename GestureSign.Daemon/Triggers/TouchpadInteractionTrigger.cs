@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace GestureSign.Daemon.Triggers
 {
-    internal sealed class TouchpadInteractionTrigger : Trigger
+    internal sealed class TouchpadInteractionTrigger : Trigger, IDisposable
     {
         private TouchpadInteractionRecognizer _recognizer;
         private readonly WindowDragDiagnostics _windowDragDiagnostics;
@@ -180,6 +180,15 @@ namespace GestureSign.Daemon.Triggers
         private static SystemWindow GetWindowAtPoint(Point point)
         {
             return ApplicationManager.Instance.GetWindowFromPoint(point);
+        }
+
+        public void Dispose()
+        {
+            PointCapture.Instance.TouchpadFrame -= PointCapture_TouchpadFrame;
+            _windowDragController.End();
+            _windowDragDiagnostics.Complete(Environment.TickCount64, "disposed");
+            _windowDragTargetLock.Clear();
+            _wheelSuppressor.StopMonitoring();
         }
 
         private static long GetElapsedMicroseconds(long startedAt)

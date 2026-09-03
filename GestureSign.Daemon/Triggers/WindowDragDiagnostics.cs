@@ -51,11 +51,18 @@ namespace GestureSign.Daemon.Triggers
         public long MaximumControllerUpdateDurationMicroseconds { get; set; }
         public int ControllerUpdateDurationsOverThreshold { get; set; }
         public int WindowMoveRequests { get; set; }
+        public int WindowMoveTargetsPublished { get; set; }
+        public int WindowMoveTargetsCoalesced { get; set; }
         public long MaximumWindowMoveRequestGapMilliseconds { get; set; }
         public int WindowMoveRequestFailures { get; set; }
+        public int WindowMoveAsyncFallbacks { get; set; }
         public long MaximumSetWindowPosCallMicroseconds { get; set; }
+        public long MaximumCompositionWaitMicroseconds { get; set; }
         public int MaximumObservedWindowLagPixels { get; set; }
         public long MaximumObservedWindowLagMilliseconds { get; set; }
+        public bool NativeMoveLoopStarted { get; set; }
+        public int NativeMoveLoopFallbacks { get; set; }
+        public string NativeMoveLoopFallbackDetail { get; set; }
         public int ControllerFailures { get; set; }
         public string[] Samples { get; set; } = Array.Empty<string>();
     }
@@ -118,10 +125,14 @@ namespace GestureSign.Daemon.Triggers
         private int _controllerUpdateDurationsOverThreshold;
 
         private int _windowMoveRequests;
+        private int _windowMoveTargetsPublished;
+        private int _windowMoveTargetsCoalesced;
         private long _lastWindowMoveRequestTimestamp;
         private long _maximumWindowMoveRequestGapMilliseconds;
         private int _windowMoveRequestFailures;
+        private int _windowMoveAsyncFallbacks;
         private long _maximumSetWindowPosCallMicroseconds;
+        private long _maximumCompositionWaitMicroseconds;
         private bool _hasRequestedWindowPosition;
         private int _requestedWindowLeft;
         private int _requestedWindowTop;
@@ -129,6 +140,9 @@ namespace GestureSign.Daemon.Triggers
         private bool _windowLagSampled;
         private int _maximumObservedWindowLagPixels;
         private long _maximumObservedWindowLagMilliseconds;
+        private bool _nativeMoveLoopStarted;
+        private int _nativeMoveLoopFallbacks;
+        private string _nativeMoveLoopFallbackDetail;
         private int _controllerFailures;
 
         internal WindowDragDiagnostics(IWindowDragDiagnosticSink sink)
@@ -323,7 +337,9 @@ namespace GestureSign.Daemon.Triggers
             int requestedLeft,
             int requestedTop,
             bool succeeded,
-            long callMicroseconds)
+            long callMicroseconds,
+            bool usedAsynchronousFallback = false,
+            long compositionWaitMicroseconds = 0)
         {
             if (!_active)
                 return;
@@ -335,10 +351,40 @@ namespace GestureSign.Daemon.Triggers
                 _maximumSetWindowPosCallMicroseconds, callMicroseconds);
             if (!succeeded)
                 _windowMoveRequestFailures++;
+            if (usedAsynchronousFallback)
+                _windowMoveAsyncFallbacks++;
+            _maximumCompositionWaitMicroseconds = Math.Max(
+                _maximumCompositionWaitMicroseconds, compositionWaitMicroseconds);
 
             _hasRequestedWindowPosition = succeeded;
             _requestedWindowLeft = requestedLeft;
             _requestedWindowTop = requestedTop;
+        }
+
+        internal void RecordWindowMoveTargetPublished()
+        {
+            if (_active)
+                _windowMoveTargetsPublished++;
+        }
+
+        internal void RecordWindowMoveTargetsCoalesced(int count)
+        {
+            if (_active)
+                _windowMoveTargetsCoalesced += Math.Max(0, count);
+        }
+
+        internal void RecordNativeMoveLoopStart(bool succeeded, string fallbackDetail = null)
+        {
+            if (!_active)
+                return;
+
+            if (succeeded)
+                _nativeMoveLoopStarted = true;
+            else
+            {
+                _nativeMoveLoopFallbacks++;
+                _nativeMoveLoopFallbackDetail = fallbackDetail;
+            }
         }
 
         internal void ObserveWindowPosition(long timestampMilliseconds, int left, int top)
@@ -429,11 +475,18 @@ namespace GestureSign.Daemon.Triggers
                 ControllerUpdateDurationsOverThreshold =
                     _controllerUpdateDurationsOverThreshold,
                 WindowMoveRequests = _windowMoveRequests,
+                WindowMoveTargetsPublished = _windowMoveTargetsPublished,
+                WindowMoveTargetsCoalesced = _windowMoveTargetsCoalesced,
                 MaximumWindowMoveRequestGapMilliseconds = _maximumWindowMoveRequestGapMilliseconds,
                 WindowMoveRequestFailures = _windowMoveRequestFailures,
+                WindowMoveAsyncFallbacks = _windowMoveAsyncFallbacks,
                 MaximumSetWindowPosCallMicroseconds = _maximumSetWindowPosCallMicroseconds,
+                MaximumCompositionWaitMicroseconds = _maximumCompositionWaitMicroseconds,
                 MaximumObservedWindowLagPixels = _maximumObservedWindowLagPixels,
                 MaximumObservedWindowLagMilliseconds = _maximumObservedWindowLagMilliseconds,
+                NativeMoveLoopStarted = _nativeMoveLoopStarted,
+                NativeMoveLoopFallbacks = _nativeMoveLoopFallbacks,
+                NativeMoveLoopFallbackDetail = _nativeMoveLoopFallbackDetail,
                 ControllerFailures = _controllerFailures,
                 Samples = _samples.ToArray()
             };
@@ -557,10 +610,14 @@ namespace GestureSign.Daemon.Triggers
             _maximumControllerUpdateDurationMicroseconds = 0;
             _controllerUpdateDurationsOverThreshold = 0;
             _windowMoveRequests = 0;
+            _windowMoveTargetsPublished = 0;
+            _windowMoveTargetsCoalesced = 0;
             _lastWindowMoveRequestTimestamp = 0;
             _maximumWindowMoveRequestGapMilliseconds = 0;
             _windowMoveRequestFailures = 0;
+            _windowMoveAsyncFallbacks = 0;
             _maximumSetWindowPosCallMicroseconds = 0;
+            _maximumCompositionWaitMicroseconds = 0;
             _hasRequestedWindowPosition = false;
             _requestedWindowLeft = 0;
             _requestedWindowTop = 0;
@@ -568,6 +625,9 @@ namespace GestureSign.Daemon.Triggers
             _windowLagSampled = false;
             _maximumObservedWindowLagPixels = 0;
             _maximumObservedWindowLagMilliseconds = 0;
+            _nativeMoveLoopStarted = false;
+            _nativeMoveLoopFallbacks = 0;
+            _nativeMoveLoopFallbackDetail = null;
             _controllerFailures = 0;
         }
     }

@@ -18,11 +18,36 @@ namespace GestureSign.Daemon.Native
     internal static class WindowPositionInterop
     {
         private const string User32Library = "user32.dll";
+        private const string DwmApiLibrary = "dwmapi.dll";
 
         [DllImport(User32Library, EntryPoint = "SetWindowPos", ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool SetWindowPosition(IntPtr windowHandle, IntPtr insertAfter,
             int x, int y, int width, int height, WindowPositionFlags flags);
+
+        [DllImport(User32Library, ExactSpelling = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool IsHungAppWindow(IntPtr windowHandle);
+
+        [DllImport(User32Library, EntryPoint = "GetWindowRect", ExactSpelling = true,
+            SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowRectangle(IntPtr windowHandle,
+            out NativeWindowRectangle rectangle);
+
+        [DllImport(User32Library, EntryPoint = "PostMessageW", ExactSpelling = true,
+            SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool PostWindowMessage(IntPtr windowHandle, uint message,
+            IntPtr wParam, IntPtr lParam);
+
+        [DllImport(User32Library, EntryPoint = "SendMessageW", ExactSpelling = true,
+            SetLastError = true)]
+        internal static extern IntPtr SendWindowMessage(IntPtr windowHandle, uint message,
+            IntPtr wParam, IntPtr lParam);
+
+        [DllImport(DwmApiLibrary, EntryPoint = "DwmFlush", ExactSpelling = true)]
+        internal static extern int FlushDesktopComposition();
 
         internal static IntPtr GetWindowAt(int x, int y)
         {
@@ -43,6 +68,15 @@ namespace GestureSign.Daemon.Native
                 X = x;
                 Y = y;
             }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal readonly struct NativeWindowRectangle
+        {
+            internal readonly int Left;
+            internal readonly int Top;
+            internal readonly int Right;
+            internal readonly int Bottom;
         }
     }
 }

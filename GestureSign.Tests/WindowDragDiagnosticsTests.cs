@@ -27,7 +27,11 @@ namespace GestureSign.Tests
             diagnostics.RecordInteraction(TouchpadInteractionEventType.WindowDragMoved, 100);
             diagnostics.RecordControllerUpdate(100);
             diagnostics.RecordControllerUpdateDuration(100, 35_000);
-            diagnostics.RecordWindowMoveRequest(100, 300, 200, true, 45);
+            diagnostics.RecordWindowMoveTargetPublished();
+            diagnostics.RecordWindowMoveTargetPublished();
+            diagnostics.RecordWindowMoveTargetsCoalesced(1);
+            diagnostics.RecordWindowMoveRequest(100, 300, 200, true, 45, true, 8_000);
+            diagnostics.RecordNativeMoveLoopStart(false, "test-fallback");
             diagnostics.ObserveWindowPosition(108, 280, 200);
 
             TouchpadContact lowConfidenceAnchor = Contact(2, TouchpadContactConfidence.LowConfidence);
@@ -66,9 +70,16 @@ namespace GestureSign.Tests
             Assert.Equal(35_000, record.MaximumControllerUpdateDurationMicroseconds);
             Assert.Equal(1, record.ControllerUpdateDurationsOverThreshold);
             Assert.Equal(1, record.WindowMoveRequests);
+            Assert.Equal(2, record.WindowMoveTargetsPublished);
+            Assert.Equal(1, record.WindowMoveTargetsCoalesced);
+            Assert.Equal(1, record.WindowMoveAsyncFallbacks);
             Assert.Equal(45, record.MaximumSetWindowPosCallMicroseconds);
+            Assert.Equal(8_000, record.MaximumCompositionWaitMicroseconds);
             Assert.Equal(20, record.MaximumObservedWindowLagPixels);
             Assert.Equal(42, record.MaximumObservedWindowLagMilliseconds);
+            Assert.False(record.NativeMoveLoopStarted);
+            Assert.Equal(1, record.NativeMoveLoopFallbacks);
+            Assert.Equal("test-fallback", record.NativeMoveLoopFallbackDetail);
             Assert.Contains(record.Samples, sample => sample.Contains("confidence-contact-drop"));
             Assert.Contains(record.Samples, sample => sample.Contains("window-position-lag"));
         }

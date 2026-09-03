@@ -57,6 +57,7 @@ namespace GestureSign.Common.Input
         DirectSetWindowPos = 0,
         SimulatedMouseDrag = 1,
         ThreeFingerDrag = 2,
+        NativeMoveLoop = 3,
         [Obsolete("Use SimulatedMouseDrag.")]
         SimulatedCaptionDrag = SimulatedMouseDrag
     }

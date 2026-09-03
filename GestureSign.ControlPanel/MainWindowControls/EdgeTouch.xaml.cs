@@ -172,6 +172,11 @@ namespace GestureSign.ControlPanel.MainWindowControls
                     },
                     new WindowDragImplementationChoice
                     {
+                        Value = TouchpadWindowDragImplementation.NativeMoveLoop,
+                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.NativeMoveLoop")
+                    },
+                    new WindowDragImplementationChoice
+                    {
                         Value = TouchpadWindowDragImplementation.SimulatedMouseDrag,
                         DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.SimulatedMouseDrag")
                     },
@@ -182,6 +187,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
                     }
                 };
                 WindowDragImplementationComboBox.SelectedValue = AppConfig.TouchpadWindowDragImplementation;
+                UpdateWindowDragForegroundControl(AppConfig.TouchpadWindowDragImplementation);
                 WindowDragSensitivitySlider.Value = AppConfig.TouchpadWindowDragSensitivityPercent;
                 AllEdgeZoneSlider.Value = AppConfig.TouchpadEdgeZonePercent;
                 LeftEdgeZoneSlider.Value = AppConfig.TouchpadLeftEdgeZonePercent;
@@ -272,6 +278,7 @@ namespace GestureSign.ControlPanel.MainWindowControls
             AppConfig.TouchpadWindowDragImplementation = implementation;
             if (WindowDragSwitch.IsOn)
                 AppConfig.TouchpadWindowDragMode = GetWindowDragMode(implementation);
+            UpdateWindowDragForegroundControl(implementation);
         }
 
         private void WindowDragBringToFrontSwitch_Toggled(object sender, RoutedEventArgs e)
@@ -295,6 +302,24 @@ namespace GestureSign.ControlPanel.MainWindowControls
             return implementation == TouchpadWindowDragImplementation.ThreeFingerDrag
                 ? TouchpadWindowDragMode.ThreeFingerDrag
                 : TouchpadWindowDragMode.BottomEdgeAnchor;
+        }
+
+        private void UpdateWindowDragForegroundControl(
+            TouchpadWindowDragImplementation implementation)
+        {
+            bool forceForeground = implementation == TouchpadWindowDragImplementation.NativeMoveLoop;
+            bool wasLoading = _loading;
+            _loading = true;
+            try
+            {
+                WindowDragBringToFrontSwitch.IsOn = forceForeground ||
+                                                    AppConfig.TouchpadWindowDragBringToFront;
+                WindowDragBringToFrontSwitch.IsEnabled = !forceForeground;
+            }
+            finally
+            {
+                _loading = wasLoading;
+            }
         }
 
         private void FixedGestureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

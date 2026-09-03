@@ -339,6 +339,8 @@ namespace GestureSign.Common.Configuration
                 int storedImplementation = GetValue(nameof(TouchpadWindowDragImplementation), 0);
                 if (storedImplementation == (int)TouchpadWindowDragImplementation.ThreeFingerDrag)
                     return TouchpadWindowDragImplementation.ThreeFingerDrag;
+                if (storedImplementation == (int)TouchpadWindowDragImplementation.NativeMoveLoop)
+                    return TouchpadWindowDragImplementation.NativeMoveLoop;
                 return storedImplementation == (int)TouchpadWindowDragImplementation.SimulatedMouseDrag
                     ? TouchpadWindowDragImplementation.SimulatedMouseDrag
                     : TouchpadWindowDragImplementation.DirectSetWindowPos;
@@ -347,7 +349,9 @@ namespace GestureSign.Common.Configuration
             {
                 int storedImplementation = value == TouchpadWindowDragImplementation.ThreeFingerDrag
                     ? (int)TouchpadWindowDragImplementation.ThreeFingerDrag
-                    : value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0;
+                    : value == TouchpadWindowDragImplementation.NativeMoveLoop
+                        ? (int)TouchpadWindowDragImplementation.NativeMoveLoop
+                        : value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0;
                 SetValue(nameof(TouchpadWindowDragImplementation), storedImplementation);
             }
         }

@@ -134,7 +134,7 @@ namespace GestureSign.Tests
 
         [Fact]
         [Trait("Category", "WindowsIntegration")]
-        public void DirectControllerSubmitsEveryRapidInputUpdate()
+        public void DirectControllerCoalescesRapidInputUpdatesAndFlushesLatestTarget()
         {
             RunInStaThread(reportStage =>
             {
@@ -173,17 +173,24 @@ namespace GestureSign.Tests
                         }
 
                         controller.End();
+                        Application.DoEvents();
                         diagnostics.Complete(Environment.TickCount64, "test-ended");
 
                         WindowDragDiagnosticRecord record = Assert.Single(sink.Records);
                         Assert.Equal(updateCount, record.ControllerUpdates);
-                        Assert.Equal(updateCount + 1, record.WindowMoveRequests);
+                        Assert.InRange(record.WindowMoveRequests, 1, updateCount);
                         Assert.True(record.ControllerBeginDurationMicroseconds > 0);
                         Assert.Contains("validate-target",
                             record.ControllerBeginStagesMicroseconds.Keys);
                         Assert.Contains("initial-window-move",
                             record.ControllerBeginStagesMicroseconds.Keys);
                         Assert.True(record.MaximumControllerUpdateDurationMicroseconds > 0);
+
+                        RECT finalRectangle = window.Rectangle;
+                        int expectedOffset = (int)Math.Round(
+                            Screen.FromPoint(cursor).Bounds.Width * updateCount * 0.001);
+                        Assert.InRange(finalRectangle.Left - rectangle.Left,
+                            expectedOffset - 3, expectedOffset + 3);
                     }
                     finally
                     {
@@ -490,6 +497,117 @@ namespace GestureSign.Tests
         {
             RunInStaThread(reportStage => RunExternalForegroundWindowDragTest(true, true, reportStage),
                 "The held-modifier foreground activation test timed out.");
+        }
+
+        [Theory]
+        [InlineData(TouchpadWindowDragImplementation.DirectSetWindowPos)]
+        [InlineData(TouchpadWindowDragImplementation.NativeMoveLoop)]
+        [Trait("Category", "WindowsIntegration")]
+        public void OptimizedControllerMovesExternalProcessWindow(
+            TouchpadWindowDragImplementation implementation)
+        {
+            RunInStaThread(reportStage => RunExternalTargetWindowDragTest(implementation,
+                    reportStage),
+                "The optimized cross-process window drag test timed out.");
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void NativeMoveLoopPreservesHeldModifierAcrossInputQueueAttachment()
+        {
+            RunInStaThread(reportStage => RunExternalTargetWindowDragTest(
+                    TouchpadWindowDragImplementation.NativeMoveLoop, reportStage, true),
+                "The native move-loop held-modifier test timed out.");
+        }
+
+        private static void RunExternalTargetWindowDragTest(
+            TouchpadWindowDragImplementation implementation,
+            Action<string> reportStage,
+            bool holdControl = false)
+        {
+            Point originalCursor = Cursor.Position;
+            bool controlInitiallyDown = IsControlKeyDown();
+            Rectangle workingArea = Screen.FromPoint(originalCursor).WorkingArea;
+            int width = Math.Min(360, Math.Max(240, workingArea.Width / 4));
+            int height = Math.Min(240, Math.Max(180, workingArea.Height / 3));
+            var bounds = new Rectangle(workingArea.Left + 80, workingArea.Top + 100,
+                width, height);
+            ExternalForegroundWindow target = null;
+            var sink = new CapturingWindowDragDiagnosticSink();
+            var diagnostics = new WindowDragDiagnostics(sink);
+            var controller = new WindowDragController(diagnostics);
+
+            try
+            {
+                reportStage("starting the external drag target");
+                target = ExternalForegroundWindow.Start(bounds, holdControl, reportStage);
+                if (holdControl)
+                {
+                    Assert.False(controlInitiallyDown,
+                        "Ctrl was already pressed before the integration test.");
+                    Assert.True(IsControlKeyDown(),
+                        "The external process did not hold Ctrl down.");
+                }
+                var window = new SystemWindow(target.Handle);
+                RECT initialRectangle = window.Rectangle;
+                var cursor = new Point(initialRectangle.Left + 80,
+                    initialRectangle.Top + 60);
+                Cursor.Position = cursor;
+                long startedAt = Environment.TickCount64;
+                diagnostics.Begin(startedAt, implementation, window.HWnd, true, false);
+
+                reportStage("starting the optimized cross-process drag");
+                Assert.True(controller.Begin(window, 0.50, 0.50, implementation),
+                    controller.LastFailure);
+                for (int i = 1; i <= 12; i++)
+                {
+                    Assert.True(controller.Update(0.50 + i * 0.001,
+                        0.50 + i * 0.001, 1), controller.LastFailure);
+                }
+                if (implementation == TouchpadWindowDragImplementation.NativeMoveLoop)
+                    Thread.Sleep(100);
+                controller.End();
+                Thread.Sleep(100);
+                diagnostics.Complete(Environment.TickCount64, "test-ended");
+                if (holdControl)
+                {
+                    Assert.True(IsControlKeyDown(),
+                        "The native move loop released the held Ctrl key.");
+                }
+
+                WindowDragDiagnosticRecord record = Assert.Single(sink.Records);
+                RECT finalRectangle = window.Rectangle;
+                Screen screen = Screen.FromPoint(cursor);
+                int expectedX = (int)Math.Round(screen.Bounds.Width * 0.012);
+                int expectedY = (int)Math.Round(screen.Bounds.Height * 0.012);
+                Assert.InRange(finalRectangle.Left - initialRectangle.Left,
+                    expectedX - 6, expectedX + 6);
+                Assert.InRange(finalRectangle.Top - initialRectangle.Top,
+                    expectedY - 6, expectedY + 6);
+
+                if (implementation == TouchpadWindowDragImplementation.DirectSetWindowPos)
+                {
+                    Assert.True(record.WindowMoveTargetsCoalesced > 0);
+                    Assert.True(record.WindowMoveRequests < record.WindowMoveTargetsPublished);
+                    Assert.Equal(0, record.WindowMoveAsyncFallbacks);
+                    Assert.False(record.NativeMoveLoopStarted);
+                }
+                else
+                {
+                    Assert.True(record.NativeMoveLoopStarted,
+                        record.NativeMoveLoopFallbackDetail);
+                    Assert.Equal(0, record.NativeMoveLoopFallbacks);
+                    Assert.Equal(0, record.WindowMoveRequests);
+                }
+            }
+            finally
+            {
+                controller.End();
+                Cursor.Position = originalCursor;
+                target?.Dispose();
+                if (holdControl && !controlInitiallyDown && IsControlKeyDown())
+                    new InputSimulator().Keyboard.KeyUp(WindowsInput.Native.VirtualKeyCode.CONTROL);
+            }
         }
 
         private static void RunExternalForegroundWindowDragTest(bool bringToForeground,
@@ -1019,6 +1137,154 @@ namespace GestureSign.Tests
             });
         }
 
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void NativeMoveLoopControllerMovesWindowWithoutHoldingMouseButton()
+        {
+            RunWithSimulatedMouseTestWindow((form, textBox, window, controller) =>
+            {
+                RECT initialRectangle = window.Rectangle;
+                Point clientOrigin = (Point)form.Invoke(new Func<Point>(() =>
+                    form.PointToScreen(Point.Empty)));
+                var initialCursor = new Point(clientOrigin.X + 80,
+                    initialRectangle.Top + (clientOrigin.Y - initialRectangle.Top) / 2);
+                AssertCaptionPoint(window.HWnd, initialCursor);
+                Cursor.Position = initialCursor;
+                Assert.False(IsLeftButtonDown());
+
+                Assert.True(controller.Begin(window, 0.50, 0.50,
+                    TouchpadWindowDragImplementation.NativeMoveLoop), controller.LastFailure);
+                Assert.False(IsLeftButtonDown());
+                Assert.True(controller.Update(0.55, 0.52, 1), controller.LastFailure);
+                Thread.Sleep(160);
+
+                Point firstCursor = Cursor.Position;
+                RECT firstRectangle = window.Rectangle;
+                controller.Pause();
+                var reclutchedCursor = new Point(firstCursor.X + 20, firstCursor.Y);
+                Cursor.Position = reclutchedCursor;
+                Assert.True(controller.Rebase(0.55, 0.52), controller.LastFailure);
+                Assert.False(IsLeftButtonDown());
+                Assert.True(controller.Update(0.57, 0.53, 1), controller.LastFailure);
+                Thread.Sleep(160);
+                controller.End();
+                Thread.Sleep(100);
+
+                RECT finalRectangle = window.Rectangle;
+                Screen screen = Screen.FromPoint(initialCursor);
+                int firstExpectedX = (int)Math.Round(screen.Bounds.Width * 0.05);
+                int firstExpectedY = (int)Math.Round(screen.Bounds.Height * 0.02);
+                int secondExpectedX = (int)Math.Round(screen.Bounds.Width * 0.02);
+                int secondExpectedY = (int)Math.Round(screen.Bounds.Height * 0.01);
+                Assert.False(IsLeftButtonDown());
+                Assert.InRange(firstRectangle.Left - initialRectangle.Left,
+                    firstExpectedX - 6, firstExpectedX + 6);
+                Assert.InRange(firstRectangle.Top - initialRectangle.Top,
+                    firstExpectedY - 6, firstExpectedY + 6);
+                Assert.InRange(finalRectangle.Left - firstRectangle.Left,
+                    secondExpectedX - 6, secondExpectedX + 6);
+                Assert.InRange(finalRectangle.Top - firstRectangle.Top,
+                    secondExpectedY - 6, secondExpectedY + 6);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void NativeMoveLoopControllerDragsFromClientAreaWithoutSelectingText()
+        {
+            RunWithSimulatedMouseTestWindow((form, textBox, window, controller) =>
+            {
+                RECT initialRectangle = window.Rectangle;
+                Point initialCursor = (Point)textBox.Invoke(new Func<Point>(() =>
+                    textBox.PointToScreen(new Point(8, textBox.ClientSize.Height / 2))));
+                textBox.Invoke(new Action(() =>
+                {
+                    textBox.SelectionStart = 0;
+                    textBox.SelectionLength = 0;
+                    form.ActiveControl = null;
+                }));
+                Cursor.Position = initialCursor;
+
+                Assert.True(controller.Begin(window, 0.50, 0.50,
+                    TouchpadWindowDragImplementation.NativeMoveLoop), controller.LastFailure);
+                Assert.False(IsLeftButtonDown());
+                Assert.True(controller.Update(0.55, 0.50, 1), controller.LastFailure);
+                Thread.Sleep(160);
+                controller.End();
+                Thread.Sleep(100);
+
+                RECT finalRectangle = window.Rectangle;
+                int expectedX = (int)Math.Round(Screen.FromPoint(initialCursor).Bounds.Width * 0.05);
+                int selectionLength = (int)textBox.Invoke(new Func<int>(() =>
+                    textBox.SelectionLength));
+                Assert.Equal(0, selectionLength);
+                Assert.InRange(finalRectangle.Left - initialRectangle.Left,
+                    expectedX - 6, expectedX + 6);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void NativeMoveLoopFallsBackToDirectMovementForSameThreadWindow()
+        {
+            RunInStaThread(reportStage =>
+            {
+                Point originalCursor = Cursor.Position;
+                var sink = new CapturingWindowDragDiagnosticSink();
+                var diagnostics = new WindowDragDiagnostics(sink);
+                var controller = new WindowDragController(diagnostics);
+                using (var form = CreateDirectDragTestForm(
+                    new Rectangle(180, 180, 360, 240), "native fallback"))
+                {
+                    try
+                    {
+                        reportStage("showing the native-loop fallback window");
+                        form.Show();
+                        Application.DoEvents();
+                        var window = new SystemWindow(form.Handle);
+                        RECT initialRectangle = window.Rectangle;
+                        var cursor = new Point(initialRectangle.Left + 80,
+                            initialRectangle.Top + 60);
+                        Cursor.Position = cursor;
+                        long startedAt = Environment.TickCount64;
+                        diagnostics.Begin(startedAt,
+                            TouchpadWindowDragImplementation.NativeMoveLoop,
+                            window.HWnd, true, false);
+
+                        Assert.True(controller.Begin(window, 0.50, 0.50,
+                            TouchpadWindowDragImplementation.NativeMoveLoop),
+                            controller.LastFailure);
+                        Assert.True(controller.Update(0.55, 0.52, 1),
+                            controller.LastFailure);
+                        controller.End();
+                        Application.DoEvents();
+                        diagnostics.Complete(Environment.TickCount64, "test-ended");
+
+                        WindowDragDiagnosticRecord record = Assert.Single(sink.Records);
+                        Assert.False(record.NativeMoveLoopStarted);
+                        Assert.Equal(1, record.NativeMoveLoopFallbacks);
+                        Assert.True(record.WindowMoveRequests > 0);
+
+                        RECT finalRectangle = window.Rectangle;
+                        Screen screen = Screen.FromPoint(cursor);
+                        int expectedX = (int)Math.Round(screen.Bounds.Width * 0.05);
+                        int expectedY = (int)Math.Round(screen.Bounds.Height * 0.02);
+                        Assert.InRange(finalRectangle.Left - initialRectangle.Left,
+                            expectedX - 4, expectedX + 4);
+                        Assert.InRange(finalRectangle.Top - initialRectangle.Top,
+                            expectedY - 4, expectedY + 4);
+                    }
+                    finally
+                    {
+                        controller.End();
+                        Cursor.Position = originalCursor;
+                        form.Close();
+                        Application.DoEvents();
+                    }
+                }
+            }, "The native-loop fallback integration test timed out.");
+        }
+
         private static void RunWithSimulatedMouseTestWindow(
             Action<Form, TextBox, SystemWindow, WindowDragController> test)
         {
@@ -1124,6 +1390,11 @@ namespace GestureSign.Tests
                 out hitTestResult);
             Assert.NotEqual(IntPtr.Zero, callResult);
             Assert.Equal(NativeMethods.HTCAPTION, hitTestResult.ToInt64());
+        }
+
+        private static bool IsLeftButtonDown()
+        {
+            return (NativeMethods.GetAsyncKeyState(NativeMethods.VK_LBUTTON) & 0x8000) != 0;
         }
     }
 }
