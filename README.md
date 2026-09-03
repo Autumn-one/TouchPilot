@@ -23,7 +23,9 @@ TouchPilot is a Windows touchpad and gesture automation utility. It can automate
 
 ## Automatic updates
 
-Release, Portable, and uiAccessRelease builds check the repository's latest published GitHub Release shortly after startup. Debug builds do not use the self-updater. Drafts and prereleases are not returned by GitHub's `releases/latest` endpoint and are therefore not offered automatically.
+Release, Portable, and uiAccessRelease builds check the repository's latest published GitHub Release at startup and every 10 minutes while running. A check can also be started immediately from **Options > System > Check for updates**. Debug builds do not use the self-updater. Drafts and prereleases are not returned by GitHub's `releases/latest` endpoint and are therefore not offered automatically.
+
+Metadata and packages use an ordered mirror funnel. The client stops after the first source passes signature or package validation and contacts later mirrors only after a failure. Update metadata is signed, known pending versions never move backwards when a mirror is stale, and completed packages are verified before elevation. Download and installation run in dedicated progress windows centered on the primary screen; update windows do not expose a cancel action.
 
 Each published x64 release contains these signed update assets, using the release version without a leading `v`:
 
@@ -46,3 +48,31 @@ Enter the version and release notes, then select **Build and publish**. The mana
 To remove a Release, enter its repository, token, and version, then select **Delete Release** and confirm the destructive action. This removes the GitHub Release and its assets but preserves the matching Git tag.
 
 Use a fine-grained GitHub personal access token scoped to the target repository with **Contents: Read and write** permission. Keep `TouchPilot.ReleaseManager.config.user` local and untracked; the token is read by the release manager and is not passed to build subprocesses. Publish a non-draft, non-prerelease Release when it should be offered to existing installations.
+
+## Telemetry service
+
+The desktop client reads its signed endpoint configuration from
+`distribution/telemetry-endpoint.json` in `Autumn-one/TouchPilot` at startup. It uses the same ordered mirror fallback as updates and keeps a verified last-known-good cache. The configuration has a monotonic revision and can list multiple endpoints in priority order, so a replacement server can be deployed before the old server is retired.
+
+The client sends only generated installation, session, and event IDs, the TouchPilot version, distribution, runtime, and bounded event properties. It does not send user names, file paths, window titles, input contents, or source IP fields. The server stores accepted events as daily JSONL files under `/var/lib/touchpilot-telemetry`.
+
+Deploy or update the Linux service on an amd64 or arm64 systemd host with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Autumn-one/TouchPilot/main/deploy/install-telemetry-server.sh | sudo bash
+```
+
+The service listens on TCP port `4318`. Allow that port in the cloud firewall/security group before clients connect. Check it with `curl http://127.0.0.1:4318/healthz` and inspect it with `systemctl status touchpilot-telemetry`.
+
+To change the public endpoint, deploy the replacement server first, then generate the next signed configuration revision and commit it:
+
+```powershell
+dotnet run --project GestureSign.ReleaseManager/GestureSign.ReleaseManager.csproj -c Release -- --generate-telemetry-config . Autumn-one/TouchPilot http://203.0.113.10 4318
+```
+
+The repository keeps these distribution roles separate so GitHub's `releases/latest` remains unambiguous:
+
+- Desktop update packages and `TouchPilot-update.json` are immutable GitHub Release assets.
+- `distribution/telemetry-endpoint.json` is the signed, replaceable telemetry routing document.
+- `distribution/telemetry-server/linux-*` contains the checked Linux service binaries and `checksums.sha256`.
+- `deploy/install-telemetry-server.sh` installs those binaries without creating a competing GitHub Release.

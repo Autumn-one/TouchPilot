@@ -1,6 +1,8 @@
 using GestureSign.Common.Updates;
+using GestureSign.Common.Telemetry;
 using NuGet.Versioning;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,18 +17,20 @@ namespace GestureSign.Daemon.Updates
         private readonly IUpdateCoordinatorRuntime _runtime;
         private readonly TimeSpan _startupDelay;
         private readonly TimeSpan _checkInterval;
+        private readonly ITelemetrySink _telemetry;
         private readonly CancellationTokenSource _shutdown = new CancellationTokenSource();
         private int _scheduled;
         private int _checking;
         private int _disposed;
+        private string _reportedAvailableVersion;
 
-        public UpdateCoordinator(SynchronizationContext uiContext)
-            : this(new SystemUpdateCoordinatorRuntime(uiContext), StartupDelay, CheckInterval)
+        public UpdateCoordinator(SynchronizationContext uiContext, ITelemetrySink telemetry = null)
+            : this(new SystemUpdateCoordinatorRuntime(uiContext), StartupDelay, CheckInterval, telemetry)
         {
         }
 
         internal UpdateCoordinator(IUpdateCoordinatorRuntime runtime, TimeSpan startupDelay,
-            TimeSpan checkInterval)
+            TimeSpan checkInterval, ITelemetrySink telemetry = null)
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _startupDelay = startupDelay >= TimeSpan.Zero
@@ -35,6 +39,7 @@ namespace GestureSign.Daemon.Updates
             _checkInterval = checkInterval > TimeSpan.Zero
                 ? checkInterval
                 : throw new ArgumentOutOfRangeException(nameof(checkInterval));
+            _telemetry = telemetry ?? NullTelemetrySink.Instance;
         }
 
         public void ScheduleStartupCheck()
@@ -47,6 +52,7 @@ namespace GestureSign.Daemon.Updates
 
         public void RequestManualCheck()
         {
+            _telemetry.Track("manual_update_check_requested");
             _ = CheckNowAsync(_shutdown.Token, true);
         }
 
@@ -98,6 +104,7 @@ namespace GestureSign.Daemon.Updates
 
                     if (!decision.UpdatePending)
                     {
+                        _reportedAvailableVersion = null;
                         _runtime.CloseUpdateWindow();
                         if (manual)
                             _runtime.ShowManualCheckResult(ManualUpdateCheckResult.Current);
@@ -115,6 +122,12 @@ namespace GestureSign.Daemon.Updates
 
                     UpdateAssetMetadata asset = UpdateInstallation.FindAsset(metadata,
                         _runtime.Distribution, _runtime.RuntimeIdentifier);
+                    if (!string.Equals(_reportedAvailableVersion, metadata.Version,
+                            StringComparison.Ordinal))
+                    {
+                        _telemetry.Track("update_available", VersionProperties(metadata.Version));
+                        _reportedAvailableVersion = metadata.Version;
+                    }
                     _runtime.ShowUpdateProgress(UpdateProgressStage.Downloading, metadata.Version, 0);
                     var progress = new InlineProgress(value =>
                         _runtime.ShowUpdateProgress(UpdateProgressStage.Downloading,
@@ -132,6 +145,7 @@ namespace GestureSign.Daemon.Updates
                         return UpdateCycleResult.UpdateLaunchDeclined;
                     }
 
+                    _telemetry.Track("update_started", VersionProperties(metadata.Version));
                     _runtime.ExitApplication();
                     return UpdateCycleResult.UpdateStarted;
                 }
@@ -212,6 +226,11 @@ namespace GestureSign.Daemon.Updates
             {
                 _runtime.LogException(exception);
             }
+        }
+
+        private static IReadOnlyDictionary<string, string> VersionProperties(string version)
+        {
+            return new Dictionary<string, string> { ["version"] = version ?? string.Empty };
         }
 
         private sealed class InlineProgress : IProgress<double>

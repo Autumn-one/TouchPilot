@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Windows;
@@ -53,6 +54,28 @@ namespace GestureSign.ReleaseManager
                     return;
                 }
 
+                if ((args.Length == 5 || args.Length == 6) &&
+                    string.Equals(args[0], "--generate-telemetry-config", StringComparison.Ordinal))
+                {
+                    if (!int.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture,
+                            out int port))
+                        throw new ArgumentException("The telemetry port is invalid.");
+                    long? revision = null;
+                    if (args.Length == 6)
+                    {
+                        if (!long.TryParse(args[5], NumberStyles.None, CultureInfo.InvariantCulture,
+                                out long parsedRevision))
+                            throw new ArgumentException("The telemetry revision is invalid.");
+                        revision = parsedRevision;
+                    }
+
+                    string outputPath = new TelemetryConfigurationBuilder().Build(args[1],
+                        args[2], args[3], port, revision);
+                    Console.WriteLine("Telemetry configuration: " + outputPath);
+                    Shutdown(0);
+                    return;
+                }
+
                 WriteCommandLineUsage();
                 Shutdown(2);
             }
@@ -90,6 +113,9 @@ namespace GestureSign.ReleaseManager
                 "<source-directory> <output-directory> <version> <repository> [release-notes-file]");
             Console.Error.WriteLine(
                 "   or: TouchPilot.ReleaseManager.exe --validate-user-config <source-directory>");
+            Console.Error.WriteLine(
+                "   or: TouchPilot.ReleaseManager.exe --generate-telemetry-config " +
+                "<source-directory> <repository> <base-address> <port> [revision]");
         }
     }
 }

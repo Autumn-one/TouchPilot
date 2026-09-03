@@ -1,0 +1,17 @@
+{
+  "payload": {
+    "schemaVersion": 1,
+    "repository": "Autumn-one/TouchPilot",
+    "revision": 1,
+    "publishedAtUtc": "2026-09-03T20:59:50.2285644+00:00",
+    "endpoints": [
+      {
+        "baseAddress": "http://43.159.148.243",
+        "port": 4318,
+        "eventPath": "/v1/events"
+      }
+    ]
+  },
+  "keyId": "5e5b80c7741d41154ab9f22058f81a426c84d4cd315e5aa3ac004911c5b5087b",
+  "signature": "owXHF4mIjbqpxCRnkHxPBHN4qkCZCwcbTpCrsyPCRQTNB91GwBjdJ\u002BzXdTrHtcCZpHuKV\u002B6PH2XN9GR56plsPg=="
+}

@@ -1,14 +1,19 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 using GestureSign.Common;
 using GestureSign.Common.Applications;
+using GestureSign.Common.Configuration;
 using GestureSign.Common.Gestures;
 using GestureSign.Common.InterProcessCommunication;
 using GestureSign.Common.Lifecycle;
 using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
 using GestureSign.Common.Plugins;
+using GestureSign.Common.Telemetry;
+using GestureSign.Common.Updates;
 using GestureSign.Daemon.Input;
 using GestureSign.Daemon.Triggers;
 using GestureSign.Daemon.Updates;
@@ -21,6 +26,7 @@ namespace GestureSign.Daemon
         private static TouchpadVisualizationServer _touchpadVisualizationServer;
         private static UpdateCoordinator _updateCoordinator;
         private static BuildLifetimeMonitor _buildLifetimeMonitor;
+        private static TelemetryReporter _telemetryReporter;
 
         /// <summary>
         /// 应用程序的主入口点。
@@ -74,7 +80,15 @@ namespace GestureSign.Daemon
                         PluginManager.Instance.Load(hostControl, uiContext);
                         TrayManager.Instance.Load();
 
-                        _updateCoordinator = new UpdateCoordinator(uiContext);
+                        _telemetryReporter = new TelemetryReporter(UpdateInstallation.GetRepository(),
+                            Path.Combine(AppConfig.LocalApplicationDataPath, "Telemetry"),
+                            UpdateInstallation.GetCurrentVersionText(Assembly.GetEntryAssembly()),
+                            UpdateInstallation.GetCurrentDistribution(),
+                            UpdatePackageNaming.GetCurrentRuntimeIdentifier(), Logging.LogException);
+                        _telemetryReporter.Start();
+                        _telemetryReporter.Track("application_started");
+
+                        _updateCoordinator = new UpdateCoordinator(uiContext, _telemetryReporter);
                         NamedPipe.Instance.RunNamedPipeServer(Constants.Daemon,
                             new MessageProcessor(uiContext, _updateCoordinator.RequestManualCheck));
                         _updateCoordinator.ScheduleStartupCheck();
@@ -101,6 +115,7 @@ namespace GestureSign.Daemon
         private static void Application_ApplicationExit(object sender, EventArgs e)
         {
             _updateCoordinator?.Dispose();
+            _telemetryReporter?.Dispose();
             _buildLifetimeMonitor?.Dispose();
             _touchpadVisualizationServer?.Dispose();
             NamedPipe.Instance.Dispose();

@@ -1,4 +1,5 @@
 using GestureSign.Common.Updates;
+using GestureSign.Common.Telemetry;
 using GestureSign.Daemon.Updates;
 using GestureSign.Updater;
 using NuGet.Versioning;
@@ -264,6 +265,27 @@ namespace GestureSign.Tests
             Assert.Equal(ManualUpdateCheckResult.Current, runtime.ManualCheckResult);
         }
 
+        [Fact]
+        public async Task RepeatedFailureTracksAvailableVersionOnce()
+        {
+            DateTimeOffset now = new DateTimeOffset(2026, 7, 23, 6, 0, 0, TimeSpan.Zero);
+            var runtime = new FakeUpdateRuntime
+            {
+                UtcNow = now,
+                Metadata = CreateMetadata("8.3.0", now),
+                UpdaterStarted = false
+            };
+            var telemetry = new RecordingTelemetrySink();
+            using var coordinator = new UpdateCoordinator(runtime, TimeSpan.Zero,
+                TimeSpan.FromHours(1), telemetry);
+
+            await coordinator.CheckNowAsync(CancellationToken.None);
+            await coordinator.CheckNowAsync(CancellationToken.None);
+
+            Assert.Single(telemetry.Events,
+                telemetryEvent => telemetryEvent == "update_available");
+        }
+
         private static UpdateCoordinator CreateCoordinator(FakeUpdateRuntime runtime)
         {
             return new UpdateCoordinator(runtime, TimeSpan.Zero, TimeSpan.FromHours(1));
@@ -408,6 +430,16 @@ namespace GestureSign.Tests
             public void ShowManualCheckResult(ManualUpdateCheckResult result)
             {
                 ManualCheckResult = result;
+            }
+        }
+
+        private sealed class RecordingTelemetrySink : ITelemetrySink
+        {
+            public List<string> Events { get; } = new List<string>();
+
+            public void Track(string name, IReadOnlyDictionary<string, string> properties = null)
+            {
+                Events.Add(name);
             }
         }
     }
