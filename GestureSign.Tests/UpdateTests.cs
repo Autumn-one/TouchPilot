@@ -197,6 +197,22 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public void MandatoryUpdatePolicyNeverDowngradesKnownPendingVersion()
+        {
+            var state = new MandatoryUpdateState();
+            DateTimeOffset firstSeen = new DateTimeOffset(2026, 7, 23, 1, 0, 0, TimeSpan.Zero);
+            MandatoryUpdatePolicy.RecordSuccessfulCheck(state, ReleaseVersion.Parse("8.2.0"),
+                ReleaseVersion.Parse("8.4.0"), firstSeen);
+
+            MandatoryUpdateDecision decision = MandatoryUpdatePolicy.RecordSuccessfulCheck(state,
+                ReleaseVersion.Parse("8.2.0"), ReleaseVersion.Parse("8.3.0"),
+                firstSeen.AddHours(1));
+
+            Assert.Equal("8.4.0", decision.PendingVersion);
+            Assert.Equal(firstSeen, state.FirstSeenUtc);
+        }
+
+        [Fact]
         public void MandatoryUpdatePolicyBlocksAfterThreeDaysAndResistsClockRollback()
         {
             var state = new MandatoryUpdateState();
@@ -430,6 +446,28 @@ namespace GestureSign.Tests
             Assert.Equal("new language", File.ReadAllText(Path.Combine(targetDirectory, "Languages", "en.xml")));
             Assert.Equal("keep me", File.ReadAllText(Path.Combine(targetDirectory, "user.settings")));
             Assert.True(File.Exists(Path.Combine(targetDirectory, ReleaseManifest.FileName)));
+        }
+
+        [Fact]
+        public void PortableUpdaterReportsMonotonicProgressThroughCompletion()
+        {
+            using var directory = new TemporaryDirectory();
+            string targetDirectory = directory.CreateDirectory("target");
+            string packagePath = CreatePackage(directory.Path, "8.2.0", new Dictionary<string, string>
+            {
+                ["TouchPilot.exe"] = "new executable",
+                ["Languages/en.xml"] = "new language"
+            });
+            File.WriteAllText(Path.Combine(targetDirectory, "TouchPilot.exe"), "old executable");
+            var progress = new RecordingProgress();
+
+            new UpdateInstaller(directory.CreateDirectory("backups"))
+                .Install(packagePath, targetDirectory, "8.2.0", ComputeSha256(packagePath), progress);
+
+            Assert.NotEmpty(progress.Values);
+            Assert.Equal(0, progress.Values[0]);
+            Assert.Equal(100, progress.Values[^1]);
+            Assert.Equal(progress.Values.OrderBy(value => value), progress.Values);
         }
 
         [Fact]
@@ -820,6 +858,16 @@ namespace GestureSign.Tests
                 Path = path;
                 Arguments = arguments;
                 return 0;
+            }
+        }
+
+        private sealed class RecordingProgress : IProgress<double>
+        {
+            public List<double> Values { get; } = new List<double>();
+
+            public void Report(double value)
+            {
+                Values.Add(value);
             }
         }
 

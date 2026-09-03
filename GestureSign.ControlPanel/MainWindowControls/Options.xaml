@@ -453,6 +453,27 @@
                                            Toggled="SendLogToggleSwitch_Toggled" />
                 </Grid>
             </Border>
+            <Border Style="{StaticResource V2.Settings.Row}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource V2.Settings.Label}"
+                               Text="{localization:LocalisedText Options.UpdateLabel}" />
+                    <Button x:Name="CheckForUpdatesButton"
+                            Grid.Column="1"
+                            Style="{StaticResource V2.Button.Secondary}"
+                            Click="CheckForUpdatesButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconLucide Margin="0,0,8,0"
+                                                      Style="{StaticResource V2.Icon}"
+                                                      Kind="RefreshCw" />
+                            <TextBlock Text="{localization:LocalisedText Options.CheckForUpdates}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
 
             <TextBlock Margin="0,28,0,6"
                        Style="{StaticResource V2.Settings.SectionTitle}"

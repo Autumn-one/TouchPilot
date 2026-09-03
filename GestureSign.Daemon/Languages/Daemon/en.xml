@@ -14,5 +14,16 @@
     <Title>TouchPilot Update</Title>
     <Available>TouchPilot {0} is available. Download and install it now?</Available>
     <FailedTitle>TouchPilot Update Failed</FailedTitle>
+    <Progress>Update progress</Progress>
+    <Downloading>Downloading TouchPilot {0}</Downloading>
+    <DownloadProgress>{0}% complete</DownloadProgress>
+    <PreparingInstallation>Preparing to install TouchPilot {0}</PreparingInstallation>
+    <KeepOpen>The installer will start shortly</KeepOpen>
+    <RetryPending>TouchPilot {0} could not finish updating</RetryPending>
+    <WillRetry>TouchPilot will retry automatically</WillRetry>
+    <Current>You already have the latest version.</Current>
+    <Unavailable>Updates cannot be checked right now. Try again later.</Unavailable>
+    <Unsupported>This build does not support automatic updates.</Unsupported>
+    <AlreadyRunning>An update check is already running.</AlreadyRunning>
   </Update>
 </Language>

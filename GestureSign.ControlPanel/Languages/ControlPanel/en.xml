@@ -241,6 +241,7 @@ Email: ccfyzh@gmail.com
     <WindowDragBringToFront>Bring dragged window to front</WindowDragBringToFront>
     <WindowDragImplementation>Dragging method</WindowDragImplementation>
     <DirectSetWindowPos>Bottom anchor: direct window movement (SetWindowPos)</DirectSetWindowPos>
+    <NativeMoveLoop>Bottom anchor: Windows native move loop (activates window)</NativeMoveLoop>
     <SimulatedMouseDrag>Bottom anchor: simulated mouse hold</SimulatedMouseDrag>
     <ThreeFingerDrag>Three-finger drag (recorded 3-finger gestures off)</ThreeFingerDrag>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>
@@ -309,6 +310,8 @@ Email: ccfyzh@gmail.com
     <InitialTimeoutTitle>Drawing Start Timeout</InitialTimeoutTitle>
     <InitialTimeout>Timeout after {0:F1} Second</InitialTimeout>
     <ErrorLogPrompt>Error Log Prompt</ErrorLogPrompt>
+    <UpdateLabel>Software update</UpdateLabel>
+    <CheckForUpdates>Check for updates</CheckForUpdates>
     <RunAsAdmin>Run TouchPilot as administrator at startup</RunAsAdmin>
     <WindowsStartup>
       <Header>Start TouchPilot with Windows</Header>
@@ -331,6 +334,7 @@ Email: ccfyzh@gmail.com
       <BackupCompleteTitle>Backup Complete</BackupCompleteTitle>
       <RestoreCompleteTitle>Restore Complete</RestoreCompleteTitle>
       <TaskUserDisabled>The task has been disabled by user, please enable it in the Startup section of Task Manager. </TaskUserDisabled>
+      <UpdateRequestFailed>Could not connect to the TouchPilot background service.</UpdateRequestFailed>
     </Messages>
   </Options>
 </Language>

@@ -28,10 +28,12 @@ namespace GestureSign.Updater
         }
 
         public void Install(string packagePath, string targetDirectory, string expectedVersion,
-            string expectedPackageSha256)
+            string expectedPackageSha256, IProgress<double> progress = null)
         {
+            progress?.Report(0);
             ValidateInstallationInputs(packagePath, targetDirectory, expectedPackageSha256);
             RecoverInterruptedTransactions(targetDirectory);
+            progress?.Report(10);
 
             string workDirectory = Path.Combine(Path.GetTempPath(), "TouchPilot.Update." +
                 Guid.NewGuid().ToString("N"));
@@ -41,11 +43,14 @@ namespace GestureSign.Updater
             try
             {
                 ZipFile.ExtractToDirectory(packagePath, stagingDirectory);
+                progress?.Report(25);
                 ReleaseManifest manifest = LoadAndValidateManifest(stagingDirectory, expectedVersion);
-                IReadOnlyList<ValidatedFile> files = ValidatePackageFiles(stagingDirectory, targetDirectory, manifest);
+                IReadOnlyList<ValidatedFile> files = ValidatePackageFiles(stagingDirectory,
+                    targetDirectory, manifest, progress);
                 ReleaseManifest installedManifest = TryLoadInstalledManifest(targetDirectory);
                 IReadOnlyList<string> obsoleteFiles = FindObsoleteFiles(installedManifest, manifest);
-                ApplyFiles(files, obsoleteFiles, targetDirectory, manifest.Version);
+                ApplyFiles(files, obsoleteFiles, targetDirectory, manifest.Version, progress);
+                progress?.Report(100);
             }
             finally
             {
@@ -87,11 +92,12 @@ namespace GestureSign.Updater
         }
 
         private static IReadOnlyList<ValidatedFile> ValidatePackageFiles(string stagingDirectory,
-            string targetDirectory, ReleaseManifest manifest)
+            string targetDirectory, ReleaseManifest manifest, IProgress<double> progress)
         {
             var files = new List<ValidatedFile>(manifest.Files.Count + 1);
             var uniquePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            int validatedCount = 0;
             foreach (ReleaseFileEntry entry in manifest.Files)
             {
                 if (entry == null || string.IsNullOrWhiteSpace(entry.Path) || string.IsNullOrWhiteSpace(entry.Sha256))
@@ -113,6 +119,8 @@ namespace GestureSign.Updater
                     throw new InvalidDataException("The SHA-256 hash of " + entry.Path + " is invalid.");
 
                 files.Add(new ValidatedFile(sourcePath, targetPath));
+                validatedCount++;
+                progress?.Report(25 + validatedCount * 35d / manifest.Files.Count);
             }
 
             foreach (string packageFile in Directory.EnumerateFiles(stagingDirectory, "*", SearchOption.AllDirectories))
@@ -169,7 +177,7 @@ namespace GestureSign.Updater
         }
 
         private void ApplyFiles(IReadOnlyList<ValidatedFile> files, IReadOnlyList<string> obsoleteFiles,
-            string targetDirectory, string version)
+            string targetDirectory, string version, IProgress<double> progress)
         {
             string backupDirectory = Path.Combine(_backupRootDirectory,
                 version + "-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" +
@@ -180,6 +188,8 @@ namespace GestureSign.Updater
                 State = UpdateTransactionState.Prepared
             };
             var appliedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int totalOperations = files.Count + obsoleteFiles.Count;
+            int completedOperations = 0;
 
             try
             {
@@ -199,6 +209,8 @@ namespace GestureSign.Updater
                     ReplaceFile(file.SourcePath, file.TargetPath);
                     appliedPaths.Add(Path.GetRelativePath(targetDirectory, file.TargetPath)
                         .Replace(Path.DirectorySeparatorChar, '/'));
+                    completedOperations++;
+                    progress?.Report(60 + completedOperations * 39d / totalOperations);
                 }
                 foreach (string obsoleteFile in obsoleteFiles)
                 {
@@ -208,6 +220,8 @@ namespace GestureSign.Updater
                         File.Delete(targetPath);
                         appliedPaths.Add(obsoleteFile.Replace(Path.DirectorySeparatorChar, '/'));
                     }
+                    completedOperations++;
+                    progress?.Report(60 + completedOperations * 39d / totalOperations);
                 }
 
                 journal.State = UpdateTransactionState.Completed;

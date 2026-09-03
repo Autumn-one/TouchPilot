@@ -1,6 +1,7 @@
 using GestureSign.Common;
 using GestureSign.Common.Configuration;
 using GestureSign.Common.InterProcessCommunication;
+using GestureSign.Common.Localization;
 using GestureSign.Common.Log;
 using GestureSign.Common.Updates;
 using NuGet.Versioning;
@@ -20,6 +21,7 @@ namespace GestureSign.Daemon.Updates
     {
         private readonly SynchronizationContext _uiContext;
         private readonly MandatoryUpdateStateStore _stateStore = new MandatoryUpdateStateStore();
+        private UpdateProgressForm _updateProgressForm;
 
         public SystemUpdateCoordinatorRuntime(SynchronizationContext uiContext)
         {
@@ -57,14 +59,14 @@ namespace GestureSign.Daemon.Updates
         }
 
         public async Task<string> DownloadUpdateAsync(UpdateMetadata metadata, UpdateAssetMetadata asset,
-            CancellationToken cancellationToken)
+            IProgress<double> progress, CancellationToken cancellationToken)
         {
             string updateDirectory = Path.Combine(AppConfig.LocalApplicationDataPath, "Updates",
                 metadata.Version);
             string packagePath = Path.Combine(updateDirectory, asset.Name);
             using var downloader = new UpdatePackageDownloader();
             return await downloader.DownloadAsync(UpdateInstallation.GetRepository(), metadata.Tag, asset,
-                packagePath, null, cancellationToken).ConfigureAwait(false);
+                packagePath, progress, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<bool> StartUpdaterAsync(UpdateMetadata metadata, UpdateAssetMetadata asset,
@@ -129,6 +131,52 @@ namespace GestureSign.Daemon.Updates
         public void LogException(Exception exception)
         {
             Logging.LogException(exception);
+        }
+
+        public void ShowUpdateProgress(UpdateProgressStage stage, string version, double percentage)
+        {
+            _uiContext.Post(_ =>
+            {
+                if (_updateProgressForm == null || _updateProgressForm.IsDisposed)
+                {
+                    _updateProgressForm = new UpdateProgressForm();
+                    _updateProgressForm.FormClosed += (sender, args) => _updateProgressForm = null;
+                }
+
+                _updateProgressForm.SetProgress(stage, version, percentage);
+                if (!_updateProgressForm.Visible)
+                    _updateProgressForm.Show();
+            }, null);
+        }
+
+        public void CloseUpdateWindow()
+        {
+            _uiContext.Post(_ =>
+            {
+                if (_updateProgressForm == null || _updateProgressForm.IsDisposed)
+                    return;
+                _updateProgressForm.CloseForApplication();
+                _updateProgressForm = null;
+            }, null);
+        }
+
+        public void ShowManualCheckResult(ManualUpdateCheckResult result)
+        {
+            _uiContext.Post(_ =>
+            {
+                string messageKey = result switch
+                {
+                    ManualUpdateCheckResult.Current => "Update.Current",
+                    ManualUpdateCheckResult.Unsupported => "Update.Unsupported",
+                    ManualUpdateCheckResult.AlreadyRunning => "Update.AlreadyRunning",
+                    _ => "Update.Unavailable"
+                };
+                MessageBoxIcon icon = result == ManualUpdateCheckResult.Current
+                    ? MessageBoxIcon.Information
+                    : MessageBoxIcon.Warning;
+                MessageBox.Show(LocalizationProvider.Instance.GetTextValue(messageKey),
+                    LocalizationProvider.Instance.GetTextValue("Update.Title"), MessageBoxButtons.OK, icon);
+            }, null);
         }
 
         private static void AddArgument(ProcessStartInfo startInfo, string name, string value)

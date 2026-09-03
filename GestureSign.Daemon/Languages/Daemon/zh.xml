@@ -14,5 +14,16 @@
     <Title>TouchPilot 更新</Title>
     <Available>发现 TouchPilot {0}，是否立即下载并安装？</Available>
     <FailedTitle>TouchPilot 更新失败</FailedTitle>
+    <Progress>更新进度</Progress>
+    <Downloading>正在下载 TouchPilot {0}</Downloading>
+    <DownloadProgress>已完成 {0}%</DownloadProgress>
+    <PreparingInstallation>正在准备安装 TouchPilot {0}</PreparingInstallation>
+    <KeepOpen>安装程序即将启动</KeepOpen>
+    <RetryPending>TouchPilot {0} 暂时无法完成更新</RetryPending>
+    <WillRetry>软件稍后将自动重试</WillRetry>
+    <Current>当前已经是最新版本。</Current>
+    <Unavailable>暂时无法检查更新，请稍后重试。</Unavailable>
+    <Unsupported>当前版本不支持自动更新。</Unsupported>
+    <AlreadyRunning>更新检查正在进行。</AlreadyRunning>
   </Update>
 </Language>

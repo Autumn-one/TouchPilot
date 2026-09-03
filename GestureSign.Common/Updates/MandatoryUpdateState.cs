@@ -55,19 +55,26 @@ namespace GestureSign.Common.Updates
                 throw new ArgumentNullException(nameof(latestVersion));
 
             DateTimeOffset observedNow = ObserveClock(state, now);
+            NuGetVersion pendingVersion = null;
+            bool hasPendingUpdate = state.FirstSeenUtc.HasValue &&
+                                    ReleaseVersion.TryParse(state.PendingVersion,
+                                        out pendingVersion) &&
+                                    VersionComparer.VersionRelease.Compare(pendingVersion,
+                                        currentVersion) > 0;
             if (VersionComparer.VersionRelease.Compare(latestVersion, currentVersion) <= 0)
             {
+                if (hasPendingUpdate)
+                    return CreateDecision(state, observedNow);
                 state.PendingVersion = null;
                 state.FirstSeenUtc = null;
                 return CreateDecision(state, observedNow);
             }
 
-            bool alreadyPending = state.FirstSeenUtc.HasValue &&
-                                  ReleaseVersion.TryParse(state.PendingVersion, out NuGetVersion pendingVersion) &&
-                                  VersionComparer.VersionRelease.Compare(pendingVersion, currentVersion) > 0;
-            if (!alreadyPending)
+            if (!hasPendingUpdate)
                 state.FirstSeenUtc = observedNow;
-            state.PendingVersion = ReleaseVersion.ToReleaseString(latestVersion);
+            if (!hasPendingUpdate ||
+                VersionComparer.VersionRelease.Compare(latestVersion, pendingVersion) > 0)
+                state.PendingVersion = ReleaseVersion.ToReleaseString(latestVersion);
             return CreateDecision(state, observedNow);
         }
 

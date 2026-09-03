@@ -627,5 +627,25 @@ namespace GestureSign.ControlPanel.MainWindowControls
         {
             System.Diagnostics.Process.Start("explorer.exe", AppConfig.ApplicationDataPath);
         }
+
+        private async void CheckForUpdatesButton_Click(object sender, RoutedEventArgs e)
+        {
+            CheckForUpdatesButton.IsEnabled = false;
+            try
+            {
+                bool sent = await NamedPipe.SendMessageAsync(IpcCommands.CheckForUpdates,
+                    GestureSign.Common.Constants.Daemon);
+                if (!sent)
+                {
+                    UIHelper.GetParentWindow(this).ShowModalMessageExternal(
+                        LocalizationProvider.Instance.GetTextValue("Messages.Error"),
+                        LocalizationProvider.Instance.GetTextValue("Options.Messages.UpdateRequestFailed"));
+                }
+            }
+            finally
+            {
+                CheckForUpdatesButton.IsEnabled = true;
+            }
+        }
     }
 }

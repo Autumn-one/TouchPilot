@@ -74,8 +74,9 @@ namespace GestureSign.Daemon
                         PluginManager.Instance.Load(hostControl, uiContext);
                         TrayManager.Instance.Load();
 
-                        NamedPipe.Instance.RunNamedPipeServer(Constants.Daemon, new MessageProcessor(uiContext));
                         _updateCoordinator = new UpdateCoordinator(uiContext);
+                        NamedPipe.Instance.RunNamedPipeServer(Constants.Daemon,
+                            new MessageProcessor(uiContext, _updateCoordinator.RequestManualCheck));
                         _updateCoordinator.ScheduleStartupCheck();
 
                         Application.ApplicationExit += Application_ApplicationExit;

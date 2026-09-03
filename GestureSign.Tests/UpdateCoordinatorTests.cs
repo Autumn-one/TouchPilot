@@ -1,8 +1,10 @@
 using GestureSign.Common.Updates;
 using GestureSign.Daemon.Updates;
+using GestureSign.Updater;
 using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +40,10 @@ namespace GestureSign.Tests
             Assert.Equal("8.3.0", runtime.State.PendingVersion);
             Assert.Equal(now, runtime.State.FirstSeenUtc);
             Assert.Equal(1, runtime.ExitRequests);
+            Assert.Contains(runtime.ProgressUpdates,
+                update => update.Stage == UpdateProgressStage.Downloading && update.Percentage == 42);
+            Assert.Contains(runtime.ProgressUpdates,
+                update => update.Stage == UpdateProgressStage.PreparingInstallation);
         }
 
         [Fact]
@@ -59,10 +65,10 @@ namespace GestureSign.Tests
         }
 
         [Theory]
-        [InlineData(2, false)]
-        [InlineData(3, true)]
-        [InlineData(4, true)]
-        public async Task KnownUpdateUsesThreeDayOfflineDeadline(int offlineDays, bool mustExit)
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        public async Task KnownUpdateWaitsForRetryWhenOffline(int offlineDays)
         {
             DateTimeOffset firstSeen = new DateTimeOffset(2026, 7, 20, 6, 0, 0, TimeSpan.Zero);
             var state = new MandatoryUpdateState();
@@ -78,10 +84,12 @@ namespace GestureSign.Tests
 
             UpdateCycleResult result = await coordinator.CheckNowAsync(CancellationToken.None);
 
-            Assert.Equal(mustExit ? UpdateCycleResult.MandatoryUpdateBlocked :
-                UpdateCycleResult.OfflineAllowed, result);
-            Assert.Equal(mustExit ? 1 : 0, runtime.ExitRequests);
+            Assert.Equal(UpdateCycleResult.OfflineAllowed, result);
+            Assert.Equal(0, runtime.ExitRequests);
             Assert.Equal(firstSeen, runtime.State.FirstSeenUtc);
+            Assert.Contains(runtime.ProgressUpdates,
+                update => update.Stage == UpdateProgressStage.RetryPending &&
+                          update.Version == "8.3.0");
         }
 
         [Fact]
@@ -106,10 +114,36 @@ namespace GestureSign.Tests
             Assert.Null(runtime.State.PendingVersion);
             Assert.Null(runtime.State.FirstSeenUtc);
             Assert.Equal(0, runtime.ExitRequests);
+            Assert.Equal(1, runtime.CloseWindowRequests);
         }
 
         [Fact]
-        public async Task KnownExpiredUpdateBlocksWhenPackageDownloadFails()
+        public async Task StaleMirrorDoesNotClearOrDowngradeKnownUpdate()
+        {
+            DateTimeOffset firstSeen = new DateTimeOffset(2026, 7, 20, 6, 0, 0, TimeSpan.Zero);
+            var state = new MandatoryUpdateState();
+            MandatoryUpdatePolicy.RecordSuccessfulCheck(state, ReleaseVersion.Parse("8.2.0"),
+                ReleaseVersion.Parse("8.4.0"), firstSeen);
+            var runtime = new FakeUpdateRuntime
+            {
+                State = state,
+                UtcNow = firstSeen.AddHours(1),
+                Metadata = CreateMetadata("8.3.0", firstSeen)
+            };
+            using var coordinator = CreateCoordinator(runtime);
+
+            UpdateCycleResult result = await coordinator.CheckNowAsync(CancellationToken.None);
+
+            Assert.Equal(UpdateCycleResult.OfflineAllowed, result);
+            Assert.Equal("8.4.0", runtime.State.PendingVersion);
+            Assert.Null(runtime.DownloadedAsset);
+            Assert.Contains(runtime.ProgressUpdates,
+                update => update.Stage == UpdateProgressStage.RetryPending &&
+                          update.Version == "8.4.0");
+        }
+
+        [Fact]
+        public async Task KnownUpdateWaitsForRetryWhenPackageDownloadFails()
         {
             DateTimeOffset firstSeen = new DateTimeOffset(2026, 7, 20, 6, 0, 0, TimeSpan.Zero);
             var state = new MandatoryUpdateState();
@@ -126,9 +160,12 @@ namespace GestureSign.Tests
 
             UpdateCycleResult result = await coordinator.CheckNowAsync(CancellationToken.None);
 
-            Assert.Equal(UpdateCycleResult.MandatoryUpdateBlocked, result);
-            Assert.Equal(1, runtime.ExitRequests);
+            Assert.Equal(UpdateCycleResult.OfflineAllowed, result);
+            Assert.Equal(0, runtime.ExitRequests);
             Assert.Same(runtime.DownloadException, runtime.LoggedException);
+            Assert.Equal(UpdateProgressStage.RetryPending,
+                Assert.Single(runtime.ProgressUpdates,
+                    update => update.Stage == UpdateProgressStage.RetryPending).Stage);
         }
 
         [Fact]
@@ -152,7 +189,26 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public async Task DecliningUpdaterElevationStopsCurrentApplication()
+        public void ProductionScheduleChecksImmediatelyAndEveryTenMinutes()
+        {
+            Assert.Equal(TimeSpan.Zero, UpdateCoordinator.StartupDelay);
+            Assert.Equal(TimeSpan.FromMinutes(10), UpdateCoordinator.CheckInterval);
+        }
+
+        [Fact]
+        public void UpdateWindowsCenterWithinPrimaryWorkingArea()
+        {
+            var workingArea = new Rectangle(100, 50, 1920, 1040);
+            var size = new Size(480, 226);
+
+            Assert.Equal(new Point(820, 457),
+                UpdateProgressForm.GetCenteredLocation(workingArea, size));
+            Assert.Equal(new Point(820, 457),
+                InstallationProgressForm.GetCenteredLocation(workingArea, size));
+        }
+
+        [Fact]
+        public async Task DecliningUpdaterElevationWaitsForRetry()
         {
             DateTimeOffset now = new DateTimeOffset(2026, 7, 23, 6, 0, 0, TimeSpan.Zero);
             var runtime = new FakeUpdateRuntime
@@ -166,23 +222,46 @@ namespace GestureSign.Tests
             UpdateCycleResult result = await coordinator.CheckNowAsync(CancellationToken.None);
 
             Assert.Equal(UpdateCycleResult.UpdateLaunchDeclined, result);
-            Assert.Equal(1, runtime.ExitRequests);
+            Assert.Equal(0, runtime.ExitRequests);
+            Assert.Contains(runtime.ProgressUpdates,
+                update => update.Stage == UpdateProgressStage.RetryPending);
         }
 
         [Fact]
-        public async Task UnreadableMandatoryStateStopsApplication()
+        public async Task UnreadableMandatoryStateIsRecovered()
         {
+            DateTimeOffset now = new DateTimeOffset(2026, 7, 23, 6, 0, 0, TimeSpan.Zero);
             var runtime = new FakeUpdateRuntime
             {
-                LoadException = new InvalidDataException("corrupt state")
+                LoadException = new InvalidDataException("corrupt state"),
+                UtcNow = now,
+                Metadata = CreateMetadata("8.2.0", now)
             };
             using var coordinator = CreateCoordinator(runtime);
 
             UpdateCycleResult result = await coordinator.CheckNowAsync(CancellationToken.None);
 
-            Assert.Equal(UpdateCycleResult.InvalidStateBlocked, result);
-            Assert.Equal(1, runtime.ExitRequests);
+            Assert.Equal(UpdateCycleResult.Current, result);
+            Assert.Equal(0, runtime.ExitRequests);
             Assert.IsType<InvalidDataException>(runtime.LoggedException);
+        }
+
+        [Fact]
+        public async Task ManualCheckReportsCurrentRelease()
+        {
+            DateTimeOffset now = new DateTimeOffset(2026, 7, 23, 6, 0, 0, TimeSpan.Zero);
+            var runtime = new FakeUpdateRuntime
+            {
+                CurrentVersion = ReleaseVersion.Parse("8.3.0"),
+                UtcNow = now,
+                Metadata = CreateMetadata("8.3.0", now)
+            };
+            using var coordinator = CreateCoordinator(runtime);
+
+            UpdateCycleResult result = await coordinator.CheckNowAsync(CancellationToken.None, true);
+
+            Assert.Equal(UpdateCycleResult.Current, result);
+            Assert.Equal(ManualUpdateCheckResult.Current, runtime.ManualCheckResult);
         }
 
         private static UpdateCoordinator CreateCoordinator(FakeUpdateRuntime runtime)
@@ -255,6 +334,13 @@ namespace GestureSign.Tests
 
             public Exception LoggedException { get; private set; }
 
+            public List<(UpdateProgressStage Stage, string Version, double Percentage)>
+                ProgressUpdates { get; } = new List<(UpdateProgressStage, string, double)>();
+
+            public int CloseWindowRequests { get; private set; }
+
+            public ManualUpdateCheckResult? ManualCheckResult { get; private set; }
+
             public int CheckCount;
 
             public TaskCompletionSource<bool> TwoChecks { get; } =
@@ -282,11 +368,12 @@ namespace GestureSign.Tests
             }
 
             public Task<string> DownloadUpdateAsync(UpdateMetadata metadata, UpdateAssetMetadata asset,
-                CancellationToken cancellationToken)
+                IProgress<double> progress, CancellationToken cancellationToken)
             {
                 DownloadedAsset = asset;
                 if (DownloadException != null)
                     return Task.FromException<string>(DownloadException);
+                progress?.Report(42);
                 return Task.FromResult("downloaded-package");
             }
 
@@ -306,6 +393,21 @@ namespace GestureSign.Tests
             public void LogException(Exception exception)
             {
                 LoggedException = exception;
+            }
+
+            public void ShowUpdateProgress(UpdateProgressStage stage, string version, double percentage)
+            {
+                ProgressUpdates.Add((stage, version, percentage));
+            }
+
+            public void CloseUpdateWindow()
+            {
+                CloseWindowRequests++;
+            }
+
+            public void ShowManualCheckResult(ManualUpdateCheckResult result)
+            {
+                ManualCheckResult = result;
             }
         }
     }

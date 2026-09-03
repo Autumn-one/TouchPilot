@@ -9,8 +9,8 @@ namespace GestureSign.Daemon.Updates
 {
     internal sealed class UpdateCoordinator : IDisposable
     {
-        internal static readonly TimeSpan StartupDelay = TimeSpan.FromSeconds(5);
-        internal static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);
+        internal static readonly TimeSpan StartupDelay = TimeSpan.Zero;
+        internal static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(10);
 
         private readonly IUpdateCoordinatorRuntime _runtime;
         private readonly TimeSpan _startupDelay;
@@ -45,12 +45,31 @@ namespace GestureSign.Daemon.Updates
             _ = Task.Run(() => RunCheckLoopAsync(_shutdown.Token));
         }
 
+        public void RequestManualCheck()
+        {
+            _ = CheckNowAsync(_shutdown.Token, true);
+        }
+
         internal async Task<UpdateCycleResult> CheckNowAsync(CancellationToken cancellationToken)
         {
+            return await CheckNowAsync(cancellationToken, false).ConfigureAwait(false);
+        }
+
+        internal async Task<UpdateCycleResult> CheckNowAsync(CancellationToken cancellationToken,
+            bool manual)
+        {
             if (!_runtime.IsSelfUpdateSupported)
+            {
+                if (manual)
+                    _runtime.ShowManualCheckResult(ManualUpdateCheckResult.Unsupported);
                 return UpdateCycleResult.Unsupported;
+            }
             if (Interlocked.Exchange(ref _checking, 1) != 0)
+            {
+                if (manual)
+                    _runtime.ShowManualCheckResult(ManualUpdateCheckResult.AlreadyRunning);
                 return UpdateCycleResult.AlreadyRunning;
+            }
 
             try
             {
@@ -64,8 +83,7 @@ namespace GestureSign.Daemon.Updates
                                                   exception is InvalidDataException)
                 {
                     _runtime.LogException(exception);
-                    _runtime.ExitApplication();
-                    return UpdateCycleResult.InvalidStateBlocked;
+                    state = new MandatoryUpdateState();
                 }
 
                 MandatoryUpdateDecision decision = null;
@@ -76,20 +94,41 @@ namespace GestureSign.Daemon.Updates
                     NuGetVersion latestVersion = ReleaseVersion.Parse(metadata.Version);
                     decision = MandatoryUpdatePolicy.RecordSuccessfulCheck(state,
                         _runtime.CurrentVersion, latestVersion, _runtime.UtcNow);
-                    _runtime.SaveState(state);
+                    TrySaveState(state);
 
                     if (!decision.UpdatePending)
+                    {
+                        _runtime.CloseUpdateWindow();
+                        if (manual)
+                            _runtime.ShowManualCheckResult(ManualUpdateCheckResult.Current);
                         return UpdateCycleResult.Current;
+                    }
+
+                    string latestVersionText = ReleaseVersion.ToReleaseString(latestVersion);
+                    if (!string.Equals(decision.PendingVersion, latestVersionText,
+                            StringComparison.Ordinal))
+                    {
+                        _runtime.ShowUpdateProgress(UpdateProgressStage.RetryPending,
+                            decision.PendingVersion, 0);
+                        return UpdateCycleResult.OfflineAllowed;
+                    }
 
                     UpdateAssetMetadata asset = UpdateInstallation.FindAsset(metadata,
                         _runtime.Distribution, _runtime.RuntimeIdentifier);
+                    _runtime.ShowUpdateProgress(UpdateProgressStage.Downloading, metadata.Version, 0);
+                    var progress = new InlineProgress(value =>
+                        _runtime.ShowUpdateProgress(UpdateProgressStage.Downloading,
+                            metadata.Version, value));
                     string packagePath = await _runtime.DownloadUpdateAsync(metadata, asset,
-                        cancellationToken).ConfigureAwait(false);
+                        progress, cancellationToken).ConfigureAwait(false);
+                    _runtime.ShowUpdateProgress(UpdateProgressStage.PreparingInstallation,
+                        metadata.Version, 100);
                     bool started = await _runtime.StartUpdaterAsync(metadata, asset, packagePath,
                         cancellationToken).ConfigureAwait(false);
                     if (!started)
                     {
-                        _runtime.ExitApplication();
+                        _runtime.ShowUpdateProgress(UpdateProgressStage.RetryPending,
+                            metadata.Version, 100);
                         return UpdateCycleResult.UpdateLaunchDeclined;
                     }
 
@@ -103,7 +142,7 @@ namespace GestureSign.Daemon.Updates
                 catch (Exception exception)
                 {
                     _runtime.LogException(exception);
-                    return HandleUnavailableUpdate(state, decision);
+                    return HandleUnavailableUpdate(state, decision, manual);
                 }
             }
             finally
@@ -136,25 +175,58 @@ namespace GestureSign.Daemon.Updates
         }
 
         private UpdateCycleResult HandleUnavailableUpdate(MandatoryUpdateState state,
-            MandatoryUpdateDecision decision)
+            MandatoryUpdateDecision decision, bool manual)
         {
             try
             {
                 decision ??= MandatoryUpdatePolicy.ObserveOffline(state, _runtime.UtcNow);
-                _runtime.SaveState(state);
+                TrySaveState(state);
             }
             catch (Exception exception)
             {
                 _runtime.LogException(exception);
-                _runtime.ExitApplication();
-                return UpdateCycleResult.InvalidStateBlocked;
             }
 
-            if (!decision.MustUpdate)
-                return UpdateCycleResult.OfflineAllowed;
+            if (decision?.UpdatePending == true)
+            {
+                _runtime.ShowUpdateProgress(UpdateProgressStage.RetryPending,
+                    decision.PendingVersion, 0);
+            }
+            else if (manual)
+            {
+                _runtime.ShowManualCheckResult(ManualUpdateCheckResult.Unavailable);
+            }
 
-            _runtime.ExitApplication();
-            return UpdateCycleResult.MandatoryUpdateBlocked;
+            return UpdateCycleResult.OfflineAllowed;
+        }
+
+        private void TrySaveState(MandatoryUpdateState state)
+        {
+            try
+            {
+                _runtime.SaveState(state);
+            }
+            catch (Exception exception) when (exception is IOException ||
+                                              exception is UnauthorizedAccessException ||
+                                              exception is InvalidDataException)
+            {
+                _runtime.LogException(exception);
+            }
+        }
+
+        private sealed class InlineProgress : IProgress<double>
+        {
+            private readonly Action<double> _report;
+
+            public InlineProgress(Action<double> report)
+            {
+                _report = report;
+            }
+
+            public void Report(double value)
+            {
+                _report(value);
+            }
         }
     }
 
@@ -168,6 +240,21 @@ namespace GestureSign.Daemon.Updates
         UpdateLaunchDeclined,
         MandatoryUpdateBlocked,
         InvalidStateBlocked
+    }
+
+    internal enum UpdateProgressStage
+    {
+        Downloading,
+        PreparingInstallation,
+        RetryPending
+    }
+
+    internal enum ManualUpdateCheckResult
+    {
+        Current,
+        Unavailable,
+        Unsupported,
+        AlreadyRunning
     }
 
     internal interface IUpdateCoordinatorRuntime
@@ -189,7 +276,7 @@ namespace GestureSign.Daemon.Updates
         Task<UpdateMetadata> GetLatestMetadataAsync(CancellationToken cancellationToken);
 
         Task<string> DownloadUpdateAsync(UpdateMetadata metadata, UpdateAssetMetadata asset,
-            CancellationToken cancellationToken);
+            IProgress<double> progress, CancellationToken cancellationToken);
 
         Task<bool> StartUpdaterAsync(UpdateMetadata metadata, UpdateAssetMetadata asset,
             string packagePath, CancellationToken cancellationToken);
@@ -197,5 +284,11 @@ namespace GestureSign.Daemon.Updates
         void ExitApplication();
 
         void LogException(Exception exception);
+
+        void ShowUpdateProgress(UpdateProgressStage stage, string version, double percentage);
+
+        void CloseUpdateWindow();
+
+        void ShowManualCheckResult(ManualUpdateCheckResult result);
     }
 }

@@ -244,6 +244,7 @@ QQ交流群: 576981420
     <WindowDragBringToFront>拖移时将窗口置前</WindowDragBringToFront>
     <WindowDragImplementation>拖移方式</WindowDragImplementation>
     <DirectSetWindowPos>底部锚点：直接移动窗口 (SetWindowPos)</DirectSetWindowPos>
+    <NativeMoveLoop>底部锚点：Windows 原生移动循环（会激活窗口）</NativeMoveLoop>
     <SimulatedMouseDrag>底部锚点：模拟鼠标按住</SimulatedMouseDrag>
     <ThreeFingerDrag>三指拖移（停用已录入三指手势）</ThreeFingerDrag>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
@@ -312,6 +313,8 @@ QQ交流群: 576981420
     <InitialTimeoutTitle>手势起始超时</InitialTimeoutTitle>
     <InitialTimeout>{0:F1} 秒后超时</InitialTimeout>
     <ErrorLogPrompt>错误日志提示</ErrorLogPrompt>
+    <UpdateLabel>软件更新</UpdateLabel>
+    <CheckForUpdates>检查更新</CheckForUpdates>
     <RunAsAdmin>以管理员身份启动</RunAsAdmin>
     <WindowsStartup>
       <Header>开机启动</Header>
@@ -334,6 +337,7 @@ QQ交流群: 576981420
       <BackupCompleteTitle>备份完成</BackupCompleteTitle>
       <RestoreCompleteTitle>恢复成功</RestoreCompleteTitle>
       <TaskUserDisabled>开机启动已被用户禁用，请先在任务管理器中启用。</TaskUserDisabled>
+      <UpdateRequestFailed>无法连接 TouchPilot 后台服务。</UpdateRequestFailed>
     </Messages>
   </Options>
 </Language>

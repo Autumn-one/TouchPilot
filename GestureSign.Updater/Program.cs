@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace GestureSign.Updater
@@ -18,32 +20,41 @@ namespace GestureSign.Updater
             try
             {
                 UpdateArguments arguments = UpdateArguments.Parse(args);
-                WaitForProcess(arguments.WaitProcessId, TimeSpan.FromSeconds(45));
-                WaitForApplicationProcesses(arguments.TargetDirectory, TimeSpan.FromSeconds(45));
+                using var progressForm = new InstallationProgressForm(arguments.ExpectedVersion);
+                int exitCode = 1;
+                int running = 0;
 
-                if (arguments.Mode == UpdateMode.Installer)
+                async Task RunUpdateAsync()
                 {
-                    new InstallerUpdateRunner().Install(arguments.PackagePath,
-                        arguments.ExpectedPackageSha256);
-                }
-                else
-                {
-                    new UpdateInstaller().Install(arguments.PackagePath, arguments.TargetDirectory,
-                        arguments.ExpectedVersion, arguments.ExpectedPackageSha256);
+                    if (Interlocked.Exchange(ref running, 1) != 0)
+                        return;
+
+                    progressForm.ShowPreparing();
+                    try
+                    {
+                        await Task.Run(() => InstallAndRestart(arguments, progressForm))
+                            .ConfigureAwait(true);
+                        exitCode = 0;
+                        progressForm.ShowCompleted();
+                        await Task.Delay(300).ConfigureAwait(true);
+                        progressForm.CloseForApplication();
+                    }
+                    catch (Exception exception)
+                    {
+                        exitCode = exception is Win32Exception win32Exception &&
+                                   win32Exception.NativeErrorCode == 1223 ? 2 : 1;
+                        progressForm.ShowRetry(exception.Message);
+                    }
+                    finally
+                    {
+                        Interlocked.Exchange(ref running, 0);
+                    }
                 }
 
-                string restartPath = GetSafeRestartPath(arguments.TargetDirectory, arguments.RestartExecutable);
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = restartPath,
-                    WorkingDirectory = arguments.TargetDirectory,
-                    UseShellExecute = true
-                });
-                return 0;
-            }
-            catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
-            {
-                return 2;
+                progressForm.Shown += (sender, eventArgs) => _ = RunUpdateAsync();
+                progressForm.RetryRequested += (sender, eventArgs) => _ = RunUpdateAsync();
+                Application.Run(progressForm);
+                return exitCode;
             }
             catch (Exception exception)
             {
@@ -51,6 +62,35 @@ namespace GestureSign.Updater
                     MessageBoxIcon.Error);
                 return 1;
             }
+        }
+
+        private static void InstallAndRestart(UpdateArguments arguments,
+            InstallationProgressForm progressForm)
+        {
+            WaitForProcess(arguments.WaitProcessId, TimeSpan.FromSeconds(45));
+            WaitForApplicationProcesses(arguments.TargetDirectory, TimeSpan.FromSeconds(45));
+            progressForm.ShowInstalling(arguments.Mode);
+
+            if (arguments.Mode == UpdateMode.Installer)
+            {
+                new InstallerUpdateRunner().Install(arguments.PackagePath,
+                    arguments.ExpectedPackageSha256);
+            }
+            else
+            {
+                var progress = new InlineProgress(progressForm.ReportProgress);
+                new UpdateInstaller().Install(arguments.PackagePath, arguments.TargetDirectory,
+                    arguments.ExpectedVersion, arguments.ExpectedPackageSha256, progress);
+            }
+
+            string restartPath = GetSafeRestartPath(arguments.TargetDirectory,
+                arguments.RestartExecutable);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = restartPath,
+                WorkingDirectory = arguments.TargetDirectory,
+                UseShellExecute = true
+            });
         }
 
         private static void WaitForProcess(int processId, TimeSpan timeout)
@@ -153,6 +193,21 @@ namespace GestureSign.Updater
             if (!File.Exists(path))
                 throw new FileNotFoundException("The updated TouchPilot executable was not found.", path);
             return path;
+        }
+
+        private sealed class InlineProgress : IProgress<double>
+        {
+            private readonly Action<double> _report;
+
+            public InlineProgress(Action<double> report)
+            {
+                _report = report;
+            }
+
+            public void Report(double value)
+            {
+                _report(value);
+            }
         }
     }
 }
