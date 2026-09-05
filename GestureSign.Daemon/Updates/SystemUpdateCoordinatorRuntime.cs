@@ -48,11 +48,13 @@ namespace GestureSign.Daemon.Updates
             _stateStore.Save(state);
         }
 
-        public async Task<UpdateMetadata> GetLatestMetadataAsync(CancellationToken cancellationToken)
+        public async Task<UpdateMetadata> GetLatestMetadataAsync(NuGetVersion minimumVersion,
+            CancellationToken cancellationToken)
         {
             using ECDsa trustedKey = TrustedUpdateSigningKey.Load();
             using var client = new UpdateMetadataClient(UpdateInstallation.GetRepository(), trustedKey);
-            UpdateMetadataResult result = await client.GetLatestAsync(cancellationToken).ConfigureAwait(false);
+            UpdateMetadataResult result = await client.GetLatestAsync(cancellationToken, minimumVersion)
+                .ConfigureAwait(false);
             Logging.LogMessage($"Trusted update metadata {result.Metadata.Version} selected from " +
                                $"{result.SourceName} ({result.ValidSourceCount} valid source(s)).");
             return result.Metadata;

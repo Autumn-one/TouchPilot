@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NuGet.Versioning;
 
 namespace GestureSign.Common.Updates
 {
@@ -46,7 +47,13 @@ namespace GestureSign.Common.Updates
             _ownsHttpClient = ownsHttpClient;
         }
 
-        public async Task<UpdateMetadataResult> GetLatestAsync(CancellationToken cancellationToken)
+        public Task<UpdateMetadataResult> GetLatestAsync(CancellationToken cancellationToken)
+        {
+            return GetLatestAsync(cancellationToken, null);
+        }
+
+        public async Task<UpdateMetadataResult> GetLatestAsync(CancellationToken cancellationToken,
+            NuGetVersion minimumVersion)
         {
             string targetUrl = BuildLatestMetadataUrl();
             var errors = new List<string>();
@@ -65,6 +72,9 @@ namespace GestureSign.Common.Updates
                     UpdateMetadata metadata = UpdateMetadataSignature.Verify(download.Json, _trustedKey);
                     if (!string.Equals(metadata.Repository, _repository.Slug, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException("The metadata repository does not match the application.");
+                    if (minimumVersion != null && VersionComparer.VersionRelease.Compare(
+                            ReleaseVersion.Parse(metadata.Version), minimumVersion) < 0)
+                        throw new InvalidDataException("The mirror metadata is older than the known application version.");
                     return new UpdateMetadataResult(metadata, download.Source.Name,
                         download.ElapsedMilliseconds, 1);
                 }

@@ -95,7 +95,11 @@ namespace GestureSign.Daemon.Updates
                 MandatoryUpdateDecision decision = null;
                 try
                 {
-                    UpdateMetadata metadata = await _runtime.GetLatestMetadataAsync(cancellationToken)
+                    NuGetVersion minimumVersion = _runtime.CurrentVersion;
+                    if (ReleaseVersion.TryParse(state.PendingVersion, out NuGetVersion pendingVersion) &&
+                        VersionComparer.VersionRelease.Compare(pendingVersion, minimumVersion) > 0)
+                        minimumVersion = pendingVersion;
+                    UpdateMetadata metadata = await _runtime.GetLatestMetadataAsync(minimumVersion, cancellationToken)
                         .ConfigureAwait(false);
                     NuGetVersion latestVersion = ReleaseVersion.Parse(metadata.Version);
                     decision = MandatoryUpdatePolicy.RecordSuccessfulCheck(state,
@@ -292,7 +296,7 @@ namespace GestureSign.Daemon.Updates
 
         void SaveState(MandatoryUpdateState state);
 
-        Task<UpdateMetadata> GetLatestMetadataAsync(CancellationToken cancellationToken);
+        Task<UpdateMetadata> GetLatestMetadataAsync(NuGetVersion minimumVersion, CancellationToken cancellationToken);
 
         Task<string> DownloadUpdateAsync(UpdateMetadata metadata, UpdateAssetMetadata asset,
             IProgress<double> progress, CancellationToken cancellationToken);

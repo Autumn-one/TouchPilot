@@ -20,6 +20,7 @@ namespace GestureSign.Common.Updates
         private readonly HttpClient _httpClient;
         private readonly bool _ownsHttpClient;
         private readonly IReadOnlyList<UpdateSource> _sources;
+        private readonly TimeSpan _headerTimeout;
 
         public UpdatePackageDownloader()
             : this(CreateHttpClient(), UpdateSource.CreateDefaults(), true)
@@ -27,13 +28,16 @@ namespace GestureSign.Common.Updates
         }
 
         internal UpdatePackageDownloader(HttpClient httpClient, IReadOnlyList<UpdateSource> sources,
-            bool ownsHttpClient = false)
+            bool ownsHttpClient = false, TimeSpan? headerTimeout = null)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _sources = sources == null || sources.Count == 0
                 ? throw new ArgumentException("At least one update source is required.", nameof(sources))
                 : sources;
             _ownsHttpClient = ownsHttpClient;
+            _headerTimeout = headerTimeout ?? ReadTimeout;
+            if (_headerTimeout <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(headerTimeout));
         }
 
         public async Task<string> DownloadAsync(GitHubRepository repository, string tag,
@@ -63,6 +67,20 @@ namespace GestureSign.Common.Updates
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destinationPath)));
             if (File.Exists(partialPath) && new FileInfo(partialPath).Length > asset.Size)
                 File.Delete(partialPath);
+            if (File.Exists(partialPath) && new FileInfo(partialPath).Length == asset.Size)
+            {
+                try
+                {
+                    ValidateCompletedFile(partialPath, asset);
+                    File.Move(partialPath, destinationPath, true);
+                    progress?.Report(100);
+                    return destinationPath;
+                }
+                catch (InvalidDataException)
+                {
+                    File.Delete(partialPath);
+                }
+            }
 
             var failures = new List<Exception>();
             foreach (UpdateSource source in _sources)
@@ -144,8 +162,8 @@ namespace GestureSign.Common.Updates
             using var request = new HttpRequestMessage(HttpMethod.Get, source.Prefix + originUrl);
             if (existingLength > 0)
                 request.Headers.Range = new RangeHeaderValue(existingLength, null);
-            using HttpResponseMessage response = await _httpClient.SendAsync(request,
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            using HttpResponseMessage response = await SendDownloadRequestAsync(request, cancellationToken)
+                .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             bool append = existingLength > 0 && response.StatusCode == HttpStatusCode.PartialContent &&
@@ -203,13 +221,30 @@ namespace GestureSign.Common.Updates
             }
         }
 
+        private async Task<HttpResponseMessage> SendDownloadRequestAsync(HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(_headerTimeout);
+            try
+            {
+                return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
+                    timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException("The update source did not return download headers in time.", exception);
+            }
+        }
+
         private static void ValidateCompletedFile(string path, UpdateAssetMetadata asset)
         {
             if (!File.Exists(path) || new FileInfo(path).Length != asset.Size)
                 throw new InvalidDataException("The downloaded update package has an invalid size.");
-            using FileStream stream = File.OpenRead(path);
-            using SHA256 sha256 = SHA256.Create();
-            string actualHash = Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
+            string actualHash;
+            using (FileStream stream = File.OpenRead(path))
+            using (SHA256 sha256 = SHA256.Create())
+                actualHash = Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
             if (!string.Equals(actualHash, asset.Sha256, StringComparison.OrdinalIgnoreCase))
             {
                 File.Delete(path);

@@ -137,6 +137,34 @@ namespace GestureSign.Tests
         }
 
         [Fact]
+        public async Task MetadataClientSkipsStaleSignedMirrorWhenNewerVersionIsKnown()
+        {
+            using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var handler = new MetadataHandler(new Dictionary<string, string>
+            {
+                ["stale.invalid"] = UpdateMetadataSignature.Sign(
+                    CreateUpdateMetadata(DateTimeOffset.UtcNow, "8.3.0"), key),
+                ["current.invalid"] = UpdateMetadataSignature.Sign(
+                    CreateUpdateMetadata(DateTimeOffset.UtcNow, "8.4.0"), key)
+            });
+            using var http = new HttpClient(handler);
+            using var client = new UpdateMetadataClient(GitHubRepository.Parse("Autumn-one/TouchPilot"),
+                key, http, new[]
+                {
+                    new UpdateSource("stale", "https://stale.invalid/"),
+                    new UpdateSource("current", "https://current.invalid/"),
+                    new UpdateSource("unused", "https://unused.invalid/")
+                }, TimeSpan.FromSeconds(1), () => DateTimeOffset.UtcNow);
+
+            UpdateMetadataResult result = await client.GetLatestAsync(CancellationToken.None,
+                ReleaseVersion.Parse("8.4.0"));
+
+            Assert.Equal("8.4.0", result.Metadata.Version);
+            Assert.Equal("current", result.SourceName);
+            Assert.Equal(2, handler.Requests.Count);
+        }
+
+        [Fact]
         public async Task MetadataClientRejectsUnsignedProxyResponse()
         {
             using ECDsa signingKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -347,6 +375,66 @@ namespace GestureSign.Tests
             Assert.Equal(destination, result);
             Assert.Empty(handler.Requests);
             Assert.Equal(package, File.ReadAllBytes(destination));
+        }
+
+        [Theory]
+        [InlineData("corrupt.invalid")]
+        [InlineData("stalling.invalid")]
+        public async Task PackageDownloaderRecoversFromBadHashOrStalledHeaders(string failedHost)
+        {
+            using var directory = new TemporaryDirectory();
+            byte[] package = Encoding.UTF8.GetBytes(new string('a', 4096));
+            var handler = new PackageHandler(package);
+            using var http = new HttpClient(handler);
+            using var downloader = new UpdatePackageDownloader(http, new[]
+            {
+                new UpdateSource("failed", "https://" + failedHost + "/"),
+                new UpdateSource("healthy", "https://healthy.invalid/"),
+                new UpdateSource("unused", "https://unused.invalid/")
+            }, headerTimeout: TimeSpan.FromMilliseconds(30));
+            var asset = new UpdateAssetMetadata
+            {
+                Name = "TouchPilot.zip", Size = package.Length,
+                Sha256 = Convert.ToHexString(SHA256.HashData(package)).ToLowerInvariant()
+            };
+            string destination = Path.Combine(directory.Path, asset.Name);
+
+            await downloader.DownloadAsync(GitHubRepository.Parse("Autumn-one/TouchPilot"),
+                "v8.4.0", asset, destination, null, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Equal(package, File.ReadAllBytes(destination));
+            Assert.Equal(new[] { failedHost, failedHost, "healthy.invalid", "healthy.invalid" },
+                handler.Requests.Select(request => request.Host));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task PackageDownloaderRecoversCompletedPartialFile(bool corrupt)
+        {
+            using var directory = new TemporaryDirectory();
+            byte[] package = Encoding.UTF8.GetBytes(new string('a', 4096));
+            byte[] partial = package.ToArray();
+            if (corrupt)
+                partial[0] ^= 1;
+            string destination = Path.Combine(directory.Path, "TouchPilot.zip");
+            File.WriteAllBytes(destination + ".download", partial);
+            var handler = new PackageHandler(package);
+            using var http = new HttpClient(handler);
+            using var downloader = new UpdatePackageDownloader(http,
+                new[] { new UpdateSource("healthy", "https://healthy.invalid/") });
+            var asset = new UpdateAssetMetadata
+            {
+                Name = "TouchPilot.zip", Size = package.Length,
+                Sha256 = Convert.ToHexString(SHA256.HashData(package)).ToLowerInvariant()
+            };
+
+            await downloader.DownloadAsync(GitHubRepository.Parse("Autumn-one/TouchPilot"),
+                "v8.4.0", asset, destination, null, CancellationToken.None);
+
+            Assert.Equal(package, File.ReadAllBytes(destination));
+            Assert.False(File.Exists(destination + ".download"));
+            Assert.Equal(corrupt ? 2 : 0, handler.Requests.Count);
         }
 
         [Fact]
@@ -824,9 +912,14 @@ namespace GestureSign.Tests
                 Requests.Add((request.RequestUri.Host, start, request.Headers.Authorization?.ToString()));
                 if (request.RequestUri.Host == "failed.invalid")
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadGateway));
+                if (request.RequestUri.Host == "stalling.invalid" &&
+                    request.Headers.Range?.Ranges.FirstOrDefault()?.To != 0)
+                    return WaitUntilCanceledAsync(cancellationToken);
 
                 long offset = start.GetValueOrDefault();
                 byte[] contentBytes = _package.Skip((int)offset).ToArray();
+                if (request.RequestUri.Host == "corrupt.invalid" && contentBytes.Length > 0)
+                    contentBytes[0] ^= 1;
                 var content = new ByteArrayContent(contentBytes);
                 HttpStatusCode status = request.Headers.Range == null
                     ? HttpStatusCode.OK
@@ -845,6 +938,12 @@ namespace GestureSign.Tests
                 }
 
                 return Task.FromResult(new HttpResponseMessage(status) { Content = content });
+            }
+
+            private static async Task<HttpResponseMessage> WaitUntilCanceledAsync(CancellationToken token)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                throw new InvalidOperationException("The simulated stalled request should be canceled.");
             }
         }
 

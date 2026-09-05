@@ -137,6 +137,7 @@ namespace GestureSign.Tests
 
             Assert.Equal(UpdateCycleResult.OfflineAllowed, result);
             Assert.Equal("8.4.0", runtime.State.PendingVersion);
+            Assert.Equal("8.4.0", runtime.RequestedMinimumVersion.ToNormalizedString());
             Assert.Null(runtime.DownloadedAsset);
             Assert.Contains(runtime.ProgressUpdates,
                 update => update.Stage == UpdateProgressStage.RetryPending &&
@@ -364,6 +365,7 @@ namespace GestureSign.Tests
             public ManualUpdateCheckResult? ManualCheckResult { get; private set; }
 
             public int CheckCount;
+            public NuGetVersion RequestedMinimumVersion { get; private set; }
 
             public TaskCompletionSource<bool> TwoChecks { get; } =
                 new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -380,8 +382,10 @@ namespace GestureSign.Tests
                 State = state;
             }
 
-            public Task<UpdateMetadata> GetLatestMetadataAsync(CancellationToken cancellationToken)
+            public Task<UpdateMetadata> GetLatestMetadataAsync(NuGetVersion minimumVersion,
+                CancellationToken cancellationToken)
             {
+                RequestedMinimumVersion = minimumVersion;
                 if (Interlocked.Increment(ref CheckCount) >= 2)
                     TwoChecks.TrySetResult(true);
                 if (MetadataException != null)
