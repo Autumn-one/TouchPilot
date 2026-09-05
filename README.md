@@ -74,6 +74,14 @@ curl -fsSL https://raw.githubusercontent.com/Autumn-one/TouchPilot/main/deploy/i
 
 The service listens on TCP port `4318`. Allow that port in the cloud firewall/security group before clients connect. Check it with `curl http://127.0.0.1:4318/healthz` and inspect it with `systemctl status touchpilot-telemetry`.
 
+Re-running the deployment command upgrades the existing service. The installer verifies the binary before replacing it atomically, preserves the environment file and data, and restores the previous binary and service unit if startup or the health check fails. Concurrent installers are rejected. A configured listen address in `/etc/touchpilot-telemetry/environment` is used for the health check; unusual setups can set `TOUCHPILOT_TELEMETRY_HEALTH_URL` explicitly. Service diagnostics are available with `journalctl -u touchpilot-telemetry --since today --no-pager`.
+
+The installer recovery and mirror fallback tests run without changing system services:
+
+```bash
+bash deploy/tests/install-telemetry-server.test.sh
+```
+
 To change the public endpoint, deploy the replacement server first, then generate the next signed configuration revision and commit it:
 
 ```powershell
