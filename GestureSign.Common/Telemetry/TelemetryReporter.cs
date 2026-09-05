@@ -35,6 +35,7 @@ namespace GestureSign.Common.Telemetry
     public sealed class TelemetryReporter : ITelemetrySink, IDisposable
     {
         private static readonly TimeSpan EndpointTimeout = TimeSpan.FromSeconds(5);
+        internal static readonly TimeSpan RecoveryInterval = TimeSpan.FromMinutes(10);
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -50,8 +51,10 @@ namespace GestureSign.Common.Telemetry
         private readonly Channel<TelemetryEvent> _events;
         private readonly CancellationTokenSource _shutdown = new CancellationTokenSource();
         private readonly string _sessionId = Guid.NewGuid().ToString("N");
+        private readonly object _lifecycleGate = new object();
+        private readonly Func<string, CancellationToken, Task<TelemetryConfigurationResult>> _loadConfiguration;
+        private readonly Func<TimeSpan, CancellationToken, Task> _delay;
         private Task _worker;
-        private int _started;
         private int _disposed;
 
         public TelemetryReporter(GitHubRepository repository, string storageDirectory,
@@ -63,7 +66,9 @@ namespace GestureSign.Common.Telemetry
 
         internal TelemetryReporter(GitHubRepository repository, string storageDirectory,
             string appVersion, string distribution, string runtime, Action<Exception> logException,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            Func<string, CancellationToken, Task<TelemetryConfigurationResult>> loadConfiguration = null,
+            Func<TimeSpan, CancellationToken, Task> delay = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _storageDirectory = string.IsNullOrWhiteSpace(storageDirectory)
@@ -75,6 +80,8 @@ namespace GestureSign.Common.Telemetry
             _runtime = RequireValue(runtime, nameof(runtime));
             _logException = logException ?? throw new ArgumentNullException(nameof(logException));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _loadConfiguration = loadConfiguration ?? LoadConfigurationAsync;
+            _delay = delay ?? Task.Delay;
             _events = Channel.CreateBounded<TelemetryEvent>(new BoundedChannelOptions(32)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
@@ -85,10 +92,16 @@ namespace GestureSign.Common.Telemetry
 
         public void Start()
         {
-            if (Interlocked.Exchange(ref _started, 1) != 0)
-                return;
-            _worker = Task.Run(() => RunAsync(_shutdown.Token));
+            lock (_lifecycleGate)
+            {
+                if (_worker != null || _disposed != 0)
+                    return;
+                CancellationToken token = _shutdown.Token;
+                _worker = Task.Run(() => RunAsync(token));
+            }
         }
+
+        internal Task Completion => _worker ?? Task.CompletedTask;
 
         public void Track(string name, IReadOnlyDictionary<string, string> properties = null)
         {
@@ -111,24 +124,74 @@ namespace GestureSign.Common.Telemetry
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0)
-                return;
-
-            _events.Writer.TryComplete();
-            if (_worker != null && !_worker.Wait(TimeSpan.FromMilliseconds(500)))
+            Task worker;
+            lock (_lifecycleGate)
             {
-                _shutdown.Cancel();
+                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                    return;
+                _events.Writer.TryComplete();
+                worker = _worker;
+            }
+
+            if (worker == null)
+                ReleaseResources();
+            else
+            {
+                if (!worker.Wait(TimeSpan.FromMilliseconds(500)))
+                    _shutdown.Cancel();
+                // A slow HTTP cancellation must not race disposal of its token source or client.
+                _ = worker.ContinueWith(_ => ReleaseResources(), CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+        }
+
+        private void ReleaseResources()
+        {
+            _httpClient.Dispose();
+            _shutdown.Dispose();
+        }
+
+        private async Task<TelemetryConfigurationResult> LoadConfigurationAsync(string cachePath,
+            CancellationToken cancellationToken)
+        {
+            using ECDsa trustedKey = TrustedUpdateSigningKey.Load();
+            using var client = new TelemetryConfigurationClient(_repository, trustedKey);
+            return await client.GetAsync(cachePath, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task<TelemetryConfiguration> ResolveConfigurationAsync(string cachePath,
+            CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    _worker.Wait(TimeSpan.FromMilliseconds(500));
+                    return (await _loadConfiguration(cachePath, cancellationToken)
+                        .ConfigureAwait(false)).Configuration;
                 }
-                catch (AggregateException exception) when (exception.InnerExceptions.All(inner =>
-                           inner is OperationCanceledException))
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    LogFailure(exception);
+                    await _delay(RecoveryInterval, cancellationToken).ConfigureAwait(false);
                 }
             }
-            _shutdown.Dispose();
-            _httpClient.Dispose();
+        }
+
+        private void LogFailure(Exception exception)
+        {
+            try
+            {
+                _logException(exception);
+            }
+            catch
+            {
+                // Telemetry must not affect application shutdown if the log destination fails.
+            }
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)
@@ -138,28 +201,32 @@ namespace GestureSign.Common.Telemetry
                 Directory.CreateDirectory(_storageDirectory);
                 string clientId = LoadOrCreateClientId();
                 string cachePath = Path.Combine(_storageDirectory, "endpoint-config.json");
-                using ECDsa trustedKey = TrustedUpdateSigningKey.Load();
-                using var configurationClient = new TelemetryConfigurationClient(
-                    _repository, trustedKey);
-                TelemetryConfigurationResult result = await configurationClient.GetAsync(cachePath,
+                TelemetryConfiguration configuration = await ResolveConfigurationAsync(cachePath,
                     cancellationToken).ConfigureAwait(false);
 
                 await foreach (TelemetryEvent telemetryEvent in _events.Reader.ReadAllAsync(
                                    cancellationToken).ConfigureAwait(false))
                 {
                     telemetryEvent.ClientId = clientId;
-                    try
+                    while (true)
                     {
-                        await SendAsync(result.Configuration, telemetryEvent, cancellationToken)
-                            .ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                    {
-                        throw;
-                    }
-                    catch (Exception exception)
-                    {
-                        _logException(exception);
+                        try
+                        {
+                            await SendAsync(configuration, telemetryEvent, cancellationToken)
+                                .ConfigureAwait(false);
+                            break;
+                        }
+                        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                        {
+                            throw;
+                        }
+                        catch (Exception exception)
+                        {
+                            LogFailure(exception);
+                            await _delay(RecoveryInterval, cancellationToken).ConfigureAwait(false);
+                            configuration = await ResolveConfigurationAsync(cachePath, cancellationToken)
+                                .ConfigureAwait(false);
+                        }
                     }
                 }
             }
@@ -168,7 +235,7 @@ namespace GestureSign.Common.Telemetry
             }
             catch (Exception exception)
             {
-                _logException(exception);
+                LogFailure(exception);
             }
         }
 
@@ -182,8 +249,12 @@ namespace GestureSign.Common.Telemetry
                 {
                     using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     timeout.CancelAfter(EndpointTimeout);
-                    using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(
-                        endpoint.BuildEventUri(), telemetryEvent, JsonOptions, timeout.Token)
+                    using var request = new HttpRequestMessage(HttpMethod.Post, endpoint.BuildEventUri())
+                    {
+                        Content = JsonContent.Create(telemetryEvent, options: JsonOptions)
+                    };
+                    using HttpResponseMessage response = await _httpClient.SendAsync(request,
+                        HttpCompletionOption.ResponseHeadersRead, timeout.Token)
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
                     return;

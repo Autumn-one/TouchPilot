@@ -54,6 +54,16 @@ Use a fine-grained GitHub personal access token scoped to the target repository 
 The desktop client reads its signed endpoint configuration from
 `distribution/telemetry-endpoint.json` in `Autumn-one/TouchPilot` at startup. It uses the same ordered mirror fallback as updates and keeps a verified last-known-good cache. The configuration has a monotonic revision and can list multiple endpoints in priority order, so a replacement server can be deployed before the old server is retired.
 
+If configuration discovery or event delivery fails, the client retries after 10 minutes and refreshes the signed configuration. Healthy event delivery does not poll the repository. Pending events stay in a bounded memory queue while the application runs; retries retain their event IDs, so analytics should deduplicate by `eventId` when an acknowledgement is lost. Restarting the application clears the memory queue.
+
+To verify the real client discovery, signature verification, and server ingestion together, run the explicit live test below. It sends one `deployment_check` event marked `source=integration_test`; ordinary test runs do not contact production.
+
+```powershell
+$env:TOUCHPILOT_LIVE_TELEMETRY_TEST = "1"
+dotnet test GestureSign.Tests/GestureSign.Tests.csproj -c Debug --filter FullyQualifiedName~LiveRepositoryConfigurationDeliversDeploymentCheckToServer
+Remove-Item Env:TOUCHPILOT_LIVE_TELEMETRY_TEST
+```
+
 The client sends only generated installation, session, and event IDs, the TouchPilot version, distribution, runtime, and bounded event properties. It does not send user names, file paths, window titles, input contents, or source IP fields. The server stores accepted events as daily JSONL files under `/var/lib/touchpilot-telemetry`.
 
 Deploy or update the Linux service on an amd64 or arm64 systemd host with:
