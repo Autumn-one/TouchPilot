@@ -55,6 +55,7 @@ namespace GestureSign.Common.Telemetry
         private readonly Func<string, CancellationToken, Task<TelemetryConfigurationResult>> _loadConfiguration;
         private readonly Func<TimeSpan, CancellationToken, Task> _delay;
         private Task _worker;
+        private long _failedConfigurationRevision;
         private int _disposed;
 
         public TelemetryReporter(GitHubRepository repository, string storageDirectory,
@@ -156,7 +157,8 @@ namespace GestureSign.Common.Telemetry
         {
             using ECDsa trustedKey = TrustedUpdateSigningKey.Load();
             using var client = new TelemetryConfigurationClient(_repository, trustedKey);
-            return await client.GetAsync(cachePath, cancellationToken).ConfigureAwait(false);
+            return await client.GetAsync(cachePath, cancellationToken, _failedConfigurationRevision)
+                .ConfigureAwait(false);
         }
 
         private async Task<TelemetryConfiguration> ResolveConfigurationAsync(string cachePath,
@@ -214,6 +216,7 @@ namespace GestureSign.Common.Telemetry
                         {
                             await SendAsync(configuration, telemetryEvent, cancellationToken)
                                 .ConfigureAwait(false);
+                            _failedConfigurationRevision = 0;
                             break;
                         }
                         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -222,6 +225,7 @@ namespace GestureSign.Common.Telemetry
                         }
                         catch (Exception exception)
                         {
+                            _failedConfigurationRevision = configuration.Revision;
                             LogFailure(exception);
                             await _delay(RecoveryInterval, cancellationToken).ConfigureAwait(false);
                             configuration = await ResolveConfigurationAsync(cachePath, cancellationToken)

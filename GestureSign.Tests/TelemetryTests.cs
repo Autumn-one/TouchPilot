@@ -130,6 +130,39 @@ namespace GestureSign.Tests
                 request => Assert.Equal("current.invalid", request.Host));
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task FailedDeliverySkipsSameRevisionMirrorButRetainsOfflineFallback(bool hasReplacement)
+        {
+            using var directory = new TemporaryDirectory();
+            using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            string cachePath = Path.Combine(directory.Path, "endpoint.json");
+            string oldJson = TelemetryConfigurationSignature.Sign(CreateConfiguration(7), key);
+            File.WriteAllText(cachePath, oldJson);
+            var handler = new ConfigurationHandler(new Dictionary<string, string>
+            {
+                ["old.invalid"] = oldJson,
+                ["new.invalid"] = hasReplacement
+                    ? TelemetryConfigurationSignature.Sign(CreateConfiguration(8, "https://new.example"), key)
+                    : oldJson
+            });
+            using var http = new HttpClient(handler);
+            using var client = new TelemetryConfigurationClient(
+                GitHubRepository.Parse("Autumn-one/TouchPilot"), key, http,
+                new[]
+                {
+                    new UpdateSource("old", "https://old.invalid/"),
+                    new UpdateSource("new", "https://new.invalid/")
+                }, TimeSpan.FromSeconds(1), () => DateTimeOffset.UtcNow);
+
+            TelemetryConfigurationResult result = await client.GetAsync(cachePath, CancellationToken.None, 7);
+
+            Assert.Equal(2, handler.Requests.Count);
+            Assert.Equal(hasReplacement ? 8 : 7, result.Configuration.Revision);
+            Assert.Equal(!hasReplacement, result.FromCache);
+        }
+
         [Fact]
         public void EndpointCombinesBaseAddressPortAndEventPath()
         {

@@ -49,8 +49,14 @@ namespace GestureSign.Common.Telemetry
             _ownsHttpClient = ownsHttpClient;
         }
 
-        public async Task<TelemetryConfigurationResult> GetAsync(string cachePath,
+        public Task<TelemetryConfigurationResult> GetAsync(string cachePath,
             CancellationToken cancellationToken)
+        {
+            return GetAsync(cachePath, cancellationToken, 0);
+        }
+
+        public async Task<TelemetryConfigurationResult> GetAsync(string cachePath,
+            CancellationToken cancellationToken, long failedRevision)
         {
             string targetUrl = BuildConfigurationUrl();
             var errors = new List<string>();
@@ -77,6 +83,9 @@ namespace GestureSign.Common.Telemetry
                         configuration.Revision < cachedConfiguration.Revision)
                         throw new InvalidDataException(
                             "The telemetry configuration revision is older than the verified cache.");
+                    if (configuration.Revision <= failedRevision)
+                        throw new InvalidDataException(
+                            "This telemetry revision already failed delivery; checking the next mirror.");
                     TryWriteCache(cachePath, candidate.Json);
                     return new TelemetryConfigurationResult(configuration, source.Name, false,
                         candidate.ElapsedMilliseconds);
