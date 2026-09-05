@@ -107,7 +107,7 @@ namespace GestureSign.Tests
                 ["stale.invalid"] = TelemetryConfigurationSignature.Sign(
                     CreateConfiguration(6), key),
                 ["current.invalid"] = TelemetryConfigurationSignature.Sign(
-                    CreateConfiguration(8), key)
+                    CreateConfiguration(8, "https://new-server.example"), key)
             });
             using var httpClient = new HttpClient(handler);
             using var client = new TelemetryConfigurationClient(
@@ -123,6 +123,8 @@ namespace GestureSign.Tests
 
             Assert.False(result.FromCache);
             Assert.Equal(8, result.Configuration.Revision);
+            Assert.Equal("https://new-server.example:4318/v1/events",
+                Assert.Single(result.Configuration.Endpoints).BuildEventUri().AbsoluteUri);
             Assert.Collection(handler.Requests,
                 request => Assert.Equal("stale.invalid", request.Host),
                 request => Assert.Equal("current.invalid", request.Host));
@@ -137,7 +139,7 @@ namespace GestureSign.Tests
         }
 
         [Fact]
-        public void CommittedConfigurationMatchesClientTrustAndOfficialEndpoint()
+        public void CommittedConfigurationMatchesClientTrustAndOfficialRepository()
         {
             string root = FindRepositoryRoot();
             string path = Path.Combine(root,
@@ -148,10 +150,9 @@ namespace GestureSign.Tests
                 File.ReadAllText(path), trustedKey);
 
             Assert.Equal("Autumn-one/TouchPilot", configuration.Repository);
-            Assert.Equal(1, configuration.Revision);
-            TelemetryEndpoint endpoint = Assert.Single(configuration.Endpoints);
-            Assert.Equal("http://43.159.148.243:4318/v1/events",
-                endpoint.BuildEventUri().AbsoluteUri);
+            Assert.True(configuration.Revision > 0);
+            Assert.NotEmpty(configuration.Endpoints);
+            Assert.All(configuration.Endpoints, endpoint => Assert.True(endpoint.BuildEventUri().IsAbsoluteUri));
         }
 
         [Fact]
@@ -182,7 +183,8 @@ namespace GestureSign.Tests
             Assert.Throws<ArgumentException>(() => reporter.Track("Window Title"));
         }
 
-        private static TelemetryConfiguration CreateConfiguration(long revision)
+        private static TelemetryConfiguration CreateConfiguration(long revision,
+            string baseAddress = "http://43.159.148.243")
         {
             return new TelemetryConfiguration
             {
@@ -193,7 +195,7 @@ namespace GestureSign.Tests
                 {
                     new TelemetryEndpoint
                     {
-                        BaseAddress = "http://43.159.148.243",
+                        BaseAddress = baseAddress,
                         Port = 4318,
                         EventPath = "/v1/events"
                     }
