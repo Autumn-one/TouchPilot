@@ -4,4 +4,7 @@
     <AssemblyName>GestureSign.Tests.DesktopHost</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\GestureSign.CorePlugins\GestureSign.CorePlugins.csproj" />
+  </ItemGroup>
 </Project>

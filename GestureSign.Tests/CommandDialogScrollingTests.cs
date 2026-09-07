@@ -1,6 +1,10 @@
 using GestureSign.ControlPanel.Common;
 using GestureSign.ControlPanel.Dialogs;
+using GestureSign.Common.Localization;
+using GestureSign.CorePlugins.OpenFile;
+using Newtonsoft.Json.Linq;
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -9,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Xunit;
 
@@ -58,6 +63,7 @@ namespace GestureSign.Tests
                     comboBox.IsDropDownOpen = false;
 
                     var settingsContent = Assert.IsType<ContentControl>(dialog.FindName("SettingsContent"));
+                    AssertOpenFilePermissions(dialog, settingsContent);
                     var hotKeyControl = new GestureSign.CorePlugins.HotKey.HotKey();
                     settingsContent.Content = hotKeyControl;
                     settingsContent.Height = 220;
@@ -88,6 +94,62 @@ namespace GestureSign.Tests
             Assert.True(thread.Join(TimeSpan.FromSeconds(15)), "The command drop-down scrolling test timed out.");
             if (failure != null)
                 throw failure;
+        }
+
+        private static void AssertOpenFilePermissions(CommandDialog dialog, ContentControl settingsContent)
+        {
+            LocalizationProvider.Instance.AddAssembly(typeof(OpenFilePlugin).Assembly.FullName);
+            var plugin = new OpenFilePlugin();
+            Assert.True(plugin.Deserialize("{\"Path\":\"example.txt\",\"Variables\":\"two words\"}"));
+            var control = Assert.IsType<OpenFileControl>(plugin.GUI);
+            settingsContent.Content = control;
+            settingsContent.Height = double.NaN;
+            settingsContent.Visibility = Visibility.Visible;
+            dialog.UpdateLayout();
+            dialog.Dispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+
+            var permissions = Assert.IsType<ComboBox>(control.FindName("PermissionsComboBox"));
+            Assert.Equal(0, permissions.SelectedIndex);
+            Assert.Equal(2, permissions.Items.Count);
+            Assert.True(PrecisionScrolling.GetIsEnabled(permissions));
+            foreach (ComboBoxItem item in permissions.Items)
+                Assert.False(string.IsNullOrWhiteSpace(Assert.IsType<string>(item.Content)));
+
+            permissions.SelectedIndex = 1;
+            var saved = JObject.Parse(plugin.Serialize());
+            Assert.True(saved.Value<bool>("RunAsAdministrator"));
+            Assert.Equal("example.txt", saved.Value<string>("Path"));
+            Assert.Equal("two words", saved.Value<string>("Variables"));
+
+            settingsContent.Content = null;
+            Assert.True(plugin.Deserialize(saved.ToString()));
+            settingsContent.Content = control;
+            dialog.UpdateLayout();
+            dialog.Dispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+            Assert.Equal(1, permissions.SelectedIndex);
+            permissions.SelectedIndex = 0;
+            Assert.False(JObject.Parse(plugin.Serialize()).Value<bool>("RunAsAdministrator"));
+            dialog.UpdateLayout();
+            Assert.True(permissions.TranslatePoint(new Point(), control).Y + permissions.ActualHeight <=
+                control.ActualHeight + 1, "The permission selector is clipped.");
+
+            string screenshotDirectory = Environment.GetEnvironmentVariable("TOUCHPILOT_TEST_SCREENSHOT_DIRECTORY");
+            if (!string.IsNullOrWhiteSpace(screenshotDirectory))
+            {
+                Directory.CreateDirectory(screenshotDirectory);
+                var surface = Assert.IsAssignableFrom<FrameworkElement>(settingsContent.Parent);
+                var bitmap = new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth),
+                    (int)Math.Ceiling(surface.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+                var visual = new DrawingVisual();
+                using (var drawing = visual.RenderOpen())
+                    drawing.DrawRectangle(new VisualBrush(surface), null,
+                        new Rect(0, 0, surface.ActualWidth, surface.ActualHeight));
+                bitmap.Render(visual);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using var output = File.Create(Path.Combine(screenshotDirectory, "open-file-permissions.png"));
+                encoder.Save(output);
+            }
         }
 
         private static void LoadApplicationResources(Application app)

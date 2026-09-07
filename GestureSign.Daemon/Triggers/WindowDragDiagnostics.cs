@@ -53,6 +53,8 @@ namespace GestureSign.Daemon.Triggers
         public int WindowMoveRequests { get; set; }
         public int WindowMoveTargetsPublished { get; set; }
         public int WindowMoveTargetsCoalesced { get; set; }
+        public int WindowMoveTargetsUnchanged { get; set; }
+        public long MaximumWindowMoveQueueWaitMicroseconds { get; set; }
         public long MaximumWindowMoveRequestGapMilliseconds { get; set; }
         public int WindowMoveRequestFailures { get; set; }
         public int WindowMoveAsyncFallbacks { get; set; }
@@ -127,6 +129,8 @@ namespace GestureSign.Daemon.Triggers
         private int _windowMoveRequests;
         private int _windowMoveTargetsPublished;
         private int _windowMoveTargetsCoalesced;
+        private int _windowMoveTargetsUnchanged;
+        private long _maximumWindowMoveQueueWaitMicroseconds;
         private long _lastWindowMoveRequestTimestamp;
         private long _maximumWindowMoveRequestGapMilliseconds;
         private int _windowMoveRequestFailures;
@@ -339,12 +343,15 @@ namespace GestureSign.Daemon.Triggers
             bool succeeded,
             long callMicroseconds,
             bool usedAsynchronousFallback = false,
-            long compositionWaitMicroseconds = 0)
+            long compositionWaitMicroseconds = 0,
+            long queueWaitMicroseconds = 0)
         {
             if (!_active)
                 return;
 
             _windowMoveRequests++;
+            _maximumWindowMoveQueueWaitMicroseconds = Math.Max(
+                _maximumWindowMoveQueueWaitMicroseconds, queueWaitMicroseconds);
             RecordGap(timestampMilliseconds, ref _lastWindowMoveRequestTimestamp,
                 ref _maximumWindowMoveRequestGapMilliseconds, null, "window-request-gap");
             _maximumSetWindowPosCallMicroseconds = Math.Max(
@@ -365,6 +372,12 @@ namespace GestureSign.Daemon.Triggers
         {
             if (_active)
                 _windowMoveTargetsPublished++;
+        }
+
+        internal void RecordUnchangedWindowMoveTarget()
+        {
+            if (_active)
+                _windowMoveTargetsUnchanged++;
         }
 
         internal void RecordWindowMoveTargetsCoalesced(int count)
@@ -477,6 +490,8 @@ namespace GestureSign.Daemon.Triggers
                 WindowMoveRequests = _windowMoveRequests,
                 WindowMoveTargetsPublished = _windowMoveTargetsPublished,
                 WindowMoveTargetsCoalesced = _windowMoveTargetsCoalesced,
+                WindowMoveTargetsUnchanged = _windowMoveTargetsUnchanged,
+                MaximumWindowMoveQueueWaitMicroseconds = _maximumWindowMoveQueueWaitMicroseconds,
                 MaximumWindowMoveRequestGapMilliseconds = _maximumWindowMoveRequestGapMilliseconds,
                 WindowMoveRequestFailures = _windowMoveRequestFailures,
                 WindowMoveAsyncFallbacks = _windowMoveAsyncFallbacks,
@@ -629,6 +644,8 @@ namespace GestureSign.Daemon.Triggers
             _nativeMoveLoopFallbacks = 0;
             _nativeMoveLoopFallbackDetail = null;
             _controllerFailures = 0;
+            _windowMoveTargetsUnchanged = 0;
+            _maximumWindowMoveQueueWaitMicroseconds = 0;
         }
     }
 

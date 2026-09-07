@@ -39,6 +39,44 @@ namespace GestureSign.Tests
             return new WindowDragMotionRequest(new IntPtr(123), left, left + 1, false);
         }
 
+        [Fact]
+        public void DuplicatePendingTargetsDoNotScheduleAnotherCompositionFrame()
+        {
+            using var backend = new BlockingCompositionBackend();
+            using var pump = new WindowDragMotionPump(backend);
+            Assert.True(pump.Publish(Request(10)));
+            Assert.True(backend.CompositionWaitStarted.Wait(TimeSpan.FromSeconds(2)));
+            Assert.True(pump.HasPendingMoves);
+            for (int i = 0; i < 100; i++)
+                Assert.True(pump.Publish(Request(10)));
+            Assert.False(pump.Flush(TimeSpan.Zero));
+            backend.AllowComposition.Set();
+            Assert.True(pump.Flush(TimeSpan.FromSeconds(2)));
+            Assert.False(pump.HasPendingMoves);
+            Assert.True(pump.TryTakeResult(out WindowDragMotionResult result));
+            Assert.Equal(10, result.RequestedLeft);
+            Assert.True(result.QueueWaitMicroseconds >= 0);
+            Assert.False(pump.TryTakeResult(out _));
+        }
+
+        [Fact]
+        public void StopPreservesTheLatestTargetIncludingAWindowChange()
+        {
+            using var backend = new BlockingCompositionBackend();
+            using var pump = new WindowDragMotionPump(backend);
+            Assert.True(pump.Publish(Request(10)));
+            Assert.True(backend.CompositionWaitStarted.Wait(TimeSpan.FromSeconds(2)));
+            Assert.True(pump.Publish(new WindowDragMotionRequest(new IntPtr(456), 10, 11, true)));
+            Assert.False(pump.Stop(TimeSpan.Zero));
+            Assert.False(pump.Publish(Request(99)));
+            backend.AllowComposition.Set();
+            Assert.True(pump.Flush(TimeSpan.FromSeconds(2)));
+            Assert.True(pump.TryTakeResult(out _));
+            Assert.True(pump.TryTakeResult(out WindowDragMotionResult result));
+            Assert.True(result.UsedAsynchronousFallback);
+            Assert.False(pump.TryTakeResult(out _));
+        }
+
         private sealed class BlockingCompositionBackend : IWindowDragMotionBackend, IDisposable
         {
             internal ManualResetEventSlim CompositionWaitStarted { get; } =

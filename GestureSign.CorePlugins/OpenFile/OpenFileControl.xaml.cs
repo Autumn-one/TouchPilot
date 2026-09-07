@@ -21,15 +21,17 @@ namespace GestureSign.CorePlugins.OpenFile
                 _settings = new OpenFilePlugin.OpenFileSetting()
                 {
                     Path = PathTextBox.Text.Trim(),
-                    Variables = ArgumentsTextBox.Text.Trim()
+                    Variables = ArgumentsTextBox.Text.Trim(),
+                    RunAsAdministrator = PermissionsComboBox.SelectedIndex == 1
                 };
                 return _settings;
             }
             set
             {
-                _settings = value;
+                _settings = value ?? new OpenFilePlugin.OpenFileSetting();
                 PathTextBox.Text = _settings.Path;
                 ArgumentsTextBox.Text = _settings.Variables;
+                PermissionsComboBox.SelectedIndex = _settings.RunAsAdministrator ? 1 : 0;
             }
         }
 

@@ -56,6 +56,10 @@
                           HorizontalAlignment="Left"
                           Style="{StaticResource V2.Settings.CheckBox}"
                           Content="{localization:LocalisedText About.ShowReport}" />
+                <TextBlock Margin="0,14,0,0"
+                           Style="{StaticResource V2.Text.Body}"
+                           Text="{localization:LocalisedText About.Contact}"
+                           TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -69,7 +73,7 @@
                         Content="{localization:LocalisedText Common.Cancel}"
                         IsCancel="True" />
                 <Button x:Name="OkButton"
-                        Width="96"
+                        Width="120"
                         Margin="8,0,0,0"
                         Style="{StaticResource V2.Button.Primary}"
                         Content="{localization:LocalisedText About.SendButton}"

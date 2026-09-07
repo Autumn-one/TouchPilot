@@ -16,7 +16,9 @@ param(
 
     [string]$PackagePath,
 
-    [DateTimeOffset]$BuiltAtUtc = [DateTimeOffset]::UtcNow
+    [DateTimeOffset]$BuiltAtUtc = [DateTimeOffset]::UtcNow,
+
+    [switch]$SkipLatest
 )
 
 Set-StrictMode -Version Latest
@@ -25,7 +27,7 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
 
 $root = [IO.Path]::GetFullPath($PSScriptRoot)
 $output = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    [IO.Path]::GetFullPath((Join-Path $root "artifacts"))
+    [IO.Path]::GetFullPath((Join-Path $root "artifacts\publish"))
 } elseif ([IO.Path]::IsPathRooted($OutputDirectory)) {
     [IO.Path]::GetFullPath($OutputDirectory)
 } else {
@@ -35,6 +37,12 @@ $relativeOutput = [IO.Path]::GetRelativePath($root, $output)
 if ($relativeOutput -eq "." -or [IO.Path]::IsPathRooted($relativeOutput) -or
     $relativeOutput.StartsWith("..", [StringComparison]::Ordinal)) {
     throw "The publish output must remain inside the repository root."
+}
+$latest = Join-Path $root "artifacts\latest"
+$outputFromLatest = [IO.Path]::GetRelativePath($latest, $output)
+$latestFromOutput = [IO.Path]::GetRelativePath($output, $latest)
+if (-not $outputFromLatest.StartsWith("..") -or -not $latestFromOutput.StartsWith("..")) {
+    throw "The publish work directory must not overlap artifacts\latest. Omit OutputDirectory to refresh the latest build."
 }
 $builtAt = $BuiltAtUtc.ToUniversalTime()
 $expiresAt = $builtAt.AddMonths(3)
@@ -69,6 +77,9 @@ if (-not [string]::IsNullOrWhiteSpace($PackagePath)) {
         $relativePackage.StartsWith("..", [StringComparison]::Ordinal)) {
         throw "The release package must remain inside the repository root."
     }
+    if (-not [IO.Path]::GetRelativePath($latest, $resolvedPackagePath).StartsWith("..")) {
+        throw "The release package must not be written inside artifacts\latest."
+    }
     $packageFromOutput = [IO.Path]::GetRelativePath($output, $resolvedPackagePath)
     if (-not [IO.Path]::IsPathRooted($packageFromOutput) -and
         -not $packageFromOutput.StartsWith("..", [StringComparison]::Ordinal)) {
@@ -85,6 +96,14 @@ function Invoke-DotNet {
     }
 }
 
+for ($ancestor = $output; $ancestor -ne $root; $ancestor = Split-Path -Parent $ancestor) {
+    if (Test-Path -LiteralPath $ancestor) {
+        $item = Get-Item -LiteralPath $ancestor -Force
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Refusing a publish output with a reparse point: $ancestor"
+        }
+    }
+}
 if (Test-Path -LiteralPath $output) {
     $outputItem = Get-Item -LiteralPath $output -Force
     if (($outputItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -207,5 +226,8 @@ if ($resolvedPackagePath) {
 }
 
 Write-Host "Published self-contained $Runtime artifacts to $output"
+if (-not $SkipLatest) {
+    & (Join-Path $root "scripts\Update-LatestBuild.ps1") -SourceDirectory $output
+}
 Get-Item -LiteralPath (Join-Path $output "TouchPilot.exe"), (Join-Path $output "TouchPilot.ControlPanel.exe") |
     Select-Object Name, Length

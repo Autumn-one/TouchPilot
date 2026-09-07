@@ -23,6 +23,16 @@ namespace GestureSign.Tests.DesktopHost
         {
             try
             {
+                if (args.Length == 1 && args[0] == "--startup-probe")
+                {
+                    Console.WriteLine(Environment.ProcessId);
+                    Console.ReadLine();
+                    return 0;
+                }
+
+                if (args.Length > 0 && args[0].StartsWith("--open-file-", StringComparison.Ordinal))
+                    return OpenFileProbe.Run(args);
+
                 if (!TryParseArguments(args, out Rectangle bounds, out bool holdControl))
                 {
                     Console.Error.WriteLine("Expected x, y, width, height, and holdControl arguments.");

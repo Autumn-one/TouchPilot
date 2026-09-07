@@ -33,6 +33,7 @@ namespace GestureSign.Common.Configuration
                     {
                         FileManager.WaitFile(ConfigPath);
                         _config = ConfigurationManager.OpenMappedExeConfiguration(ExeMap, ConfigurationUserLevel.None);
+                        TouchpadSettingsMigration.Migrate(_config.AppSettings.Settings);
                         _settingCache.Clear();
                         _loadFlag = false;
                     }
@@ -316,6 +317,8 @@ namespace GestureSign.Common.Configuration
             get
             {
                 int storedMode = GetValue(nameof(TouchpadWindowDragMode), 0);
+                if (storedMode == (int)TouchpadWindowDragMode.ThreeFingerWindowDrag)
+                    return TouchpadWindowDragMode.ThreeFingerWindowDrag;
                 // Value 2 was the removed free-anchor mode; keep existing users enabled on the supported mode.
                 if (storedMode == (int)TouchpadWindowDragMode.ThreeFingerDrag)
                     return TouchpadWindowDragMode.ThreeFingerDrag;
@@ -325,8 +328,9 @@ namespace GestureSign.Common.Configuration
             }
             set
             {
-                int storedMode = value == TouchpadWindowDragMode.ThreeFingerDrag
-                    ? (int)TouchpadWindowDragMode.ThreeFingerDrag
+                int storedMode = value == TouchpadWindowDragMode.ThreeFingerDrag ||
+                                 value == TouchpadWindowDragMode.ThreeFingerWindowDrag
+                    ? (int)value
                     : value == TouchpadWindowDragMode.BottomEdgeAnchor ? 1 : 0;
                 SetValue(nameof(TouchpadWindowDragMode), storedMode);
             }
@@ -337,6 +341,8 @@ namespace GestureSign.Common.Configuration
             get
             {
                 int storedImplementation = GetValue(nameof(TouchpadWindowDragImplementation), 0);
+                if (storedImplementation == (int)TouchpadWindowDragImplementation.ThreeFingerWindowDrag)
+                    return TouchpadWindowDragImplementation.ThreeFingerWindowDrag;
                 if (storedImplementation == (int)TouchpadWindowDragImplementation.ThreeFingerDrag)
                     return TouchpadWindowDragImplementation.ThreeFingerDrag;
                 if (storedImplementation == (int)TouchpadWindowDragImplementation.NativeMoveLoop)
@@ -347,11 +353,11 @@ namespace GestureSign.Common.Configuration
             }
             set
             {
-                int storedImplementation = value == TouchpadWindowDragImplementation.ThreeFingerDrag
-                    ? (int)TouchpadWindowDragImplementation.ThreeFingerDrag
-                    : value == TouchpadWindowDragImplementation.NativeMoveLoop
-                        ? (int)TouchpadWindowDragImplementation.NativeMoveLoop
-                        : value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0;
+                int storedImplementation = value == TouchpadWindowDragImplementation.ThreeFingerDrag ||
+                                           value == TouchpadWindowDragImplementation.ThreeFingerWindowDrag ||
+                                           value == TouchpadWindowDragImplementation.NativeMoveLoop
+                    ? (int)value
+                    : value == TouchpadWindowDragImplementation.SimulatedMouseDrag ? 1 : 0;
                 SetValue(nameof(TouchpadWindowDragImplementation), storedImplementation);
             }
         }

@@ -33,6 +33,20 @@ if ($relativeOutput -eq "." -or [IO.Path]::IsPathRooted($relativeOutput) -or
     $relativeOutput.StartsWith("..", [StringComparison]::Ordinal)) {
     throw "The release output must remain inside the repository artifacts directory."
 }
+$latest = Join-Path $artifactsRoot "latest"
+$outputFromLatest = [IO.Path]::GetRelativePath($latest, $output)
+$latestFromOutput = [IO.Path]::GetRelativePath($output, $latest)
+if (-not $outputFromLatest.StartsWith("..") -or -not $latestFromOutput.StartsWith("..")) {
+    throw "The release output must not overlap artifacts\latest."
+}
+for ($ancestor = $output; $ancestor -ne $root; $ancestor = Split-Path -Parent $ancestor) {
+    if (Test-Path -LiteralPath $ancestor) {
+        $item = Get-Item -LiteralPath $ancestor -Force
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Refusing a release output with a reparse point: $ancestor"
+        }
+    }
+}
 
 $builtAt = $BuiltAtUtc.ToUniversalTime()
 $expiresAt = $builtAt.AddMonths(3)
@@ -67,7 +81,7 @@ function Invoke-Publish {
 
     & (Join-Path $root "publish.ps1") -Runtime win-x64 -Configuration $Configuration `
         -OutputDirectory $Destination -Version $Version -Repository $Repository `
-        -BuiltAtUtc $builtAt
+        -BuiltAtUtc $builtAt -SkipLatest
     if ($LASTEXITCODE -ne 0) {
         throw "Publishing the $Configuration distribution failed with exit code $LASTEXITCODE."
     }
@@ -205,6 +219,7 @@ foreach ($assetPath in @($installerAssetPath, $portableAssetPath)) {
     }
 }
 
+& (Join-Path $root "scripts\Update-LatestBuild.ps1") -SourceDirectory $installerDirectory
 Remove-SafeDirectory -Path $workDirectory
 Write-Host "Created TouchPilot $Version release assets:"
 Get-Item -LiteralPath $installerAssetPath, $portableAssetPath | ForEach-Object {

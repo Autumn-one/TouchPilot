@@ -211,6 +211,119 @@ namespace GestureSign.Tests
                 "The captured window drag integration test timed out.");
         }
 
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void DirectControllerSeparatesInjectedCursorDriftFromExternalMouseTakeover()
+        {
+            RunInStaThread(reportStage =>
+            {
+                Point originalCursor = Cursor.Position;
+                var controller = new WindowDragController();
+                using var suppressor = new TouchpadWheelSuppressor();
+                using var form = CreateDirectDragTestForm(
+                    new Rectangle(180, 180, 360, 240), "pointer ownership");
+                try
+                {
+                    form.Show();
+                    Application.DoEvents();
+                    var window = new SystemWindow(form.Handle);
+                    RECT rectangle = window.Rectangle;
+                    var cursor = new Point(rectangle.Left + 80, rectangle.Top + 60);
+                    Cursor.Position = cursor;
+                    suppressor.ExternalMouseMoved += controller.ObserveExternalCursor;
+                    Assert.True(suppressor.StartMonitoring(), suppressor.LastFailure);
+                    Assert.True(controller.Begin(window, 0.5, 0.5,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos));
+
+                    reportStage("checking that injected cursor motion does not discard touch displacement");
+                    new InputSimulator().Mouse.MoveMouseBy(30, 20);
+                    PumpWindowMessages();
+                    Assert.True(controller.Update(0.52, 0.51, 1));
+                    PumpWindowMessages();
+                    Screen screen = Screen.FromPoint(cursor);
+                    Assert.InRange(Cursor.Position.X - cursor.X,
+                        screen.Bounds.Width * 0.02 - 2, screen.Bounds.Width * 0.02 + 2);
+
+                    reportStage("checking explicit external mouse takeover and subsequent touch motion");
+                    Point externalCursor = new Point(Cursor.Position.X + 25, Cursor.Position.Y + 15);
+                    Cursor.Position = externalCursor;
+                    controller.ObserveExternalCursor(externalCursor);
+                    Assert.True(controller.Update(0.53, 0.52, 1));
+                    Assert.Equal(externalCursor, Cursor.Position);
+                    PumpWindowMessages();
+                    for (int i = 1; i <= 10; i++)
+                    {
+                        Assert.True(controller.Update(0.53 + i * 0.001, 0.52, 1));
+                        PumpWindowMessages();
+                    }
+                    Assert.InRange(Cursor.Position.X - externalCursor.X,
+                        screen.Bounds.Width * 0.01 - 2, screen.Bounds.Width * 0.01 + 2);
+                    controller.End();
+                    PumpWindowMessages();
+                    Assert.InRange(window.Rectangle.Left - rectangle.Left,
+                        Cursor.Position.X - cursor.X - 1, Cursor.Position.X - cursor.X + 1);
+                }
+                finally
+                {
+                    controller.End();
+                    suppressor.StopMonitoring();
+                    Cursor.Position = originalCursor;
+                    form.Close();
+                    Application.DoEvents();
+                }
+            }, "The pointer ownership integration test timed out.");
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void StationaryDirectDragSkipsRedundantMovesButRestoresDisplacedWindow()
+        {
+            RunInStaThread(reportStage =>
+            {
+                Point originalCursor = Cursor.Position;
+                var sink = new CapturingWindowDragDiagnosticSink();
+                var diagnostics = new WindowDragDiagnostics(sink);
+                var controller = new WindowDragController(diagnostics);
+                using var form = CreateDirectDragTestForm(
+                    new Rectangle(180, 180, 360, 240), "stationary drag");
+                try
+                {
+                    form.Show();
+                    Application.DoEvents();
+                    var window = new SystemWindow(form.Handle);
+                    RECT rectangle = window.Rectangle;
+                    Cursor.Position = new Point(rectangle.Left + 80, rectangle.Top + 60);
+                    diagnostics.Begin(Environment.TickCount64,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos, window.HWnd, false, false);
+                    Assert.True(controller.Begin(window, 0.5, 0.5,
+                        TouchpadWindowDragImplementation.DirectSetWindowPos));
+                    for (int i = 0; i < 120; i++)
+                        Assert.True(controller.Update(0.5, 0.5, 1));
+
+                    reportStage("restoring a window moved by its application during a stationary drag");
+                    Assert.True(WindowPositionInterop.SetWindowPosition(window.HWnd, IntPtr.Zero,
+                        rectangle.Left + 30, rectangle.Top + 20, 0, 0,
+                        WindowPositionFlags.NoSize | WindowPositionFlags.NoZOrder | WindowPositionFlags.NoActivate));
+                    Assert.True(controller.Update(0.5, 0.5, 1));
+                    controller.End();
+                    PumpWindowMessages();
+                    diagnostics.Complete(Environment.TickCount64, "test-ended");
+                    WindowDragDiagnosticRecord record = Assert.Single(sink.Records);
+                    Assert.Equal(121, record.WindowMoveTargetsUnchanged);
+                    Assert.Equal(1, record.WindowMoveRequests);
+                    Assert.Equal(rectangle.Left, window.Rectangle.Left);
+                    Assert.Equal(rectangle.Top, window.Rectangle.Top);
+                }
+                finally
+                {
+                    controller.End();
+                    Cursor.Position = originalCursor;
+                    form.Close();
+                    Application.DoEvents();
+                }
+            }, "The stationary drag integration test timed out.");
+        }
+
         private static void RunCapturedWindowDragTest(Action<string> reportStage)
         {
             Point originalCursor = Cursor.Position;
@@ -1134,6 +1247,47 @@ namespace GestureSign.Tests
                 Assert.True(selectionLength > 0, "Dragging in the client text box did not select text.");
                 Assert.InRange(finalRectangle.Left - initialRectangle.Left, -1, 1);
                 Assert.InRange(finalRectangle.Top - initialRectangle.Top, -1, 1);
+            });
+        }
+
+        [Fact]
+        [Trait("Category", "WindowsIntegration")]
+        public void ThreeFingerWindowControllerMovesWindowFromClientTextWithoutMouseButtons()
+        {
+            RunWithSimulatedMouseTestWindow((form, textBox, window, controller) =>
+            {
+                RECT initialRectangle = window.Rectangle;
+                Point initialCursor = (Point)textBox.Invoke(new Func<Point>(() =>
+                    textBox.PointToScreen(new Point(8, textBox.ClientSize.Height / 2))));
+                int mouseButtonEvents = 0;
+                textBox.Invoke(new Action(() =>
+                {
+                    textBox.SelectionStart = 1;
+                    textBox.SelectionLength = 4;
+                    textBox.MouseDown += (_, _) => Interlocked.Increment(ref mouseButtonEvents);
+                    textBox.MouseUp += (_, _) => Interlocked.Increment(ref mouseButtonEvents);
+                }));
+                Cursor.Position = initialCursor;
+
+                Assert.True(controller.Begin(window, 0.5, 0.5,
+                    TouchpadWindowDragImplementation.ThreeFingerWindowDrag), controller.LastFailure);
+                Assert.False(IsLeftButtonDown());
+                Assert.True(controller.Update(0.55, 0.52, 1), controller.LastFailure);
+                controller.Pause();
+                Assert.False(IsLeftButtonDown());
+                Assert.True(controller.Rebase(0.55, 0.52), controller.LastFailure);
+                Assert.True(controller.Update(0.58, 0.54, 1), controller.LastFailure);
+                controller.End();
+                Thread.Sleep(100);
+
+                RECT finalRectangle = window.Rectangle;
+                Assert.True(finalRectangle.Left > initialRectangle.Left + 10);
+                Assert.True(finalRectangle.Top > initialRectangle.Top + 10);
+                Assert.Equal(initialRectangle.Width, finalRectangle.Width);
+                Assert.Equal(initialRectangle.Height, finalRectangle.Height);
+                Assert.Equal(4, (int)textBox.Invoke(new Func<int>(() => textBox.SelectionLength)));
+                Assert.Equal(0, Volatile.Read(ref mouseButtonEvents));
+                Assert.False(IsLeftButtonDown());
             });
         }
 

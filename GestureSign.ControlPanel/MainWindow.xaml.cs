@@ -1,6 +1,7 @@
 ﻿using GestureSign.Common;
 using GestureSign.Common.Configuration;
 using GestureSign.Common.Localization;
+using GestureSign.Common.Lifecycle;
 using GestureSign.Common.Log;
 using GestureSign.Common.Updates;
 using GestureSign.ControlPanel.Common;
@@ -10,8 +11,6 @@ using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Security.Principal;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -36,7 +35,9 @@ namespace GestureSign.ControlPanel
                 var result = MessageBox.Show(LocalizationProvider.Instance.GetTextValue("Messages.CompatWarning"),
                  LocalizationProvider.Instance.GetTextValue("Messages.CompatWarningTitle"), MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
             }
-            StartDaemon();
+            await StartDaemonAsync();
+            if (!IsLoaded)
+                return;
             SetAboutInfo();
             Activate();
 
@@ -59,6 +60,11 @@ namespace GestureSign.ControlPanel
             this.AboutTextBox.Text = this.AboutTextBox.Text.Insert(0, version + "\r\n" + releaseDate + "\r\n");
         }
 
+        private void EdgeTouch_WindowDragRequested(object sender, EventArgs e)
+        {
+            WindowDragTab.IsSelected = true;
+        }
+
         private void Hyperlink_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -66,7 +72,7 @@ namespace GestureSign.ControlPanel
                 var commandSource = sender as ICommandSource;
                 var uri = commandSource?.CommandParameter as string;
                 if (uri != null)
-                    Process.Start(uri);
+                    Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
             }
             catch (Exception exception)
             {
@@ -123,45 +129,27 @@ namespace GestureSign.ControlPanel
                             LocalizationProvider.Instance.GetTextValue("About.Exporting"));
             controller.SetIndeterminate();
 
-            string result = await Task.Factory.StartNew(() =>
+            string result;
+            try
             {
-                return Log.Feedback.OutputLog();
-            });
+                result = await Task.Run(Log.Feedback.OutputLog);
+            }
+            catch (Exception exception)
+            {
+                Logging.LogException(exception);
+                await controller.CloseAsync();
+                this.ShowModalMessageExternal(LocalizationProvider.Instance.GetTextValue("Messages.Error"),
+                    exception.Message);
+                return;
+            }
             await controller.CloseAsync();
 
-            LogWindow logWin = new LogWindow(result);
-            var dialogResult = logWin.ShowDialog();
-
-            while (dialogResult != null && dialogResult.Value)
+            var logWin = new LogWindow(result) { Owner = this };
+            if (logWin.ShowDialog() == true)
             {
-                result = logWin.Message + "\n" + result;
-                var sendReportTask = Task.Factory.StartNew(() => Log.Feedback.Send(result));
-
-                controller = await this.ShowProgressAsync(LocalizationProvider.Instance.GetTextValue("About.Waiting"),
-                        LocalizationProvider.Instance.GetTextValue("About.Sending"));
-                controller.SetIndeterminate();
-
-                string exceptionMessage = await sendReportTask;
-
-                await controller.CloseAsync();
-
-                if (exceptionMessage == null)
-                {
-                    this.ShowModalMessageExternal(LocalizationProvider.Instance.GetTextValue("About.SendSuccessTitle"),
-                            LocalizationProvider.Instance.GetTextValue("About.SendSuccess"));
-                    break;
-                }
-                else
-                {
-                    dialogResult =
-                        this.ShowModalMessageExternal(LocalizationProvider.Instance.GetTextValue("About.SendFailed"),
-                                exceptionMessage + Environment.NewLine + LocalizationProvider.Instance.GetTextValue("About.Mail"),
-                                MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings()
-                                {
-                                    AffirmativeButtonText = LocalizationProvider.Instance.GetTextValue("About.Retry"),
-                                    NegativeButtonText = LocalizationProvider.Instance.GetTextValue("Common.Cancel"),
-                                }) == MessageDialogResult.Affirmative;
-                }
+                this.ShowModalMessageExternal(LocalizationProvider.Instance.GetTextValue("About.ExportSuccessTitle"),
+                    LocalizationProvider.Instance.GetTextValue("About.ExportSuccess") + Environment.NewLine +
+                    LocalizationProvider.Instance.GetTextValue("About.Contact"));
             }
         }
 
@@ -182,7 +170,7 @@ namespace GestureSign.ControlPanel
                    daemonRecord != null && daemonRecord.ToUpper().Contains("RUNASADMIN");
         }
 
-        private void StartDaemon()
+        private async Task StartDaemonAsync()
         {
             string daemonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Constants.DaemonFileName);
             if (!File.Exists(daemonPath))
@@ -193,39 +181,49 @@ namespace GestureSign.ControlPanel
                 return;
             }
 
-            bool createdNewDaemon;
-            using (new Mutex(false, Constants.Daemon, out createdNewDaemon))
+            bool requestElevation = AppConfig.RunAsAdmin && !AppConfig.UiAccess;
+            if (CheckRunningDaemon(requestElevation))
+                return;
+            try
             {
-            }
-            if (createdNewDaemon)
-            {
-                try
+                if (requestElevation && !DaemonStartup.IsCurrentProcessElevated)
                 {
-                    using (Process daemon = new Process())
+                    try
                     {
-                        daemon.StartInfo.FileName = daemonPath;
-
-                        //daemon.StartInfo.UseShellExecute = false;
-                        if (IsAdministrator())
-                            daemon.StartInfo.Verb = "runas";
-                        daemon.StartInfo.CreateNoWindow = false;
-                        daemon.Start();
+                        if (await StartupHelper.TryStartHighPrivilegeDaemonAsync())
+                            return;
+                    }
+                    catch (Exception)
+                    {
+                        // If the registered task is unavailable, Windows runas remains the fallback.
                     }
                 }
-                catch (Exception e)
-                {
-                    Logging.LogException(e);
-                    MessageBox.Show(string.Format(e.Message + Environment.NewLine + LocalizationProvider.Instance.GetTextValue("Messages.StartupError"), daemonPath),
-                        LocalizationProvider.Instance.GetTextValue("Messages.Error"), MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
-                }
+                if (!IsLoaded || CheckRunningDaemon(requestElevation))
+                    return;
+                using Process daemon = Process.Start(DaemonStartup.CreateStartInfo(daemonPath,
+                    requestElevation || DaemonStartup.IsCurrentProcessElevated));
+                if (daemon == null)
+                    throw new InvalidOperationException("Windows did not start the gesture service.");
+            }
+            catch (Exception e)
+            {
+                Logging.LogException(e);
+                MessageBox.Show(e.Message + Environment.NewLine +
+                    string.Format(LocalizationProvider.Instance.GetTextValue("Messages.StartupError"), daemonPath),
+                    LocalizationProvider.Instance.GetTextValue("Messages.Error"), MessageBoxButton.OK,
+                    MessageBoxImage.Error, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
             }
         }
 
-        private bool IsAdministrator()
+        private static bool CheckRunningDaemon(bool requestElevation)
         {
-            WindowsIdentity identity = WindowsIdentity.GetCurrent();
-            WindowsPrincipal principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            if (!DaemonStartup.IsRunning())
+                return false;
+            if (requestElevation &&
+                DaemonStartup.TryGetRunningElevation(AppContext.BaseDirectory, out bool elevated) && !elevated)
+                MessageBox.Show(LocalizationProvider.Instance.GetTextValue("Messages.AdministratorRestartRequired"),
+                    Constants.ProductName, MessageBoxButton.OK, MessageBoxImage.Information);
+            return true;
         }
     }
 }

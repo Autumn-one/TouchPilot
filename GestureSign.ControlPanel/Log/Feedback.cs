@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Management;
 using System.Text;
 using System.Windows;
@@ -11,41 +9,11 @@ using GestureSign.Common;
 using GestureSign.Common.Configuration;
 using GestureSign.Common.Log;
 using Microsoft.Win32;
-using SharpRaven;
-using SharpRaven.Data;
 
 namespace GestureSign.ControlPanel.Log
 {
     public class Feedback
     {
-        private const string Dsn = "https://a828c0c755fc493fa93c0f2ac7963e6d:4e74093b0f6a4a438a95b3bb85273e69@sentry.io/141461";
-
-        public static string Send(string report)
-        {
-            string sendError = null;
-            var ravenClient = new RavenClient(Dsn)
-            {
-                ErrorOnCapture = e =>
-                {
-                    Logging.LogException(e);
-                    sendError = e.Message;
-                },
-                Compression = true
-            };
-
-            const int chunkSize = 4096;
-            if (!String.IsNullOrWhiteSpace(report))
-            {
-                foreach (string s in Split(report, chunkSize))
-                {
-                    if (s != string.Empty)
-                        ravenClient.Capture(new SentryEvent(s));
-                }
-            }
-
-            return sendError;
-        }
-
         public static string OutputLog()
         {
             StringBuilder result = new StringBuilder(2048);
@@ -129,12 +97,6 @@ namespace GestureSign.ControlPanel.Log
             }
 
             return result.ToString();
-        }
-
-        private static IEnumerable<string> Split(string str, int chunkSize)
-        {
-            return Enumerable.Range(0, str.Length / chunkSize + 1)
-                .Select(i => str.Substring(i * chunkSize, (i * chunkSize + chunkSize <= str.Length) ? chunkSize : str.Length - i * chunkSize));
         }
     }
 }

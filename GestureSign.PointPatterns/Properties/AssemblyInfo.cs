@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("GestureSign.PointPatterns")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("TransposonY")]
+[assembly: AssemblyCompany("TouchPilot")]
 [assembly: AssemblyProduct("GestureSign.PointPatterns")]
-[assembly: AssemblyCopyright("Copyright © TransposonY 2021")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -168,6 +168,18 @@
                   PanningMode="VerticalFirst">
         <StackPanel MaxWidth="760"
                     HorizontalAlignment="Stretch">
+            <Button Margin="0,0,0,12"
+                    HorizontalAlignment="Left"
+                    Style="{StaticResource V2.Button.Ghost}"
+                    AutomationProperties.Name="{localization:LocalisedText EdgeTouch.OpenWindowDrag}"
+                    Click="OpenWindowDrag_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{localization:LocalisedText EdgeTouch.OpenWindowDrag}" />
+                    <iconPacks:PackIconLucide Margin="8,0,0,0"
+                                              Style="{StaticResource V2.Icon}"
+                                              Kind="ArrowRight" />
+                </StackPanel>
+            </Button>
             <Border Style="{StaticResource V2.Settings.Row}">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -398,82 +410,6 @@
                             IsSnapToTickEnabled="True"
                             common:SliderTools.MoveToPointOnDrag="True"
                             ValueChanged="EdgeActivationSlider_ValueChanged" />
-                </Grid>
-            </Border>
-
-            <TextBlock Margin="0,28,0,6"
-                       Style="{StaticResource V2.Settings.SectionTitle}"
-                       Text="{localization:LocalisedText EdgeTouch.WindowDrag}" />
-            <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource V2.Settings.Label}"
-                               Text="{localization:LocalisedText EdgeTouch.WindowDragEnabled}" />
-                    <controls:ToggleSwitch x:Name="WindowDragSwitch"
-                                           Grid.Column="1"
-                                           Style="{StaticResource V2.Settings.ToggleSwitch}"
-                                           OnContent="{localization:LocalisedText Options.OnLabel}"
-                                           OffContent="{localization:LocalisedText Options.OffLabel}"
-                                           AutomationProperties.Name="{localization:LocalisedText EdgeTouch.WindowDragEnabled}"
-                                           Toggled="WindowDragSwitch_Toggled" />
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource V2.Settings.Label}"
-                               Text="{localization:LocalisedText EdgeTouch.WindowDragBringToFront}" />
-                    <controls:ToggleSwitch x:Name="WindowDragBringToFrontSwitch"
-                                           Grid.Column="1"
-                                           Style="{StaticResource V2.Settings.ToggleSwitch}"
-                                           OnContent="{localization:LocalisedText Options.OnLabel}"
-                                           OffContent="{localization:LocalisedText Options.OffLabel}"
-                                           AutomationProperties.Name="{localization:LocalisedText EdgeTouch.WindowDragBringToFront}"
-                                           Toggled="WindowDragBringToFrontSwitch_Toggled" />
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="420" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Margin="0,0,20,0"
-                               Style="{StaticResource V2.Settings.Label}"
-                               Text="{localization:LocalisedText EdgeTouch.WindowDragImplementation}" />
-                    <ComboBox x:Name="WindowDragImplementationComboBox"
-                              Grid.Column="1"
-                              Style="{StaticResource V2.Settings.ComboBox}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedValuePath="Value"
-                              AutomationProperties.Name="{localization:LocalisedText EdgeTouch.WindowDragImplementation}"
-                              SelectionChanged="WindowDragImplementationComboBox_SelectionChanged" />
-                </Grid>
-            </Border>
-            <Border Style="{StaticResource V2.Settings.Row}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="280" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Margin="0,0,20,0"
-                               Style="{StaticResource V2.Settings.Label}"
-                               Text="{Binding ElementName=WindowDragSensitivitySlider, Path=Value, StringFormat={localization:LocalisedText EdgeTouch.WindowDragSensitivity}}" />
-                    <Slider x:Name="WindowDragSensitivitySlider"
-                            Grid.Column="1"
-                            Style="{StaticResource V2.Settings.Slider}"
-                            Minimum="40"
-                            Maximum="250"
-                            TickFrequency="10"
-                            IsSnapToTickEnabled="True"
-                            common:SliderTools.MoveToPointOnDrag="True"
-                            ValueChanged="WindowDragSensitivitySlider_ValueChanged" />
                 </Grid>
             </Border>
 

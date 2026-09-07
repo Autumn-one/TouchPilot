@@ -12,7 +12,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("TouchPilot")]
 [assembly: AssemblyProduct("TouchPilot")]
-[assembly: AssemblyCopyright("Copyright ©  TransposonY 2022")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

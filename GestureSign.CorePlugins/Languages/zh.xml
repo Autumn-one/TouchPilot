@@ -213,6 +213,9 @@
       <FileOrWebsite>文件或网站</FileOrWebsite>
       <Arguments>参数</Arguments>
       <Browse>浏览..</Browse>
+      <Permissions>打开权限</Permissions>
+      <NormalPermissions>普通权限（默认）</NormalPermissions>
+      <AdministratorPermissions>管理员权限</AdministratorPermissions>
     </OpenFile>
   </CorePlugins>
 </Language>

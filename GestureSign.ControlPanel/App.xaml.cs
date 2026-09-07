@@ -40,7 +40,15 @@ namespace GestureSign.ControlPanel
             LoadLanguageData();
 
             bool createdNew;
-            mutex = new Mutex(true, Constants.ControlPanel, out createdNew);
+            try
+            {
+                mutex = new Mutex(true, Constants.ControlPanel, out createdNew);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // A control panel opened from the elevated daemon may own this mutex.
+                createdNew = false;
+            }
             if (createdNew)
             {
                 GestureManager.Instance.Load(null);

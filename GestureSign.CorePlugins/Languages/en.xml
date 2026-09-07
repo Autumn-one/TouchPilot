@@ -212,6 +212,9 @@
       <FileOrWebsite>File or Website</FileOrWebsite>
       <Arguments>Arguments</Arguments>
       <Browse>Browse...</Browse>
+      <Permissions>Permissions</Permissions>
+      <NormalPermissions>Normal permissions (default)</NormalPermissions>
+      <AdministratorPermissions>Administrator permissions</AdministratorPermissions>
     </OpenFile>
   </CorePlugins>
 </Language>

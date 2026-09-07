@@ -13,6 +13,16 @@ namespace GestureSign.Tests
     public class TouchpadWheelSuppressorTests
     {
         [Theory]
+        [InlineData(0, true)]
+        [InlineData(1, false)]
+        [InlineData(2, false)]
+        [InlineData(3, false)]
+        public void InjectedMouseMovesCannotTakeOverTheDirectDrag(int flags, bool external)
+        {
+            Assert.Equal(external, TouchpadWheelSuppressor.IsExternalMouseMove(flags));
+        }
+
+        [Theory]
         [InlineData(0x020A)]
         [InlineData(0x020E)]
         public void ActiveSuppressionRecognizesVerticalAndHorizontalWheelMessages(int message)

@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("TextCopyer")]
 [assembly: AssemblyDescription("TextCopyer Plugin")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("TransposonY")]
+[assembly: AssemblyCompany("TouchPilot")]
 [assembly: AssemblyProduct("TextCopyer")]
-[assembly: AssemblyCopyright("Copyright © TransposonY 2017")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -5,17 +5,18 @@
   <IsRightToLeft>False</IsRightToLeft>
   <Title>设置</Title>
   <Messages>
+    <AdministratorRestartRequired>手势服务当前仍以普通权限运行。请从托盘退出 TouchPilot 后重新启动，以应用管理员启动设置。</AdministratorRestartRequired>
     <CannotFindDaemonMessage>未找到组件 TouchPilot.exe，请重新下载或安装本软件。</CannotFindDaemonMessage>
     <Error>错误</Error>
     <CompatWarning>检测到您在本程序的文件属性中勾选了“以管理员身份运行此程序”，这将导致开机启动、屏蔽等功能失效。
 如需用管理员身份运行，请在快捷方式的高级属性中设置，或右键菜单-以管理员身份运行。</CompatWarning>
     <CompatWarningTitle>注意</CompatWarningTitle>
     <FindNewErrorLog>有新的错误日志生成。
-日志包含程序崩溃的信息，你可以将这些信息发回作者以便尽快解决问题。
+日志包含程序崩溃的信息，可以导出后通过 QQ 群反馈。
 您可以在“选项”中关闭此提示。
     </FindNewErrorLog>
     <StartupError>未能启动 "{0}". 请检查是否被安全软件拦截或存在文件损坏。</StartupError>
-    <UnexpectedException>发生了一个未知错误，程序将关闭。您可以点击“关于”中的“发送反馈”来帮助修复该问题。</UnexpectedException>
+    <UnexpectedException>发生了一个未知错误，程序将关闭。您可以点击“关于”中的“反馈与日志”来帮助修复该问题。</UnexpectedException>
     <FileWriteException>保存文件受阻，如使用绿色版请尝试更换程序文件位置，或排除干扰后重试。</FileWriteException>
   </Messages>
   <Common>
@@ -35,29 +36,29 @@
   </Common>
   <About>
     <Header>关于</Header>
-    <Homepage>打开官网</Homepage>
-    <HomepageUrl>https://github.com/Autumn-one/TouchPilot</HomepageUrl>
-    <HelpPageUrl>https://github.com/Autumn-one/TouchPilot</HelpPageUrl>
+    <Homepage>TG 频道</Homepage>
+    <HomepageUrl>https://t.me/+bnRpqZXuMmE2M2Y9</HomepageUrl>
+    <HelpPageUrl>https://t.me/+bnRpqZXuMmE2M2Y9</HelpPageUrl>
+    <Community>我们的大本营在油管同名频道</Community>
     <Version>版本：  </Version>
     <ReleaseDate>发布时间：  </ReleaseDate>
-    <Information>作者: TransposonY
-反馈邮箱: 553078206@qq.com
-QQ交流群: 576981420
+    <Information>QQ 群：111862811
+TG 频道：https://t.me/+bnRpqZXuMmE2M2Y9
+我们的大本营在油管同名频道
     </Information>
-    <SendFeedback>发送反馈</SendFeedback>
+    <SendFeedback>反馈与日志</SendFeedback>
     <ShowReport>显示报告</ShowReport>
-    <Mail>您也可以直接将信息反馈到 553078206@qq.com</Mail>
+    <Contact>QQ 群：111862811
+TG 频道：https://t.me/+bnRpqZXuMmE2M2Y9</Contact>
     <Waiting>请稍候...</Waiting>
     <Exporting>正在导出日志...</Exporting>
-    <Sending>发送日志中...</Sending>
-    <SendLogTitle>发送日志</SendLogTitle>
-    <SendButton>发送</SendButton>
-    <DontSendButton>不发送</DontSendButton>
-    <SendSuccessTitle>发送成功</SendSuccessTitle>
-    <SendSuccess>反馈发送成功，感谢您的支持！</SendSuccess>
-    <SendFailed>发送失败</SendFailed>
-    <FeedbackTip>请描述一下触发异常的操作，帮助作者更快解决问题（也可留空）</FeedbackTip>
-    <Retry>重试</Retry>
+    <SendLogTitle>导出错误日志</SendLogTitle>
+    <SendButton>导出日志</SendButton>
+    <DontSendButton>暂不导出</DontSendButton>
+    <ExportSuccessTitle>日志已保存</ExportSuccessTitle>
+    <ExportSuccess>日志已保存到本地，尚未发送。反馈联系方式：</ExportSuccess>
+    <LogFileFilter>文本文件 (*.txt)|*.txt</LogFileFilter>
+    <FeedbackTip>问题描述（可选）</FeedbackTip>
   </About>
   <ApplicationDialog>
     <AddApplication>添加新程序</AddApplication>
@@ -239,14 +240,16 @@ QQ交流群: 576981420
     <ConfidenceFilter>边缘交互过滤低可信触点</ConfidenceFilter>
     <ConfidenceFilterHelp>仅影响固定边缘手势和窗口拖动，不影响普通录入手势</ConfidenceFilterHelp>
     <WindowDrag>窗口拖动</WindowDrag>
+    <OpenWindowDrag>窗口拖动设置</OpenWindowDrag>
     <BottomAnchor>底部边缘锚点</BottomAnchor>
-    <WindowDragEnabled>启用拖移</WindowDragEnabled>
-    <WindowDragBringToFront>拖移时将窗口置前</WindowDragBringToFront>
-    <WindowDragImplementation>拖移方式</WindowDragImplementation>
-    <DirectSetWindowPos>底部锚点：直接移动窗口 (SetWindowPos)</DirectSetWindowPos>
-    <NativeMoveLoop>底部锚点：Windows 原生移动循环（激活窗口并吸附光标）</NativeMoveLoop>
+    <WindowDragEnabled>启用窗口拖动</WindowDragEnabled>
+    <WindowDragBringToFront>拖动时将窗口置前</WindowDragBringToFront>
+    <WindowDragImplementation>拖动方式</WindowDragImplementation>
+    <DirectSetWindowPos>底部锚点：直接移动窗口</DirectSetWindowPos>
+    <NativeMoveLoop>底部锚点：Windows 原生移动循环</NativeMoveLoop>
     <SimulatedMouseDrag>底部锚点：模拟鼠标按住</SimulatedMouseDrag>
-    <ThreeFingerDrag>三指拖移（停用已录入三指手势）</ThreeFingerDrag>
+    <ThreeFingerDrag>三指拖移</ThreeFingerDrag>
+    <ThreeFingerWindowDrag>三指拖动窗口</ThreeFingerWindowDrag>
     <WindowDragSensitivity>拖动灵敏度 {0:F0}%</WindowDragSensitivity>
     <FixedGestures>固定边缘手势</FixedGestures>
     <OneFinger>一根手指</OneFinger>
@@ -315,7 +318,7 @@ QQ交流群: 576981420
     <ErrorLogPrompt>错误日志提示</ErrorLogPrompt>
     <UpdateLabel>软件更新</UpdateLabel>
     <CheckForUpdates>检查更新</CheckForUpdates>
-    <RunAsAdmin>以管理员身份启动</RunAsAdmin>
+    <RunAsAdmin>以管理员身份启动（重启生效）</RunAsAdmin>
     <WindowsStartup>
       <Header>开机启动</Header>
     </WindowsStartup>

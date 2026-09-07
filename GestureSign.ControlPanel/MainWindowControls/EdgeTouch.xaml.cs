@@ -21,10 +21,11 @@ namespace GestureSign.ControlPanel.MainWindowControls
             public string DisplayName { get; set; }
         }
 
-        private sealed class WindowDragImplementationChoice
+        public event EventHandler WindowDragRequested;
+
+        private void OpenWindowDrag_Click(object sender, RoutedEventArgs e)
         {
-            public TouchpadWindowDragImplementation Value { get; set; }
-            public string DisplayName { get; set; }
+            WindowDragRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private readonly Dictionary<ComboBox, FixedEdgeGesture> _gestureSelectors;
@@ -161,34 +162,6 @@ namespace GestureSign.ControlPanel.MainWindowControls
             {
                 EdgeTouchSwitch.IsOn = AppConfig.TouchpadEdgeGesturesEnabled;
                 ConfidenceFilterSwitch.IsOn = AppConfig.TouchpadEdgeConfidenceFilteringEnabled;
-                WindowDragSwitch.IsOn = AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled;
-                WindowDragBringToFrontSwitch.IsOn = AppConfig.TouchpadWindowDragBringToFront;
-                WindowDragImplementationComboBox.ItemsSource = new[]
-                {
-                    new WindowDragImplementationChoice
-                    {
-                        Value = TouchpadWindowDragImplementation.DirectSetWindowPos,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.DirectSetWindowPos")
-                    },
-                    new WindowDragImplementationChoice
-                    {
-                        Value = TouchpadWindowDragImplementation.NativeMoveLoop,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.NativeMoveLoop")
-                    },
-                    new WindowDragImplementationChoice
-                    {
-                        Value = TouchpadWindowDragImplementation.SimulatedMouseDrag,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.SimulatedMouseDrag")
-                    },
-                    new WindowDragImplementationChoice
-                    {
-                        Value = TouchpadWindowDragImplementation.ThreeFingerDrag,
-                        DisplayName = LocalizationProvider.Instance.GetTextValue("EdgeTouch.ThreeFingerDrag")
-                    }
-                };
-                WindowDragImplementationComboBox.SelectedValue = AppConfig.TouchpadWindowDragImplementation;
-                UpdateWindowDragForegroundControl(AppConfig.TouchpadWindowDragImplementation);
-                WindowDragSensitivitySlider.Value = AppConfig.TouchpadWindowDragSensitivityPercent;
                 AllEdgeZoneSlider.Value = AppConfig.TouchpadEdgeZonePercent;
                 LeftEdgeZoneSlider.Value = AppConfig.TouchpadLeftEdgeZonePercent;
                 RightEdgeZoneSlider.Value = AppConfig.TouchpadRightEdgeZonePercent;
@@ -261,67 +234,6 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 AppConfig.TouchpadEdgeConfidenceFilteringEnabled = ConfidenceFilterSwitch.IsOn;
         }
 
-        private void WindowDragSwitch_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (!_loading)
-                AppConfig.TouchpadWindowDragMode = WindowDragSwitch.IsOn
-                    ? GetSelectedWindowDragMode()
-                    : TouchpadWindowDragMode.Disabled;
-        }
-
-        private void WindowDragImplementationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_loading || WindowDragImplementationComboBox.SelectedValue == null)
-                return;
-
-            var implementation = (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue;
-            AppConfig.TouchpadWindowDragImplementation = implementation;
-            if (WindowDragSwitch.IsOn)
-                AppConfig.TouchpadWindowDragMode = GetWindowDragMode(implementation);
-            UpdateWindowDragForegroundControl(implementation);
-        }
-
-        private void WindowDragBringToFrontSwitch_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (!_loading)
-                AppConfig.TouchpadWindowDragBringToFront = WindowDragBringToFrontSwitch.IsOn;
-        }
-
-        private TouchpadWindowDragMode GetSelectedWindowDragMode()
-        {
-            if (WindowDragImplementationComboBox.SelectedValue == null)
-                return TouchpadWindowDragMode.BottomEdgeAnchor;
-
-            return GetWindowDragMode(
-                (TouchpadWindowDragImplementation)WindowDragImplementationComboBox.SelectedValue);
-        }
-
-        private static TouchpadWindowDragMode GetWindowDragMode(
-            TouchpadWindowDragImplementation implementation)
-        {
-            return implementation == TouchpadWindowDragImplementation.ThreeFingerDrag
-                ? TouchpadWindowDragMode.ThreeFingerDrag
-                : TouchpadWindowDragMode.BottomEdgeAnchor;
-        }
-
-        private void UpdateWindowDragForegroundControl(
-            TouchpadWindowDragImplementation implementation)
-        {
-            bool forceForeground = implementation == TouchpadWindowDragImplementation.NativeMoveLoop;
-            bool wasLoading = _loading;
-            _loading = true;
-            try
-            {
-                WindowDragBringToFrontSwitch.IsOn = forceForeground ||
-                                                    AppConfig.TouchpadWindowDragBringToFront;
-                WindowDragBringToFrontSwitch.IsEnabled = !forceForeground;
-            }
-            finally
-            {
-                _loading = wasLoading;
-            }
-        }
-
         private void FixedGestureComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_loading)
@@ -341,12 +253,6 @@ namespace GestureSign.ControlPanel.MainWindowControls
                 choice.Action.EdgeGestures.Add(gesture);
 
             ApplicationManager.Instance.SaveApplications();
-        }
-
-        private void WindowDragSensitivitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (!_loading && IsLoaded)
-                AppConfig.TouchpadWindowDragSensitivityPercent = (int)Math.Round(e.NewValue);
         }
 
         private void EdgeZoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

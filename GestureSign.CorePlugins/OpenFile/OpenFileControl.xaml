@@ -5,7 +5,7 @@
              xmlns:localization="clr-namespace:GestureSign.Common.Localization;assembly=GestureSign.Common"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="260"
+             d:DesignHeight="330"
              d:DesignWidth="350"
              MinWidth="330"
              AllowDrop="True"
@@ -52,5 +52,16 @@
                     Content="{localization:LocalisedText CorePlugins.OpenFile.Browse}"
                     Click="SelectFileButton_Click" />
         </Grid>
+        <TextBlock Margin="0,12,0,0"
+                   Style="{StaticResource V2.Dialog.Label}"
+                   Text="{localization:LocalisedText CorePlugins.OpenFile.Permissions}" />
+        <ComboBox x:Name="PermissionsComboBox"
+                  Margin="0,6,0,0"
+                  Style="{StaticResource V2.Settings.ComboBox}"
+                  SelectedIndex="0"
+                  AutomationProperties.Name="{localization:LocalisedText CorePlugins.OpenFile.Permissions}">
+            <ComboBoxItem Content="{localization:LocalisedText CorePlugins.OpenFile.NormalPermissions}" />
+            <ComboBoxItem Content="{localization:LocalisedText CorePlugins.OpenFile.AdministratorPermissions}" />
+        </ComboBox>
     </StackPanel>
 </UserControl>

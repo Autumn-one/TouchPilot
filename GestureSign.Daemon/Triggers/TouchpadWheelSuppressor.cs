@@ -1,6 +1,7 @@
 using GestureSign.Common.Log;
 using ManagedWinapi.Hooks;
 using System;
+using System.Drawing;
 
 namespace GestureSign.Daemon.Triggers
 {
@@ -17,6 +18,20 @@ namespace GestureSign.Daemon.Triggers
         public TouchpadWheelSuppressor()
         {
             _mouseHook.MessageIntercepted += MouseHook_MessageIntercepted;
+            _mouseHook.MouseMove += MouseHook_MouseMove;
+        }
+
+        internal event Action<Point> ExternalMouseMoved;
+
+        internal static bool IsExternalMouseMove(int flags)
+        {
+            return (flags & 0x03) == 0;
+        }
+
+        private void MouseHook_MouseMove(LowLevelMouseMessage message, ref bool handled)
+        {
+            if (IsExternalMouseMove(message.Flags))
+                ExternalMouseMoved?.Invoke(message.Point);
         }
 
         internal bool IsMonitoring => !_disposed && _mouseHook.Hooked;
@@ -93,6 +108,7 @@ namespace GestureSign.Daemon.Triggers
 
             StopMonitoring();
             _mouseHook.MessageIntercepted -= MouseHook_MessageIntercepted;
+            _mouseHook.MouseMove -= MouseHook_MouseMove;
             _mouseHook.Dispose();
             _disposed = true;
         }

@@ -30,7 +30,8 @@ namespace GestureSign.Tests
             diagnostics.RecordWindowMoveTargetPublished();
             diagnostics.RecordWindowMoveTargetPublished();
             diagnostics.RecordWindowMoveTargetsCoalesced(1);
-            diagnostics.RecordWindowMoveRequest(100, 300, 200, true, 45, true, 8_000);
+            diagnostics.RecordUnchangedWindowMoveTarget();
+            diagnostics.RecordWindowMoveRequest(100, 300, 200, true, 45, true, 8_000, 4_000);
             diagnostics.RecordNativeMoveLoopStart(false, "test-fallback");
             diagnostics.ObserveWindowPosition(108, 280, 200);
 
@@ -72,6 +73,8 @@ namespace GestureSign.Tests
             Assert.Equal(1, record.WindowMoveRequests);
             Assert.Equal(2, record.WindowMoveTargetsPublished);
             Assert.Equal(1, record.WindowMoveTargetsCoalesced);
+            Assert.Equal(1, record.WindowMoveTargetsUnchanged);
+            Assert.Equal(4_000, record.MaximumWindowMoveQueueWaitMicroseconds);
             Assert.Equal(1, record.WindowMoveAsyncFallbacks);
             Assert.Equal(45, record.MaximumSetWindowPosCallMicroseconds);
             Assert.Equal(8_000, record.MaximumCompositionWaitMicroseconds);
@@ -82,6 +85,12 @@ namespace GestureSign.Tests
             Assert.Equal("test-fallback", record.NativeMoveLoopFallbackDetail);
             Assert.Contains(record.Samples, sample => sample.Contains("confidence-contact-drop"));
             Assert.Contains(record.Samples, sample => sample.Contains("window-position-lag"));
+
+            diagnostics.Begin(200, TouchpadWindowDragImplementation.DirectSetWindowPos,
+                new IntPtr(123), true, true);
+            diagnostics.Complete(201, "next-session");
+            Assert.Equal(0, sink.Records[1].WindowMoveTargetsUnchanged);
+            Assert.Equal(0, sink.Records[1].MaximumWindowMoveQueueWaitMicroseconds);
         }
 
         [Fact]

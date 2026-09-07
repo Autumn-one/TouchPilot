@@ -49,7 +49,8 @@ namespace GestureSign.Common.Input
     {
         Disabled = 0,
         BottomEdgeAnchor = 1,
-        ThreeFingerDrag = 3
+        ThreeFingerDrag = 3,
+        ThreeFingerWindowDrag = 4
     }
 
     public enum TouchpadWindowDragImplementation
@@ -58,6 +59,7 @@ namespace GestureSign.Common.Input
         SimulatedMouseDrag = 1,
         ThreeFingerDrag = 2,
         NativeMoveLoop = 3,
+        ThreeFingerWindowDrag = 4,
         [Obsolete("Use SimulatedMouseDrag.")]
         SimulatedCaptionDrag = SimulatedMouseDrag
     }
@@ -254,21 +256,23 @@ namespace GestureSign.Common.Input
             }
 
             var output = new List<TouchpadInteractionEvent>();
+            bool windowOnly = _options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerWindowDrag;
+            bool threeFingerMode = windowOnly || _options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag;
             if (_claimedThreeFingerEdgeCandidate)
             {
                 ProcessClaimedThreeFingerEdgeCandidate(timestampMilliseconds, output);
             }
             else if (_windowDragActive)
             {
-                if (_options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag)
+                if (threeFingerMode)
                     ProcessThreeFingerWindowDrag(output);
                 else
                     ProcessActiveWindowDrag(timestampMilliseconds, output);
             }
-            else if (_options.WindowDragMode == TouchpadWindowDragMode.ThreeFingerDrag &&
-                     (_threeFingerTracking || (!_claimed && _activeContacts.Count >= 3)))
+            else if (threeFingerMode &&
+                     (_threeFingerTracking || ((!_claimed || windowOnly) && _activeContacts.Count >= 3)))
             {
-                if (_threeFingerTracking || !TryClaimThreeFingerEdgeCandidate())
+                if (_threeFingerTracking || windowOnly || !TryClaimThreeFingerEdgeCandidate())
                     ProcessThreeFingerWindowDrag(output);
             }
             else if (ShouldProcessBottomDragCandidate())

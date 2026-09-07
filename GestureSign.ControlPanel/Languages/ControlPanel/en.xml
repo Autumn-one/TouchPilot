@@ -5,15 +5,16 @@
   <IsRightToLeft>False</IsRightToLeft>
   <Title>TouchPilot Settings</Title>
   <Messages>
+    <AdministratorRestartRequired>The gesture service is still running with normal permissions. Exit TouchPilot from the tray and start it again to apply administrator startup.</AdministratorRestartRequired>
     <CannotFindDaemonMessage>Cannot find TouchPilot.exe. Try downloading or installing TouchPilot again.</CannotFindDaemonMessage>
     <Error>Error</Error>
     <CompatWarning>Application detect that it is set the compatibility to run as administrator(right click/properties/compatibility/Run this program as an administrator).
 This may lead to function failure(e.g. Start application at Windows startup).
     </CompatWarning>
     <CompatWarningTitle>Warning</CompatWarningTitle>
-    <FindNewErrorLog>Find new error log.You can help me track and fix problems by sending these error logs.</FindNewErrorLog>
+    <FindNewErrorLog>A new error log is available. You can export it locally and share it through the QQ group.</FindNewErrorLog>
     <StartupError>Cannot launch "{0}". Check whether security software blocked startup, or reinstall TouchPilot.</StartupError>
-    <UnexpectedException>An unexpected exception has occurred. Shutting down the application. You can help fix the problems by "Send Feedback" </UnexpectedException>
+    <UnexpectedException>An unexpected exception has occurred. Shutting down the application. Open "Feedback &amp; Logs" on the About page to report the problem.</UnexpectedException>
     <FileWriteException>Failed to save. Try moving TouchPilot if you are using the portable edition.</FileWriteException>
   </Messages>
   <Common>
@@ -33,28 +34,29 @@ This may lead to function failure(e.g. Start application at Windows startup).
   </Common>
   <About>
     <Header>About</Header>
-    <Homepage>Homepage</Homepage>
-    <HomepageUrl>https://github.com/Autumn-one/TouchPilot</HomepageUrl>
-    <HelpPageUrl>https://github.com/Autumn-one/TouchPilot</HelpPageUrl>
+    <Homepage>TG Channel</Homepage>
+    <HomepageUrl>https://t.me/+bnRpqZXuMmE2M2Y9</HomepageUrl>
+    <HelpPageUrl>https://t.me/+bnRpqZXuMmE2M2Y9</HelpPageUrl>
+    <Community>Our home base is the YouTube channel of the same name.</Community>
     <Version>Version:  </Version>
     <ReleaseDate>Release date:  </ReleaseDate>
-    <Information>Author: TransposonY
-Email: ccfyzh@gmail.com
+    <Information>QQ group: 111862811
+TG channel: https://t.me/+bnRpqZXuMmE2M2Y9
+Our home base is the YouTube channel of the same name.
     </Information>
-    <SendFeedback>Send Feedback</SendFeedback>
+    <SendFeedback>Feedback &amp; Logs</SendFeedback>
     <ShowReport>Show Report</ShowReport>
-    <Mail>You can also send mail to ccfyzh@gmail.com</Mail>
+    <Contact>QQ group: 111862811
+TG channel: https://t.me/+bnRpqZXuMmE2M2Y9</Contact>
     <Waiting>Please wait...</Waiting>
     <Exporting>Exporting error log file...</Exporting>
-    <Sending>Sending error log...</Sending>
-    <SendLogTitle>Send Error Log</SendLogTitle>
-    <SendButton>Send</SendButton>
-    <DontSendButton>Don't Send</DontSendButton>
-    <SendSuccessTitle>Log Send Success</SendSuccessTitle>
-    <SendSuccess>Thank you! The logs were sent successfully! </SendSuccess>
-    <SendFailed>Send Failed</SendFailed>
-    <FeedbackTip>Description about the exception. </FeedbackTip>
-    <Retry>Retry</Retry>
+    <SendLogTitle>Export Error Log</SendLogTitle>
+    <SendButton>Export Log</SendButton>
+    <DontSendButton>Not Now</DontSendButton>
+    <ExportSuccessTitle>Log Saved</ExportSuccessTitle>
+    <ExportSuccess>The log was saved locally and has not been sent. Feedback contacts:</ExportSuccess>
+    <LogFileFilter>Text files (*.txt)|*.txt</LogFileFilter>
+    <FeedbackTip>Problem description (optional)</FeedbackTip>
   </About>
   <ApplicationDialog>
     <AddApplication>New Application</AddApplication>
@@ -236,14 +238,16 @@ Email: ccfyzh@gmail.com
     <ConfidenceFilter>Filter low-confidence edge contacts</ConfidenceFilter>
     <ConfidenceFilterHelp>Only affects fixed edge gestures and window dragging, not recorded gestures</ConfidenceFilterHelp>
     <WindowDrag>Window dragging</WindowDrag>
+    <OpenWindowDrag>Window dragging settings</OpenWindowDrag>
     <BottomAnchor>Bottom-edge anchor</BottomAnchor>
-    <WindowDragEnabled>Enable dragging</WindowDragEnabled>
+    <WindowDragEnabled>Enable window dragging</WindowDragEnabled>
     <WindowDragBringToFront>Bring dragged window to front</WindowDragBringToFront>
     <WindowDragImplementation>Dragging method</WindowDragImplementation>
-    <DirectSetWindowPos>Bottom anchor: direct window movement (SetWindowPos)</DirectSetWindowPos>
-    <NativeMoveLoop>Bottom anchor: Windows native move loop (activates and snaps cursor)</NativeMoveLoop>
+    <DirectSetWindowPos>Bottom anchor: direct window movement</DirectSetWindowPos>
+    <NativeMoveLoop>Bottom anchor: Windows native move loop</NativeMoveLoop>
     <SimulatedMouseDrag>Bottom anchor: simulated mouse hold</SimulatedMouseDrag>
-    <ThreeFingerDrag>Three-finger drag (recorded 3-finger gestures off)</ThreeFingerDrag>
+    <ThreeFingerDrag>Three-finger drag</ThreeFingerDrag>
+    <ThreeFingerWindowDrag>Three-finger window drag</ThreeFingerWindowDrag>
     <WindowDragSensitivity>Drag sensitivity {0:F0}%</WindowDragSensitivity>
     <FixedGestures>Fixed edge gestures</FixedGestures>
     <OneFinger>One finger</OneFinger>
@@ -312,7 +316,7 @@ Email: ccfyzh@gmail.com
     <ErrorLogPrompt>Error Log Prompt</ErrorLogPrompt>
     <UpdateLabel>Software update</UpdateLabel>
     <CheckForUpdates>Check for updates</CheckForUpdates>
-    <RunAsAdmin>Run TouchPilot as administrator at startup</RunAsAdmin>
+    <RunAsAdmin>Run TouchPilot as administrator at startup (restart required)</RunAsAdmin>
     <WindowsStartup>
       <Header>Start TouchPilot with Windows</Header>
     </WindowsStartup>

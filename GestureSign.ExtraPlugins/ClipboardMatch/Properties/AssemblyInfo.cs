@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("GestureSign.ExtraPlugins.ClipboardMatch")]
 [assembly: AssemblyDescription("ClipboardMatch Plugin")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("TransposonY")]
+[assembly: AssemblyCompany("TouchPilot")]
 [assembly: AssemblyProduct("GestureSign.ExtraPlugins.ClipboardMatch")]
-[assembly: AssemblyCopyright("Copyright © TransposonY 2017")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

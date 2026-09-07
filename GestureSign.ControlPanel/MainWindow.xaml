@@ -58,7 +58,13 @@
             <TabItem Header="{localization:LocalisedText EdgeTouch.Header}"
                      Style="{StaticResource V2.Navigation.TabItem}"
                      Tag="{x:Static iconPacks:PackIconLucideKind.ScanLine}">
-                <mainWindowControl:EdgeTouch />
+                <mainWindowControl:EdgeTouch WindowDragRequested="EdgeTouch_WindowDragRequested" />
+            </TabItem>
+            <TabItem x:Name="WindowDragTab"
+                     Header="{localization:LocalisedText EdgeTouch.WindowDrag}"
+                     Style="{StaticResource V2.Navigation.TabItem}"
+                     Tag="{x:Static iconPacks:PackIconLucideKind.Move}">
+                <mainWindowControl:WindowDrag />
             </TabItem>
             <TabItem Header="{localization:LocalisedText Options.Header}"
                      Style="{StaticResource V2.Navigation.TabItem}"
@@ -100,7 +106,8 @@
                                            Text="TouchPilot" />
                                 <TextBlock Margin="0,3,0,0"
                                            Style="{StaticResource V2.Text.Caption}"
-                                           Text="{localization:LocalisedText About.HomepageUrl}" />
+                                           Text="{localization:LocalisedText About.Community}"
+                                           TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
 

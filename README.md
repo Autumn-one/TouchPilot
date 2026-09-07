@@ -4,6 +4,39 @@ TouchPilot is a Windows touchpad and gesture automation utility. It can automate
 
 [Releases](https://github.com/Autumn-one/TouchPilot/releases)
 
+## Build and run locally
+
+Double-click **`Build-TouchPilot.cmd`** in the repository root to build the complete,
+self-contained Windows x64 application. This requires the .NET 10 SDK and
+PowerShell 7. The equivalent command is `pwsh -NoProfile -File ./publish.ps1`.
+
+Double-click **`Start-TouchPilot.cmd`** in the repository root to open the latest
+control panel and start its gesture daemon. The complete runnable application is
+always in **`artifacts/latest/`**, with `TouchPilot.exe` as its main executable.
+The launcher works from any current directory and does not require the SDK.
+Exit TouchPilot from the tray before replacing a running latest build.
+
+The administrator startup setting applies to manual launches as well as sign-in.
+The control panel reuses a matching elevated startup task when available; otherwise
+Windows requests UAC elevation. Direct launches of `TouchPilot.exe` also honor the
+setting. Changes apply after exiting TouchPilot from the tray and starting it again.
+Cancelling UAC does not silently start the gesture service with normal permissions.
+
+Successful publishes refresh this fixed location, including publishes with an
+explicit `-OutputDirectory`. Compilation and packaging happen separately from
+the latest build, so a failed build leaves the previous application available.
+Portable `AppData` is preserved. The default publish work directory is
+`artifacts/publish/`; `-SkipLatest` is reserved for diagnostic or intermediate
+publishes. `dotnet build` and `dotnet test` alone are development checks and do
+not assemble the complete runnable distribution.
+
+`build-release.ps1 -Version <version>` also refreshes the latest application from
+the Release distribution after creating and checking both release packages.
+Release archives retain their versioned names and existing output locations.
+
+Run the build-output regression checks with
+`pwsh -NoProfile -File ./scripts/tests/LatestBuild.Tests.ps1`.
+
 ## Feature
 
 - Activate Window
@@ -20,6 +53,32 @@ TouchPilot is a Windows touchpad and gesture automation utility. It can automate
 - Launch Windows Store App
 - Send Message
 - Toggle Window Topmost
+
+## Open-file permissions
+
+The **Open File or Website** command has a **Permissions** selector. New commands
+and existing settings without this field default to **Normal permissions**.
+When TouchPilot is elevated, normal launches use the signed-in desktop user's
+Explorer Shell. **Administrator permissions** uses Windows `runas`, requesting
+UAC elevation when necessary. Cancelling UAC cancels that launch.
+
+Normal launches require a non-elevated Windows desktop when TouchPilot is
+elevated. If it is unavailable, the command fails instead of inheriting
+TouchPilot's administrator token. Windows still enforces the target program's
+own elevation manifest and shortcut settings. Administrator launches of
+documents or URLs require an association that supports `runas`; unsupported
+associations fail without retrying at normal permissions.
+
+Run the permission regression tests with:
+
+```powershell
+dotnet test GestureSign.Tests/GestureSign.Tests.csproj -c Release --filter FullyQualifiedName~OpenFilePermissionTests
+```
+
+To include the real UAC matrix (normal to administrator, administrator to normal,
+and administrator to administrator), set `$env:TOUCHPILOT_TEST_ELEVATION = "1"`
+before running the command. The test launches temporary permission probes that
+exit automatically. Remove the environment variable after testing.
 
 ## Automatic updates
 

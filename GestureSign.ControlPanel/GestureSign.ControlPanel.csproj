@@ -7,14 +7,12 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <!-- SharpRaven still restores its .NET Framework asset on .NET 10. -->
-    <NoWarn>$(NoWarn);NU1701;WFO0003</NoWarn>
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MahApps.Metro" Version="2.4.11" />
     <PackageReference Include="MahApps.Metro.IconPacks.Lucide" Version="6.2.1" />
-    <PackageReference Include="SharpRaven" Version="2.2.0" />
     <PackageReference Include="System.Management" Version="10.0.10" />
   </ItemGroup>
 

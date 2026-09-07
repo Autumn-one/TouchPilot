@@ -34,6 +34,7 @@ namespace GestureSign.Daemon.Triggers
             _confidenceFilter = confidenceFilter ?? throw new ArgumentNullException(nameof(confidenceFilter));
             _windowDragDiagnostics = new WindowDragDiagnostics(WindowDragDiagnosticWriter.Instance);
             _windowDragController = new WindowDragController(_windowDragDiagnostics);
+            _wheelSuppressor.ExternalMouseMoved += _windowDragController.ObserveExternalCursor;
             _sessionWindowDragImplementation = AppConfig.TouchpadWindowDragImplementation;
             _sessionWindowDragBringToFront = AppConfig.TouchpadWindowDragBringToFront;
             _recognizer = CreateRecognizer(_sessionWindowDragImplementation);
@@ -51,7 +52,8 @@ namespace GestureSign.Daemon.Triggers
                 : e.Contacts;
             _windowDragDiagnostics.ObserveTouchpadFrame(e.TimestampMilliseconds, e.Contacts, contacts,
                 Math.Max(0, handlerEnteredAtMilliseconds - e.TimestampMilliseconds));
-            if (normalMode && AppConfig.TouchpadEdgeGesturesEnabled &&
+            if (normalMode && (AppConfig.TouchpadEdgeGesturesEnabled ||
+                               AppConfig.TouchpadWindowDragMode != TouchpadWindowDragMode.Disabled) &&
                 contacts.Count(contact => contact.IsActive) >= 2)
             {
                 _wheelSuppressor.StartMonitoring();
@@ -188,6 +190,7 @@ namespace GestureSign.Daemon.Triggers
             _windowDragController.End();
             _windowDragDiagnostics.Complete(Environment.TickCount64, "disposed");
             _windowDragTargetLock.Clear();
+            _wheelSuppressor.ExternalMouseMoved -= _windowDragController.ObserveExternalCursor;
             _wheelSuppressor.StopMonitoring();
         }
 
@@ -212,9 +215,11 @@ namespace GestureSign.Daemon.Triggers
             TouchpadWindowDragMode windowDragMode = AppConfig.TouchpadWindowDragMode;
             if (windowDragMode != TouchpadWindowDragMode.Disabled)
             {
-                windowDragMode = windowDragImplementation == TouchpadWindowDragImplementation.ThreeFingerDrag
-                    ? TouchpadWindowDragMode.ThreeFingerDrag
-                    : TouchpadWindowDragMode.BottomEdgeAnchor;
+                windowDragMode = windowDragImplementation == TouchpadWindowDragImplementation.ThreeFingerWindowDrag
+                    ? TouchpadWindowDragMode.ThreeFingerWindowDrag
+                    : windowDragImplementation == TouchpadWindowDragImplementation.ThreeFingerDrag
+                        ? TouchpadWindowDragMode.ThreeFingerDrag
+                        : TouchpadWindowDragMode.BottomEdgeAnchor;
             }
             var assignedGestures = new HashSet<FixedEdgeGesture>();
             if (enabled)
@@ -233,7 +238,7 @@ namespace GestureSign.Daemon.Triggers
             {
                 EdgeGesturesEnabled = enabled,
                 EnabledEdgeGestures = assignedGestures,
-                WindowDragMode = enabled ? windowDragMode : TouchpadWindowDragMode.Disabled,
+                WindowDragMode = windowDragMode,
                 EdgeZone = AppConfig.TouchpadEdgeZonePercent / 100d,
                 LeftEdgeZone = AppConfig.TouchpadLeftEdgeZonePercent / 100d,
                 RightEdgeZone = AppConfig.TouchpadRightEdgeZonePercent / 100d,

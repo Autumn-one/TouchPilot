@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
@@ -37,8 +38,45 @@ namespace GestureSign.Daemon
             if (!BuildLifetime.Evaluate(DateTimeOffset.UtcNow).CanRun)
                 return;
 
+            if (DaemonStartup.IsRunning())
+            {
+                NamedPipe.SendMessageAsync(IpcCommands.StartControlPanel, Constants.Daemon, wait: false).Wait();
+                return;
+            }
+
+            if (DaemonStartup.NeedsElevation(AppConfig.RunAsAdmin,
+                    DaemonStartup.IsCurrentProcessElevated, AppConfig.UiAccess))
+            {
+                try
+                {
+                    using Process elevated = Process.Start(DaemonStartup.CreateStartInfo(
+                        Path.Combine(AppContext.BaseDirectory, Constants.DaemonFileName), true));
+                    if (elevated == null)
+                        throw new InvalidOperationException("Windows did not start the elevated gesture service.");
+                }
+                catch (Exception exception)
+                {
+                    if (!LocalizationProvider.Instance.LoadFromFile("Daemon"))
+                        LocalizationProvider.Instance.LoadFromResource(Properties.Resources.en);
+                    MessageBox.Show(string.Format(LocalizationProvider.Instance.GetTextValue(
+                            "Messages.AdministratorStartupFailed"), exception.Message), Constants.ProductName,
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                return;
+            }
+
             bool createdNew;
-            using (new Mutex(true, Constants.Daemon, out createdNew))
+            Mutex daemonMutex;
+            try
+            {
+                daemonMutex = new Mutex(true, Constants.Daemon, out createdNew);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                NamedPipe.SendMessageAsync(IpcCommands.StartControlPanel, Constants.Daemon, wait: false).Wait();
+                return;
+            }
+            using (daemonMutex)
             {
                 if (createdNew)
                 {

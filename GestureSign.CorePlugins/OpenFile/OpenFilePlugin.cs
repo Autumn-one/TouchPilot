@@ -1,7 +1,6 @@
 ﻿using GestureSign.Common.Localization;
 using GestureSign.Common.Plugins;
 using GestureSign.CorePlugins.Common;
-using System.Diagnostics;
 
 namespace GestureSign.CorePlugins.OpenFile
 {
@@ -14,6 +13,8 @@ namespace GestureSign.CorePlugins.OpenFile
             public string Path { get; set; }
 
             public string Variables { get; set; }
+
+            public bool RunAsAdministrator { get; set; }
         }
 
         private OpenFileControl _GUI = null;
@@ -82,16 +83,11 @@ namespace GestureSign.CorePlugins.OpenFile
         {
             if (_settings == null) return false;
 
-            using (Process process = new Process())
-            {
-                var parser = new EnvironmentVariablesParser(pointInfo);
-                process.StartInfo.FileName = parser.ExpandEnvironmentVariables(_settings.Path);
-                process.StartInfo.Arguments = parser.ExpandEnvironmentVariables(_settings.Variables);
-                process.StartInfo.UseShellExecute = true;
-                process.Start();
-            }
-
-            return true;
+            var parser = new EnvironmentVariablesParser(pointInfo);
+            return OpenFileLauncher.Open(
+                parser.ExpandEnvironmentVariables(_settings.Path),
+                parser.ExpandEnvironmentVariables(_settings.Variables),
+                _settings.RunAsAdministrator);
         }
 
         public bool Deserialize(string SerializedData)

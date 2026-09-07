@@ -16,19 +16,28 @@ namespace GestureSign.Daemon.Triggers
             Left = left;
             Top = top;
             RequiresAsynchronousPositioning = requiresAsynchronousPositioning;
+            CreatedAtTicks = Stopwatch.GetTimestamp();
         }
 
         internal IntPtr WindowHandle { get; }
         internal int Left { get; }
         internal int Top { get; }
         internal bool RequiresAsynchronousPositioning { get; }
+        internal long CreatedAtTicks { get; }
+
+        internal bool HasSameTarget(WindowDragMotionRequest other)
+        {
+            return WindowHandle == other.WindowHandle && Left == other.Left && Top == other.Top &&
+                   RequiresAsynchronousPositioning == other.RequiresAsynchronousPositioning;
+        }
     }
 
     internal readonly struct WindowDragMotionResult
     {
         internal WindowDragMotionResult(long timestampMilliseconds, int requestedLeft,
             int requestedTop, bool succeeded, int errorCode, long callMicroseconds,
-            bool usedAsynchronousFallback, long compositionWaitMicroseconds)
+            bool usedAsynchronousFallback, long compositionWaitMicroseconds,
+            long queueWaitMicroseconds = 0)
         {
             TimestampMilliseconds = timestampMilliseconds;
             RequestedLeft = requestedLeft;
@@ -38,6 +47,7 @@ namespace GestureSign.Daemon.Triggers
             CallMicroseconds = callMicroseconds;
             UsedAsynchronousFallback = usedAsynchronousFallback;
             CompositionWaitMicroseconds = compositionWaitMicroseconds;
+            QueueWaitMicroseconds = queueWaitMicroseconds;
         }
 
         internal long TimestampMilliseconds { get; }
@@ -48,12 +58,14 @@ namespace GestureSign.Daemon.Triggers
         internal long CallMicroseconds { get; }
         internal bool UsedAsynchronousFallback { get; }
         internal long CompositionWaitMicroseconds { get; }
+        internal long QueueWaitMicroseconds { get; }
 
-        internal WindowDragMotionResult WithCompositionWait(long compositionWaitMicroseconds)
+        internal WindowDragMotionResult WithWaitDurations(long compositionWaitMicroseconds,
+            long queueWaitMicroseconds)
         {
             return new WindowDragMotionResult(TimestampMilliseconds, RequestedLeft,
                 RequestedTop, Succeeded, ErrorCode, CallMicroseconds,
-                UsedAsynchronousFallback, compositionWaitMicroseconds);
+                UsedAsynchronousFallback, compositionWaitMicroseconds, queueWaitMicroseconds);
         }
     }
 
@@ -162,6 +174,9 @@ namespace GestureSign.Daemon.Triggers
                 if (_stopping || _stopped || Volatile.Read(ref _disposed) != 0)
                     return false;
 
+                if (_latestVersion > _appliedVersion && _latestRequest.HasSameTarget(request))
+                    return true;
+
                 if (_latestVersion > _appliedVersion &&
                     _latestVersion != _processingVersion)
                 {
@@ -174,6 +189,15 @@ namespace GestureSign.Daemon.Triggers
 
             _workAvailable.Set();
             return true;
+        }
+
+        internal bool HasPendingMoves
+        {
+            get
+            {
+                lock (_sync)
+                    return _latestVersion > _appliedVersion;
+            }
         }
 
         internal bool Flush(TimeSpan timeout)
@@ -235,11 +259,13 @@ namespace GestureSign.Daemon.Triggers
                     while (TryTakeLatestRequest(out WindowDragMotionRequest request,
                                out long version))
                     {
+                        long queueWait = (long)(Math.Max(0, Stopwatch.GetTimestamp() - request.CreatedAtTicks) *
+                            (1_000_000d / Stopwatch.Frequency));
                         WindowDragMotionResult result = _backend.Apply(request);
                         long compositionWait = result.Succeeded
                             ? _backend.WaitForComposition()
                             : 0;
-                        _results.Enqueue(result.WithCompositionWait(compositionWait));
+                        _results.Enqueue(result.WithWaitDurations(compositionWait, queueWait));
 
                         lock (_sync)
                         {

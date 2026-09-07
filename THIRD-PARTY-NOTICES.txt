@@ -40,10 +40,6 @@ NuGet.Versioning 7.6.0
   Project: https://github.com/NuGet/NuGet.Client
   License: https://licenses.nuget.org/Apache-2.0
 
-SharpRaven 2.2.0
-  Project: https://github.com/getsentry/raven-csharp
-  License: https://github.com/getsentry/raven-csharp/blob/master/LICENSE
-
 System.Management 10.0.10
   License: MIT
   Project: https://github.com/dotnet/dotnet
@@ -86,6 +82,12 @@ and notice files are available here:
 
 Historical attribution
 ----------------------
+
+GestureSign source components
+  ControlPanel, Daemon, Common, CorePlugins: Copyright (C) TransposonY 2022
+  PointPatterns: Copyright (C) TransposonY 2021
+  TextCopyer, ClipboardMatch: Copyright (C) TransposonY 2017
+  These historical notices are retained here from assembly metadata.
 
 The following attribution was present in an earlier TouchPilot About page
 and is retained here for reference:

@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Language DisplayName="English" Culture="en" Version="0.14">
   <Messages>
+    <AdministratorStartupFailed>Administrator startup was cancelled or failed. The TouchPilot gesture service was not started.&#10;&#10;{0}</AdministratorStartupFailed>
     <Error>Error</Error>
     <ContactCountError>Can not get the number of contacts! Please try to reinstall the device driver!</ContactCountError>
     <ComponentNotFoundMessage>Cannot find {0}. Try downloading or installing TouchPilot again.</ComponentNotFoundMessage>

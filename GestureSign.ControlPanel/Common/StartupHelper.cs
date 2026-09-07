@@ -1,5 +1,6 @@
 ﻿using GestureSign.Common.Configuration;
 using GestureSign.Common.Localization;
+using GestureSign.Common.Lifecycle;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -265,7 +266,7 @@ namespace GestureSign.ControlPanel.Common
             return process.ExitCode == 0;
         }
 
-        private static bool IsStartupTaskForCurrentInstallation(string taskName)
+        private static XDocument ReadStartupTask(string taskName)
         {
             string schedulerPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe");
@@ -286,29 +287,131 @@ namespace GestureSign.ControlPanel.Common
             {
                 using Process process = Process.Start(startInfo);
                 if (process == null)
-                    return false;
+                    return null;
                 Task<string> output = process.StandardOutput.ReadToEndAsync();
                 Task<string> error = process.StandardError.ReadToEndAsync();
                 if (!process.WaitForExit(5000))
                 {
                     process.Kill(true);
-                    return false;
+                    return null;
                 }
                 Task.WaitAll(output, error);
                 if (process.ExitCode != 0)
-                    return false;
+                    return null;
 
-                XDocument document = XDocument.Parse(output.Result);
-                XNamespace taskNamespace = document.Root?.Name.Namespace ?? XNamespace.None;
-                return document.Descendants(taskNamespace + "Command").Any(command =>
-                    IsStartupTargetForDirectory(command.Value,
-                        AppDomain.CurrentDomain.BaseDirectory));
+                return XDocument.Parse(output.Result);
             }
             catch (Exception exception)
             {
                 GestureSign.Common.Log.Logging.LogException(exception);
+                return null;
+            }
+        }
+
+        private static bool IsStartupTaskForCurrentInstallation(string taskName)
+        {
+            XDocument document = ReadStartupTask(taskName);
+            if (document == null)
+                return false;
+            XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
+            return document.Descendants(ns + "Command").Any(command =>
+                IsStartupTargetForDirectory(command.Value, AppDomain.CurrentDomain.BaseDirectory));
+        }
+
+        internal static bool CanRunElevatedStartupTask(XDocument document, string directory, string userSid)
+        {
+            XElement root = document?.Root;
+            if (root == null)
+                return false;
+            XNamespace ns = root.Name.Namespace;
+            XElement[] principals = root.Element(ns + "Principals")?.Elements().ToArray();
+            XElement[] actions = root.Element(ns + "Actions")?.Elements().ToArray();
+            if (principals?.Length != 1 || actions?.Length != 1)
+                return false;
+            XElement principal = principals[0];
+            XElement action = actions[0];
+            return principal.Element(ns + "RunLevel")?.Value == "HighestAvailable" &&
+                   principal.Element(ns + "LogonType")?.Value == "InteractiveToken" &&
+                   IsTaskUser(principal.Element(ns + "UserId")?.Value, userSid) &&
+                   action.Name == ns + "Exec" &&
+                   string.IsNullOrWhiteSpace(action.Element(ns + "Arguments")?.Value) &&
+                   IsStartupTargetForDirectory(action.Element(ns + "Command")?.Value, directory);
+        }
+
+        private static bool IsTaskUser(string taskUser, string userSid)
+        {
+            if (string.IsNullOrWhiteSpace(taskUser))
+                return false;
+            if (string.Equals(taskUser, userSid, StringComparison.OrdinalIgnoreCase))
+                return true;
+            try
+            {
+                return ((SecurityIdentifier)new NTAccount(taskUser).Translate(typeof(SecurityIdentifier))).Value == userSid;
+            }
+            catch (IdentityNotMappedException)
+            {
                 return false;
             }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+        }
+
+        internal static async Task<bool> TryStartHighPrivilegeDaemonAsync()
+        {
+            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            string directory = AppDomain.CurrentDomain.BaseDirectory;
+            foreach (string taskName in new[] { CurrentTaskName, LegacyTaskName })
+            {
+                XDocument document = await Task.Run(() => ReadStartupTask(taskName));
+                if (!CanRunElevatedStartupTask(document, directory, identity.User.Value))
+                    continue;
+
+                var info = new ProcessStartInfo(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.System), "schtasks.exe"))
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+                info.ArgumentList.Add("/Run");
+                info.ArgumentList.Add("/TN");
+                info.ArgumentList.Add(taskName);
+                using Process process = Process.Start(info);
+                if (process == null)
+                    continue;
+                Task<string> output = process.StandardOutput.ReadToEndAsync();
+                Task<string> error = process.StandardError.ReadToEndAsync();
+                using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                try
+                {
+                    await process.WaitForExitAsync(timeout.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    process.Kill(true);
+                    await process.WaitForExitAsync();
+                    return false;
+                }
+                await Task.WhenAll(output, error);
+                if (process.ExitCode != 0)
+                    continue;
+
+                // Task Scheduler accepting a request does not establish the daemon's privilege.
+                var wait = Stopwatch.StartNew();
+                while (wait.Elapsed < TimeSpan.FromSeconds(10))
+                {
+                    if (DaemonStartup.IsRunning() &&
+                        DaemonStartup.TryGetRunningElevation(directory, out bool elevated))
+                        return elevated;
+                    await Task.Delay(100);
+                }
+                return false;
+            }
+            return false;
         }
 
         internal static bool ShouldUseHighPrivilegeStartup(bool configured,
